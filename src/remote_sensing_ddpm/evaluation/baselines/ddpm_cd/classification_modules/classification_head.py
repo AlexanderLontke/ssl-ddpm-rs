@@ -108,14 +108,15 @@ class ClassificationHead(nn.Module):
             dim_out, clfr_emb_dim, kernel_size=5, padding=0
         )
         self.clfr_stg2 = nn.Conv2d(
-            clfr_emb_dim, out_channels, kernel_size=5, padding=0
+            clfr_emb_dim, 16, kernel_size=5, padding=0
         )
         self.pool = nn.MaxPool2d(2, 2)
         self.relu = nn.ReLU()
         # Fully connected Layers
-        self.fc1 = nn.Linear(out_channels * (61 ** 2), 2048)
-        self.fc2 = nn.Linear(2048, 1024)
-        self.fc3 = nn.Linear(1024, 21)
+        self.fc1 = nn.Linear(16 * (61 ** 2), 4096)
+        self.fc2 = nn.Linear(4096, 2048)
+        self.fc3 = nn.Linear(2048, 1024)
+        self.fc4 = nn.Linear(1024, out_channels)
 
     def forward(self, feats):
         # Decoder
@@ -145,5 +146,6 @@ class ClassificationHead(nn.Module):
         x = torch.flatten(x, 1)
         x = self.relu(self.fc1(x))
         x = self.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = self.relu(self.fc3(x))
+        x = self.fc4(x)
         return x
