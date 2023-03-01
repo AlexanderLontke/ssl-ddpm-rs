@@ -61,6 +61,8 @@ def parse(args):
 
     # debug
     if "debug" in opt["name"]:
+        opt["train"]["n_epochs"] = 1
+        opt["train"]["train_print_freq"] = 50
         opt["train"]["val_freq"] = 2
         opt["train"]["print_freq"] = 2
         opt["train"]["save_checkpoint_freq"] = 3
