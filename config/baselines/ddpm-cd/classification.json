@@ -1,12 +1,12 @@
 {
-  "name": "ddpm-RS-CDHead-CDD",
+  "name": "ddpm-RS-ClassificationHead",
   "phase": "train",
   "path": {
     "log": "logs",
     "tb_logger": "tb_logger",
     "results": "results",
     "checkpoint": "checkpoint",
-    "resume_state": "/Users/alexanderlontke/Documents/Uni/St. Gallen/SS_23/master_thesis/pretrained-diffusion-model/checkpoint/I190000_E97"
+    "resume_state": "/netscratch2/alontke/master_thesis/checkpoints/ddpm-cd/I190000_E97"
   },
   "path_classification": {
     "log": "logs",
@@ -18,9 +18,9 @@
   "datasets": {
     "train": {
       "name": "UC_Merced",
-      "data_root": "/Users/alexanderlontke/Documents/Uni/St. Gallen/SS_23/master_thesis/data/UCMerced_LandUse/Images",
+      "data_root": "/netscratch2/alontke/master_thesis/data/UCMerced_LandUse/Images",
       "resolution": 256,
-      "batch_size": 64,
+      "batch_size": 8,
       "num_workers": 4,
       "use_shuffle": true,
       "data_len": -1
@@ -28,9 +28,9 @@
     },
     "val": {
       "name": "UC_Merced",
-      "data_root": "/Users/alexanderlontke/Documents/Uni/St. Gallen/SS_23/master_thesis/data/UCMerced_LandUse/Images",
+      "data_root": "/netscratch2/alontke/master_thesis/data/UCMerced_LandUse/Images",
       "resolution": 256,
-      "batch_size": 64,
+      "batch_size": 4,
       "num_workers": 4,
       "use_shuffle": true,
       "data_len": -1
@@ -38,9 +38,9 @@
     },
     "test": {
       "name": "UC_Merced",
-      "data_root": "/Users/alexanderlontke/Documents/Uni/St. Gallen/SS_23/master_thesis/data/UCMerced_LandUse/Images",
+      "data_root": "/netscratch2/alontke/master_thesis/data/UCMerced_LandUse/Images",
       "resolution": 256,
-      "batch_size": 64,
+      "batch_size": 4,
       "num_workers": 4,
       "use_shuffle": false,
       "data_len": -1
@@ -55,7 +55,7 @@
       11,
       14
     ],
-    "out_channels": 2,
+    "out_channels": 21,
     "loss_type": "ce",
     "img_size": 256,
     "psp": true,
@@ -114,8 +114,8 @@
     }
   },
   "train": {
-    "n_epoch": 120,
-    "train_print_freq": 500,
+    "n_epoch": 20,
+    "train_print_freq": 50,
     "val_freq": 1,
     "val_print_freq": 50,
     "optimizer": {
