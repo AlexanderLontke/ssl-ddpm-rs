@@ -114,8 +114,8 @@ class ClassificationHead(nn.Module):
         self.relu = nn.ReLU()
         # Fully connected Layers
         self.fc1 = nn.Linear(out_channels * (61 ** 2), 2048)
-        self.fc2 = nn.Linear(1024, 512)
-        self.fc3 = nn.Linear(512, 21)
+        self.fc2 = nn.Linear(2048, 1024)
+        self.fc3 = nn.Linear(1024, 21)
 
     def forward(self, feats):
         # Decoder
