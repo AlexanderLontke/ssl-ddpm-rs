@@ -105,14 +105,13 @@ resize = torchvision.transforms.Resize(size=256)
 # augmentations for images
 def transform_augment(img, split="val", min_max=(0, 1), res=256):
     img = totensor(img)
-    if split == "train":
-        if img.size(1) < res or img.size(2) < res:
-            img = resize(img)
-        if img.size(1) > res or img.size(2) > res:
-            img = rcrop(img)
-        else:
-            img = img
-        img = hflip(img)
+    if img.size(1) < res or img.size(2) < res:
+        img = resize(img)
+    if img.size(1) > res or img.size(2) > res:
+        img = rcrop(img)
+    else:
+        img = img
+    img = hflip(img)
     ret_img = img * (min_max[1] - min_max[0]) + min_max[0]
     return ret_img
 
