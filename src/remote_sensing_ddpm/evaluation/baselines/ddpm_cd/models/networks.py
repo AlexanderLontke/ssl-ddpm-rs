@@ -117,8 +117,10 @@ def define_G(opt):
         conditional=model_opt["diffusion"]["conditional"],
         schedule_opt=model_opt["beta_schedule"]["train"],
     )
-    if opt["phase"] == "train":
+    # Skip weight initialization if checkpoint is loaded
+    if opt["phase"] == "train" and not opt["path"]["resume_state"]:
         # init_weights(netG, init_type='kaiming', scale=0.1)
+        logger.info("Initializing diffusion model weights")
         init_weights(netG, init_type="orthogonal")
     if opt["gpu_ids"] and opt["distributed"]:
         assert torch.cuda.is_available()
@@ -173,7 +175,7 @@ def define_classification(opt):
     # Initialize the change detection head if it is 'train' phase
     if opt["phase"] == "train":
         # Try different initialization methods
-        # init_weights(netG, init_type='kaiming', scale=0.1)
+        # init_weights(classification_net, init_type='kaiming', scale=0.1)
         init_weights(classification_net, init_type="orthogonal")
     if opt["gpu_ids"] and opt["distributed"]:
         assert torch.cuda.is_available()
