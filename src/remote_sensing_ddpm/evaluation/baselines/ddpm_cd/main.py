@@ -40,11 +40,7 @@ if __name__ == "__main__":
     # Convert to NoneDict, which return None for missing key.
     opt = Logger.dict_to_nonedict(opt)
 
-    # logging
-    if opt["gpu"]:
-        torch.backends.cudnn.enabled = True
-        torch.backends.cudnn.benchmark = True
-
+    # Logging
     Logger.setup_logger(
         None, opt["path"]["log"], "train", level=logging.INFO, screen=True
     )
@@ -71,6 +67,12 @@ if __name__ == "__main__":
         val_step = 0
     else:
         wandb_logger = None
+
+    # GPU support
+    if opt["gpu_ids"]:
+        torch.backends.cudnn.enabled = True
+        torch.backends.cudnn.benchmark = True
+        logger.info("Cudnn enabled")
 
     # Loading change-detction datasets.
     for phase, dataset_opt in opt["datasets"].items():
@@ -196,13 +198,13 @@ if __name__ == "__main__":
                         "training/train_step": current_epoch,
                         "training/mPrecision": np.mean(
                             [
-                                k
+                                v
                                 for k, v in logs.items() if k.startswith("precision")
                             ]
                         ),
                         "training/mRecall": np.mean(
                             [
-                                k
+                                v
                                 for k, v in logs.items() if k.startswith("recall")
                             ]
                         ),
@@ -225,16 +227,16 @@ if __name__ == "__main__":
                     # Feed data to diffusion model
                     diffusion.feed_data(val_data)
                     feats = []
-                    for t in opt["classification_model"]["t"]:
+                    for t in opt["classification_model"]["time_steps"]:
                         fe, fd = diffusion.get_single_representation(
                             t=t
                         )  # np.random.randint(low=2, high=8)
                         if opt["classification_model"]["feat_type"] == "dec":
                             feats.append(fd)
-                            del fe, fe
+                            del fe
                         else:
                             feats.append(fe)
-                            del fd, fd
+                            del fd
 
                     # Feed data to CD model
                     classifier.feed_data(feats, val_data)
@@ -274,13 +276,13 @@ if __name__ == "__main__":
                             "validation/val_step": current_epoch,
                             "validation/mPrecision": np.mean(
                                 [
-                                    k
+                                    v
                                     for k, v in logs.items() if k.startswith("precision")
                                 ]
                             ),
                             "validation/mRecall": np.mean(
                                 [
-                                    k
+                                    v
                                     for k, v in logs.items() if k.startswith("recall")
                                 ]
                             ),
@@ -317,7 +319,7 @@ if __name__ == "__main__":
             # Feed data to diffusion model
             diffusion.feed_data(test_data)
             feats = []
-            for t in opt["classification_model"]["t"]:
+            for t in opt["classification_model"]["time_steps"]:
                 fe, fd = diffusion.get_single_representation(
                     t=t
                 )  # np.random.randint(low=2, high=8)
@@ -357,13 +359,13 @@ if __name__ == "__main__":
                     "test/OA": logs["acc"],
                     "test/mPrecision": np.mean(
                         [
-                            k
+                            v
                             for k, v in logs.items() if k.startswith("precision")
                         ]
                     ),
                     "test/mRecall": np.mean(
                         [
-                            k
+                            v
                             for k, v in logs.items() if k.startswith("recall")
                         ]
                     )
