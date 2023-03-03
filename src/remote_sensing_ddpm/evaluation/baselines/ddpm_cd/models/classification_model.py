@@ -6,9 +6,6 @@ import torch.nn as nn
 import os
 import remote_sensing_ddpm.evaluation.baselines.ddpm_cd.models.networks as networks
 from .base_model import BaseModel
-from remote_sensing_ddpm.evaluation.baselines.ddpm_cd.misc.metric_tools import (
-    ConfuseMatrixMeter,
-)
 from remote_sensing_ddpm.evaluation.baselines.ddpm_cd.misc.torchutils import (
     get_scheduler,
 )
@@ -49,7 +46,6 @@ class Classfication(BaseModel):
                         opt["train"]["optimizer"]["type"]
                     )
                 )
-            self.log_dict = OrderedDict()
 
             # Define learning rate sheduler
             self.exp_lr_scheduler_classification_net = get_scheduler(
@@ -57,14 +53,10 @@ class Classfication(BaseModel):
             )
         else:
             self.classification_net.eval()
-            self.log_dict = OrderedDict()
 
         self.load_network()
         self.print_network()
 
-        self.running_metric = ConfuseMatrixMeter(
-            n_class=opt[CLASSIFICATION_MODEL_CONFIG_KEY]["out_channels"]
-        )
         self.len_train_dataloader = opt["len_train_dataloader"]
         self.len_val_dataloader = opt["len_val_dataloader"]
 
@@ -80,7 +72,7 @@ class Classfication(BaseModel):
         l_classification = self.loss_func(self.prediction, self.data["L"].long())
         l_classification.backward()
         self.opt_classification.step()
-        self.log_dict["l_classification"] = l_classification.item()
+        return self.prediction, l_classification.item()
 
     # Testing on given data
     def test(self):
@@ -93,19 +85,8 @@ class Classfication(BaseModel):
             else:
                 self.prediction = self.classification_net(self.feats)
             l_classification = self.loss_func(self.prediction, self.data["L"].long())
-            self.log_dict["l_classification"] = l_classification.item()
         self.classification_net.train()
-
-    # Get current log
-    def get_current_log(self):
-        return self.log_dict
-
-    # Get current visuals
-    def get_current_visuals(self):
-        out_dict = OrderedDict()
-        out_dict["pred_cm"] = torch.argmax(self.prediction, dim=1, keepdim=False)
-        out_dict["gt_cm"] = self.data["L"]
-        return out_dict
+        return self.prediction, l_classification.item()
 
     # Printing the classification network
     def print_network(self):
@@ -202,38 +183,6 @@ class Classfication(BaseModel):
                 self.begin_step = opt["iter"]
                 self.begin_epoch = opt["epoch"]
 
-    # Functions related to computing performance metrics for classification
-    def _update_metric(self):
-        """
-        update metric
-        """
-        G_pred = self.prediction.detach()
-        G_pred = torch.argmax(G_pred, dim=1)
-
-        current_score = self.running_metric.update_cm(
-            pr=G_pred.cpu().numpy(), gt=self.data["L"].detach().cpu().numpy()
-        )
-        return current_score
-
-    # Collecting status of the current running batch
-    def _collect_running_batch_states(self):
-        self.running_acc = self._update_metric()
-        self.log_dict["running_acc"] = self.running_acc.item()
-
-    # Collect the status of the epoch
-    def _collect_epoch_states(self):
-        scores = self.running_metric.get_scores()
-        self.epoch_acc = scores["mf1"]
-        self.log_dict["epoch_acc"] = self.epoch_acc.item()
-
-        for k, v in scores.items():
-            self.log_dict[k] = v
-            # message += '%s: %.5f ' % (k, v)
-
-    # Rest all the performance metrics
-    def _clear_cache(self):
-        self.running_metric.clear()
-
-    # Finctions related to learning rate sheduler
+    # Functions related to learning rate scheduler
     def _update_lr_schedulers(self):
         self.exp_lr_scheduler_classification_net.step()

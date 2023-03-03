@@ -4,13 +4,18 @@ import remote_sensing_ddpm.evaluation.baselines.ddpm_cd as Model
 import argparse
 import logging
 import core.logger as Logger
-import core.metrics as Metrics
 from core.wandb_logger import WandbLogger
 from tensorboardX import SummaryWriter
 import os
 import numpy as np
-from remote_sensing_ddpm.evaluation.baselines.ddpm_cd.cd_modules.cd_head import cd_head
 from misc.print_diffuse_feats import print_feats
+from tqdm import tqdm
+from sklearn.metrics import (
+    accuracy_score,
+    recall_score,
+    precision_score
+)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -112,120 +117,34 @@ if __name__ == "__main__":
     # Training loop #
     #################
     n_epoch = opt["train"]["n_epoch"]
-    best_mF1 = 0.0
+    best_acc = 0.0
     start_epoch = 0
     if opt["phase"] == "train":
         for current_epoch in range(start_epoch, n_epoch):
-            classifier._clear_cache()
             train_result_path = "{}/train/{}".format(
                 opt["path"]["results"], current_epoch
             )
             os.makedirs(train_result_path, exist_ok=True)
 
             ################
+            #   buffers    #
+            ################
+            labels = []
+            predictions = []
+            epoch_loss = []
+
+            ################
             #   training   #
             ################
             message = (
-                "lr: %0.7f\n \n" % classifier.opt_classification.param_groups[0]["lr"]
+                "lr: %0.7f\n" % classifier.opt_classification.param_groups[0]["lr"]
             )
             logger.info(message)
-            for current_step, train_data in enumerate(train_loader):
-                # Feeding data to diffusion model and get features
-                diffusion.feed_data(train_data)
+            with tqdm(enumerate(train_loader), desc="Training Network") as iterator:
+                for current_step, train_data in iterator:
+                    # Feeding data to diffusion model and get features
+                    diffusion.feed_data(train_data)
 
-                feats = []
-                for t in opt["classification_model"]["time_steps"]:
-                    fe, fd = diffusion.get_single_representation(
-                        t=t
-                    )  # np.random.randint(low=2, high=8)
-                    if opt["classification_model"]["feat_type"] == "dec":
-                        feats.append(fd)
-                        # Uncomment the following lines to visualize features from the diffusion model
-                        # for level in range(0, len(fd_A_t)):
-                        #     print_feats(
-                        #         opt=opt,
-                        #         train_data=train_data,
-                        #         feats_A=fd_A_t,
-                        #         feats_B=fd_B_t,
-                        #         level=level,
-                        #         t=t,
-                        #     )
-                        del fe
-                    else:
-                        feats.append(fe)
-                        del fd
-
-                # for i in range(0, len(fd_A)):
-                #     print(fd_A[i].shape)
-
-                # Feeding features from the diffusion model to the CD model
-                classifier.feed_data(feats, train_data)
-                classifier.optimize_parameters()
-                classifier._collect_running_batch_states()
-
-                # log running batch status
-                if current_step % opt["train"]["train_print_freq"] == 0:
-                    # message
-                    logs = classifier.get_current_log()
-                    message = "[Training CD]. epoch: [%d/%d]. Itter: [%d/%d], CD_loss: %.5f, running_mf1: %.5f\n" % (
-                        current_epoch,
-                        n_epoch - 1,
-                        current_step,
-                        len(train_loader),
-                        logs["l_classification"],
-                        logs["running_acc"],
-                    )
-                    logger.info(message)
-
-            # log epoch status #
-            classifier._collect_epoch_states()
-            logs = classifier.get_current_log()
-            message = (
-                "[Training CD (epoch summary)]: epoch: [%d/%d]. epoch_mF1=%.5f \n"
-                % (current_epoch, n_epoch - 1, logs["epoch_acc"])
-            )
-            for k, v in logs.items():
-                message += "{:s}: {:.4e} ".format(k, v)
-                tb_logger.add_scalar(k, v, current_step)
-            message += "\n"
-            logger.info(message)
-
-            if wandb_logger:
-                wandb_logger.log_metrics(
-                    {
-                        "training/mF1": logs["epoch_acc"],
-                        "training/OA": logs["acc"],
-                        "training/train_step": current_epoch,
-                        "training/mPrecision": np.mean(
-                            [
-                                v
-                                for k, v in logs.items() if k.startswith("precision")
-                            ]
-                        ),
-                        "training/mRecall": np.mean(
-                            [
-                                v
-                                for k, v in logs.items() if k.startswith("recall")
-                            ]
-                        ),
-                    }
-                )
-
-            classifier._clear_cache()
-            classifier._update_lr_schedulers()
-
-            ##################
-            ### validation ###
-            ##################
-            if current_epoch % opt["train"]["val_freq"] == 0:
-                val_result_path = "{}/val/{}".format(
-                    opt["path"]["results"], current_epoch
-                )
-                os.makedirs(val_result_path, exist_ok=True)
-
-                for current_step, val_data in enumerate(val_loader):
-                    # Feed data to diffusion model
-                    diffusion.feed_data(val_data)
                     feats = []
                     for t in opt["classification_model"]["time_steps"]:
                         fe, fd = diffusion.get_single_representation(
@@ -233,143 +152,197 @@ if __name__ == "__main__":
                         )  # np.random.randint(low=2, high=8)
                         if opt["classification_model"]["feat_type"] == "dec":
                             feats.append(fd)
+                            # Uncomment the following lines to visualize features from the diffusion model
+                            # for level in range(0, len(fd_A_t)):
+                            #     print_feats(
+                            #         opt=opt,
+                            #         train_data=train_data,
+                            #         feats_A=fd_A_t,
+                            #         feats_B=fd_B_t,
+                            #         level=level,
+                            #         t=t,
+                            #     )
                             del fe
                         else:
                             feats.append(fe)
                             del fd
 
-                    # Feed data to CD model
-                    classifier.feed_data(feats, val_data)
-                    classifier.test()
-                    classifier._collect_running_batch_states()
+                    # for i in range(0, len(fd_A)):
+                    #     print(fd_A[i].shape)
 
-                    # log running batch status for val data
-                    if current_step % opt["train"]["val_print_freq"] == 0:
-                        # message
-                        logs = classifier.get_current_log()
-                        message = "[Validation CD]. epoch: [%d/%d]. Itter: [%d/%d], running_mf1: %.5f\n" % (
-                            current_epoch,
-                            n_epoch - 1,
-                            current_step,
-                            len(val_loader),
-                            logs["running_acc"],
+                    # Feeding features from the diffusion model to the CD model
+                    classifier.feed_data(feats, train_data)
+                    current_predictions, current_loss = classifier.optimize_parameters()
+                    labels += train_data["L"]
+                    predictions += torch.argmax(current_predictions, dim=1)
+                    epoch_loss += [current_loss]
+                    if wandb_logger:
+                        wandb_logger._wandb.log(
+                            {
+                                "training/iter_loss": current_loss,
+                            }
                         )
-                        logger.info(message)
 
-                classifier._collect_epoch_states()
-                logs = classifier.get_current_log()
-                message = (
-                    "[Validation CD (epoch summary)]: epoch: [%d/%d]. epoch_mF1=%.5f \n"
-                    % (current_epoch, n_epoch - 1, logs["epoch_acc"])
-                )
-                for k, v in logs.items():
-                    message += "{:s}: {:.4e} ".format(k, v)
-                    tb_logger.add_scalar(k, v, current_step)
-                message += "\n"
-                logger.info(message)
+                    # log running batch status
+                    message = f"[Training CD]. epoch: [{current_epoch}/{n_epoch-1}]. Loss: {current_loss}"
+                    iterator.desc = message
 
                 if wandb_logger:
-                    wandb_logger.log_metrics(
+                    wandb_logger._wandb.log_metrics(
                         {
-                            "validation/mF1": logs["epoch_acc"],
-                            "validation/OA": logs["acc"],
-                            "validation/val_step": current_epoch,
-                            "validation/mPrecision": np.mean(
-                                [
-                                    v
-                                    for k, v in logs.items() if k.startswith("precision")
-                                ]
+                            "training/epoch_accuracy": accuracy_score(
+                                y_true=labels,
+                                y_pred=predictions,
                             ),
-                            "validation/mRecall": np.mean(
-                                [
-                                    v
-                                    for k, v in logs.items() if k.startswith("recall")
-                                ]
+                            "training/epoch_recall": recall_score(
+                                y_true=labels,
+                                y_pred=predictions,
                             ),
+                            "training/epoch_precision": precision_score(
+                                y_true=labels,
+                                y_pred=predictions,
+                            ),
+                            "training/epoch_loss": np.mean(epoch_loss),
                         }
                     )
+                classifier._update_lr_schedulers()
 
-                if logs["epoch_acc"] > best_mF1:
-                    is_best_model = True
-                    best_mF1 = logs["epoch_acc"]
-                    logger.info(
-                        "[Validation CD] Best model updated. Saving the models (current + best) and training states."
+                ##################
+                ### validation ###
+                ##################
+                if current_epoch % opt["train"]["val_freq"] == 0:
+                    val_result_path = "{}/val/{}".format(
+                        opt["path"]["results"], current_epoch
                     )
-                else:
-                    is_best_model = False
-                    logger.info(
-                        "[Validation CD]Saving the current cd model and training states."
+                    os.makedirs(val_result_path, exist_ok=True)
+                    val_predictions = []
+                    val_labels = []
+                    val_loss = []
+                    with tqdm(enumerate(val_loader)) as val_iter:
+                        for current_step, val_data in val_iter:
+                            # Feed data to diffusion model
+                            diffusion.feed_data(val_data)
+                            feats = []
+                            for t in opt["classification_model"]["time_steps"]:
+                                fe, fd = diffusion.get_single_representation(
+                                    t=t
+                                )  # np.random.randint(low=2, high=8)
+                                if opt["classification_model"]["feat_type"] == "dec":
+                                    feats.append(fd)
+                                    del fe
+                                else:
+                                    feats.append(fe)
+                                    del fd
+
+                            # Feed data to CD model
+                            classifier.feed_data(feats, val_data)
+                            current_predictions, current_loss = classifier.test()
+                            val_labels += val_data["L"]
+                            val_predictions += torch.argmax(current_predictions, dim=1)
+                            val_loss += [current_loss]
+                            message = f"[Testing classifier]. Loss: {current_loss}"
+                            val_iter.desc = message
+
+                            # log running batch status for val data
+                            if wandb_logger:
+                                wandb_logger._wandb.log(
+                                    {
+                                        "validation/iter_loss": current_loss
+                                    }
+                                )
+                    validation_accuracy = accuracy_score(
+                        y_true=val_labels,
+                        y_pred=val_predictions,
                     )
-                logger.info("--- Proceed To The Next Epoch ----\n \n")
+                    if wandb_logger:
+                        wandb_logger._wandb.log_metrics(
+                            {
+                                "validation/epoch_accuracy": validation_accuracy,
+                                "validation/epoch_recall": recall_score(
+                                    y_true=val_labels,
+                                    y_pred=val_predictions,
+                                ),
+                                "validation/epoch_precision": precision_score(
+                                    y_true=val_labels,
+                                    y_pred=val_predictions,
+                                ),
+                                "validation/epoch_loss": np.mean(val_loss),
+                            }
+                        )
 
-                classifier.save_network(current_epoch, is_best_model=is_best_model)
-                classifier._clear_cache()
+                    if validation_accuracy > best_acc:
+                        is_best_model = True
+                        best_acc = validation_accuracy
+                        logger.info(
+                            "[Validation CD] Best model updated. Saving the models (current + best) and training states."
+                        )
+                    else:
+                        is_best_model = False
+                        logger.info(
+                            "[Validation CD]Saving the current cd model and training states."
+                        )
+                    logger.info("--- Proceed To The Next Epoch ----\n \n")
 
-            if wandb_logger:
-                wandb_logger.log_metrics({"epoch": current_epoch - 1})
+                    classifier.save_network(current_epoch, is_best_model=is_best_model)
 
-        logger.info("End of training.")
+                if wandb_logger:
+                    wandb_logger.log_metrics({"epoch": current_epoch - 1})
+            logger.info("End of training.")
     else:
         logger.info("Begin Model Evaluation (testing).")
         test_result_path = "{}/test/".format(opt["path"]["results"])
         os.makedirs(test_result_path, exist_ok=True)
         logger_test = logging.getLogger("test")  # test logger
-        classifier._clear_cache()
-        for current_step, test_data in enumerate(test_loader):
-            # Feed data to diffusion model
-            diffusion.feed_data(test_data)
-            feats = []
-            for t in opt["classification_model"]["time_steps"]:
-                fe, fd = diffusion.get_single_representation(
-                    t=t
-                )  # np.random.randint(low=2, high=8)
-                if opt["classification_model"]["feat_type"] == "dec":
-                    feats.append(fd)
-                    del fe
-                else:
-                    feats.append(fe)
-                    del fd
+        testing_predictions = []
+        testing_labels = []
+        testing_loss = []
+        with tqdm(enumerate(test_loader)) as test_iter:
+            for current_step, test_data in test_iter:
+                # Feed data to diffusion model
+                diffusion.feed_data(test_data)
+                feats = []
+                for t in opt["classification_model"]["time_steps"]:
+                    fe, fd = diffusion.get_single_representation(
+                        t=t
+                    )  # np.random.randint(low=2, high=8)
+                    if opt["classification_model"]["feat_type"] == "dec":
+                        feats.append(fd)
+                        del fe
+                    else:
+                        feats.append(fe)
+                        del fd
 
-            # Feed data to CD model
-            classifier.feed_data(feats, test_data)
-            classifier.test()
-            classifier._collect_running_batch_states()
-
-            # Logs
-            logs = classifier.get_current_log()
-            message = "[Testing CD]. Itter: [%d/%d], running_mf1: %.5f\n" % (
-                current_step,
-                len(test_loader),
-                logs["running_acc"],
-            )
-            logger_test.info(message)
-
-        classifier._collect_epoch_states()
-        logs = classifier.get_current_log()
-        message = "[Test CD summary]: Test mF1=%.5f \n" % (logs["epoch_acc"])
-        for k, v in logs.items():
-            message += "{:s}: {:.4e} ".format(k, v)
-            message += "\n"
-        logger_test.info(message)
+                # Feed data to CD model
+                classifier.feed_data(feats, test_data)
+                current_predictions, current_loss = classifier.test()
+                testing_labels += test_data["L"]
+                testing_predictions += torch.argmax(current_predictions, dim=1)
+                testing_loss += [current_loss]
+                message = f"[Testing classifier]. Loss: {current_loss}"
+                test_iter.desc = message
+                if wandb_logger:
+                    wandb_logger._wandb.log(
+                        {
+                            "testing/iter_loss": current_loss
+                        }
+                    )
 
         if wandb_logger:
-            wandb_logger.log_metrics(
+            wandb_logger._wandb.log_metrics(
                 {
-                    "test/mF1": logs["epoch_acc"],
-                    "test/OA": logs["acc"],
-                    "test/mPrecision": np.mean(
-                        [
-                            v
-                            for k, v in logs.items() if k.startswith("precision")
-                        ]
+                    "validation/epoch_accuracy": accuracy_score(
+                        y_true=testing_labels,
+                        y_pred=testing_predictions,
                     ),
-                    "test/mRecall": np.mean(
-                        [
-                            v
-                            for k, v in logs.items() if k.startswith("recall")
-                        ]
-                    )
+                    "validation/epoch_recall": recall_score(
+                        y_true=testing_labels,
+                        y_pred=testing_predictions,
+                    ),
+                    "validation/epoch_precision": precision_score(
+                        y_true=testing_labels,
+                        y_pred=testing_predictions,
+                    ),
+                    "validation/epoch_loss": np.mean(testing_loss),
                 }
             )
-
         logger.info("End of testing...")
