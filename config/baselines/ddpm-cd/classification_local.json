@@ -1,0 +1,135 @@
+{
+  "name": "ddpm-RS-ClassificationHead",
+  "phase": "train",
+  "path": {
+    "log": "logs",
+    "tb_logger": "tb_logger",
+    "results": "results",
+    "checkpoint": "checkpoint",
+    "resume_state": "/Users/alexanderlontke/Documents/Uni/St. Gallen/SS_23/master_thesis/pretrained-diffusion-model/checkpoint/I190000_E97"
+  },
+  "path_classification": {
+    "log": "logs",
+    "tb_logger": "tb_logger",
+    "results": "results",
+    "checkpoint": "checkpoint",
+    "resume_state": null
+    },
+  "datasets": {
+    "train": {
+      "name": "UC_Merced",
+      "data_root": "/Users/alexanderlontke/Documents/Uni/St. Gallen/SS_23/master_thesis/data/UCMerced_LandUse/Images",
+      "resolution": 256,
+      "batch_size": 1,
+      "num_workers": 4,
+      "use_shuffle": true,
+      "data_len": -1
+
+    },
+    "val": {
+      "name": "UC_Merced",
+      "data_root": "/Users/alexanderlontke/Documents/Uni/St. Gallen/SS_23/master_thesis/data/UCMerced_LandUse/Images",
+      "resolution": 256,
+      "batch_size": 1,
+      "num_workers": 4,
+      "use_shuffle": true,
+      "data_len": -1
+
+    },
+    "test": {
+      "name": "UC_Merced",
+      "data_root": "/Users/alexanderlontke/Documents/Uni/St. Gallen/SS_23/master_thesis/data/UCMerced_LandUse/Images",
+      "resolution": 256,
+      "batch_size": 1,
+      "num_workers": 4,
+      "use_shuffle": false,
+      "data_len": -1
+
+    }
+  },
+  "classification_model": {
+    "feat_scales": [
+      2,
+      5,
+      8,
+      11,
+      14
+    ],
+    "out_channels": 21,
+    "loss_type": "ce",
+    "img_size": 256,
+    "psp": true,
+    "feat_type": "dec",
+    "time_steps": [
+      50,
+      100,
+      400
+    ]
+  },
+  "model": {
+    "which_model_G": "sr3",
+    "finetune_norm": false,
+    "unet": {
+      "in_channel": 3,
+      "out_channel": 3,
+      "inner_channel": 128,
+      "channel_multiplier": [
+        1,
+        2,
+        4,
+        8,
+        8
+      ],
+      "attn_res": [
+        16
+      ],
+      "res_blocks": 2,
+      "dropout": 0.2
+    },
+    "beta_schedule": {
+      "train": {
+        "schedule": "linear",
+        "n_timestep": 2000,
+        "linear_start": 1e-6,
+        "linear_end": 1e-2
+      },
+      "val": {
+        "schedule": "linear",
+        "n_timestep": 2000,
+        "linear_start": 1e-6,
+        "linear_end": 1e-2
+      },
+      "test": {
+        "schedule": "linear",
+        "n_timestep": 2000,
+        "linear_start": 1e-6,
+        "linear_end": 1e-2
+      }
+    },
+    "diffusion": {
+      "image_size": 256,
+      "channels": 3,
+      "loss": "l2",
+      "conditional": false
+    }
+  },
+  "train": {
+    "n_epoch": 20,
+    "train_print_freq": 50,
+    "val_freq": 1,
+    "val_print_freq": 50,
+    "optimizer": {
+      "type": "adam",
+      "lr": 1e-4
+    },
+    "sheduler": {
+      "lr_policy": "linear",
+      "n_steps": 3,
+      "gamma": 0.1
+    }
+  },
+  "wandb": {
+    "project": "ddpm-RS-ClassificationHead"
+  },
+  "distributed": false
+}
