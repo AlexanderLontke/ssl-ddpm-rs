@@ -60,13 +60,13 @@ if __name__ == "__main__":
 
         print("Initializing wandblog.")
         wandb_logger = WandbLogger(opt)
-        # Training log
-        wandb.define_metric("epoch")
-        wandb.define_metric("training/train_step")
-        wandb.define_metric("training/*", step_metric="train_step")
-        # Validation log
-        wandb.define_metric("validation/val_step")
-        wandb.define_metric("validation/*", step_metric="val_step")
+        # # Training log
+        # wandb.define_metric("epoch")
+        # wandb.define_metric("training/train_step")
+        # wandb.define_metric("training/*", step_metric="train_step")
+        # # Validation log
+        # wandb.define_metric("validation/val_step")
+        # wandb.define_metric("validation/*", step_metric="val_step")
         # Initialization
         train_step = 0
         val_step = 0
@@ -78,6 +78,9 @@ if __name__ == "__main__":
         torch.backends.cudnn.enabled = True
         torch.backends.cudnn.benchmark = True
         logger.info("Cudnn enabled")
+
+    # Score aggregation
+    score_aggregation = "macro"
 
     # Loading change-detction datasets.
     for phase, dataset_opt in opt["datasets"].items():
@@ -140,7 +143,7 @@ if __name__ == "__main__":
                 "lr: %0.7f\n" % classifier.opt_classification.param_groups[0]["lr"]
             )
             logger.info(message)
-            with tqdm(enumerate(train_loader), desc="Training Network") as iterator:
+            with tqdm(enumerate(train_loader), desc="Training Network", total=len(train_loader)) as iterator:
                 for current_step, train_data in iterator:
                     # Feeding data to diffusion model and get features
                     diffusion.feed_data(train_data)
@@ -173,9 +176,9 @@ if __name__ == "__main__":
                     # Feeding features from the diffusion model to the CD model
                     classifier.feed_data(feats, train_data)
                     current_predictions, current_loss = classifier.optimize_parameters()
-                    labels += train_data["L"]
-                    predictions += torch.argmax(current_predictions, dim=1)
-                    epoch_loss += [current_loss]
+                    labels.extend(train_data["L"].cpu().numpy())
+                    predictions.extend(torch.argmax(current_predictions, dim=1).cpu().numpy())
+                    epoch_loss.append(current_loss)
                     if wandb_logger:
                         wandb_logger._wandb.log(
                             {
@@ -188,7 +191,7 @@ if __name__ == "__main__":
                     iterator.desc = message
 
                 if wandb_logger:
-                    wandb_logger._wandb.log_metrics(
+                    wandb_logger._wandb.log(
                         {
                             "training/epoch_accuracy": accuracy_score(
                                 y_true=labels,
@@ -197,10 +200,12 @@ if __name__ == "__main__":
                             "training/epoch_recall": recall_score(
                                 y_true=labels,
                                 y_pred=predictions,
+                                average=score_aggregation,
                             ),
                             "training/epoch_precision": precision_score(
                                 y_true=labels,
                                 y_pred=predictions,
+                                average=score_aggregation,
                             ),
                             "training/epoch_loss": np.mean(epoch_loss),
                         }
@@ -218,7 +223,7 @@ if __name__ == "__main__":
                     val_predictions = []
                     val_labels = []
                     val_loss = []
-                    with tqdm(enumerate(val_loader)) as val_iter:
+                    with tqdm(enumerate(val_loader), total=len(val_loader)) as val_iter:
                         for current_step, val_data in val_iter:
                             # Feed data to diffusion model
                             diffusion.feed_data(val_data)
@@ -237,10 +242,10 @@ if __name__ == "__main__":
                             # Feed data to CD model
                             classifier.feed_data(feats, val_data)
                             current_predictions, current_loss = classifier.test()
-                            val_labels += val_data["L"]
-                            val_predictions += torch.argmax(current_predictions, dim=1)
-                            val_loss += [current_loss]
-                            message = f"[Testing classifier]. Loss: {current_loss}"
+                            val_labels.extend(val_data["L"].cpu().numpy())
+                            val_predictions.extend(torch.argmax(current_predictions, dim=1).cpu().numpy())
+                            val_loss.append(current_loss)
+                            message = f"[Validating classifier]. Loss: {current_loss}"
                             val_iter.desc = message
 
                             # log running batch status for val data
@@ -255,16 +260,18 @@ if __name__ == "__main__":
                         y_pred=val_predictions,
                     )
                     if wandb_logger:
-                        wandb_logger._wandb.log_metrics(
+                        wandb_logger._wandb.log(
                             {
                                 "validation/epoch_accuracy": validation_accuracy,
                                 "validation/epoch_recall": recall_score(
                                     y_true=val_labels,
                                     y_pred=val_predictions,
+                                    average=score_aggregation,
                                 ),
                                 "validation/epoch_precision": precision_score(
                                     y_true=val_labels,
                                     y_pred=val_predictions,
+                                    average=score_aggregation,
                                 ),
                                 "validation/epoch_loss": np.mean(val_loss),
                             }
@@ -315,9 +322,9 @@ if __name__ == "__main__":
                 # Feed data to CD model
                 classifier.feed_data(feats, test_data)
                 current_predictions, current_loss = classifier.test()
-                testing_labels += test_data["L"]
-                testing_predictions += torch.argmax(current_predictions, dim=1)
-                testing_loss += [current_loss]
+                testing_labels.extend(test_data["L"].cpu().numpy())
+                testing_predictions.extend(torch.argmax(current_predictions, dim=1).cpu().numpy())
+                testing_loss.append(current_loss)
                 message = f"[Testing classifier]. Loss: {current_loss}"
                 test_iter.desc = message
                 if wandb_logger:
@@ -337,10 +344,12 @@ if __name__ == "__main__":
                     "validation/epoch_recall": recall_score(
                         y_true=testing_labels,
                         y_pred=testing_predictions,
+                        average=score_aggregation,
                     ),
                     "validation/epoch_precision": precision_score(
                         y_true=testing_labels,
                         y_pred=testing_predictions,
+                        average=score_aggregation,
                     ),
                     "validation/epoch_loss": np.mean(testing_loss),
                 }
