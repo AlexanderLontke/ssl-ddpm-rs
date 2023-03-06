@@ -71,6 +71,7 @@ class ClassificationHead(nn.Module):
         channel_multiplier=None,
         img_size=256,
         time_steps=None,
+        use_diffusion=True,
         **kwargs,
     ):
         super(ClassificationHead, self).__init__()
@@ -83,66 +84,79 @@ class ClassificationHead(nn.Module):
         )
         self.img_size = img_size
         self.time_steps = time_steps
+        self.use_diffusion = use_diffusion
 
         # Convolutional layers before parsing to difference head
-        self.decoder = nn.ModuleList()
-        for i in tqdm(
-            range(0, len(self.feat_scales)), desc="Instantiating classification blocks"
-        ):
-            dim = get_in_channels(
-                [self.feat_scales[i]], inner_channel, channel_multiplier
-            )
-
-            self.decoder.append(Block(dim=dim, dim_out=dim, time_steps=time_steps))
-
-            if i != len(self.feat_scales) - 1:
-                dim_out = get_in_channels(
-                    [self.feat_scales[i + 1]], inner_channel, channel_multiplier
+        if self.use_diffusion:
+            self.decoder = nn.ModuleList()
+            for i in tqdm(
+                range(0, len(self.feat_scales)), desc="Instantiating classification blocks"
+            ):
+                dim = get_in_channels(
+                    [self.feat_scales[i]], inner_channel, channel_multiplier
                 )
-                self.decoder.append(AttentionBlock(dim=dim, dim_out=dim_out))
 
+                self.decoder.append(Block(dim=dim, dim_out=dim, time_steps=time_steps))
+
+                if i != len(self.feat_scales) - 1:
+                    dim_out = get_in_channels(
+                        [self.feat_scales[i + 1]], inner_channel, channel_multiplier
+                    )
+                    self.decoder.append(AttentionBlock(dim=dim, dim_out=dim_out))
+        else:
+            self.decoder = nn.Conv2d(
+                3, 128, kernel_size=3, padding=1
+            )
         # Final classification head
         # Conv Layers
-        clfr_emb_dim = 64
         self.clfr_stg1 = nn.Conv2d(
-            dim_out, clfr_emb_dim, kernel_size=5, padding=0
+            128, 64, kernel_size=5, padding=0
         )
         self.clfr_stg2 = nn.Conv2d(
-            clfr_emb_dim, 16, kernel_size=5, padding=0
+            64, 32, kernel_size=4, padding=0
         )
-        self.pool = nn.MaxPool2d(2, 2)
+        self.clfr_stg3 = nn.Conv2d(
+            32, 16, kernel_size=5, padding=0
+        )
+        self.pool = nn.MaxPool2d(4, 2)
         self.relu = nn.ReLU()
         # Fully connected Layers
-        self.fc1 = nn.Linear(16 * (61 ** 2), 4096)
-        self.fc2 = nn.Linear(4096, 2048)
-        self.fc3 = nn.Linear(2048, 1024)
-        self.fc4 = nn.Linear(1024, out_channels)
+        self.fc1 = nn.Linear(16 * (27 ** 2), 4096)
+        self.fc2 = nn.Linear(4096, 1024)
+        self.fc3 = nn.Linear(1024, 256)
+        self.fc4 = nn.Linear(256, out_channels)
 
     def forward(self, feats):
         # Decoder
         lvl = 0
-        for layer in self.decoder:
-            if isinstance(layer, Block):
-                f = feats[0][self.feat_scales[lvl]]
-                for i in range(1, len(self.time_steps)):
-                    f = torch.cat((f, feats[i][self.feat_scales[lvl]]), dim=1)
+        if self.use_diffusion:
+            for layer in self.decoder:
+                if isinstance(layer, Block):
+                    f = feats[0][self.feat_scales[lvl]]
+                    for i in range(1, len(self.time_steps)):
+                        f = torch.cat((f, feats[i][self.feat_scales[lvl]]), dim=1)
 
-                layer_output = layer(f)
-                # Add skip connection
-                if lvl != 0:
-                    layer_output = layer_output + x
-                lvl += 1
-            else:
-                layer_output = layer(layer_output)
-                x = F.interpolate(layer_output, scale_factor=2, mode="bilinear")
+                    layer_output = layer(f)
+                    # Add skip connection
+                    if lvl != 0:
+                        layer_output = layer_output + x
+                    lvl += 1
+                else:
+                    layer_output = layer(layer_output)
+                    x = F.interpolate(layer_output, scale_factor=2, mode="bilinear")
+        else:
+            x = self.decoder(feats)
         # Spatial Attention Output-Shape: [batch_size, 128, 256, 256]
         # Classifier
         # After Conv1: 252x252xclfr_emb_dim
         x = self.pool(self.relu(self.clfr_stg1(x)))
-        # After Pool1: 126x126xclfr_emb_dim
-        # After Conv2: 122x122xdim_out
+        # After Pool1: 125x125x64
+        # After Conv2: 122x122x32
         x = self.pool(self.relu(self.clfr_stg2(x)))
-        # After Pool2: 61x61xclfr_emb_dim
+        # After Pool2: 60x60x32
+        # After Conv3: 56x56x16
+        x = self.pool(self.relu(self.clfr_stg3(x)))
+        # After Pool2: 27x27x16
         x = torch.flatten(x, 1)
         x = self.relu(self.fc1(x))
         x = self.relu(self.fc2(x))
