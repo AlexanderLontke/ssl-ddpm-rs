@@ -145,32 +145,29 @@ if __name__ == "__main__":
             logger.info(message)
             with tqdm(enumerate(train_loader), desc="Training Network", total=len(train_loader)) as iterator:
                 for current_step, train_data in iterator:
-                    if opt["classification_model"]["use_diffusion"]:
-                        # Feeding data to diffusion model and get features
-                        diffusion.feed_data(train_data)
-                        feats = []
-                        for t in opt["classification_model"]["time_steps"]:
-                            fe, fd = diffusion.get_single_representation(
-                                t=t
-                            )  # np.random.randint(low=2, high=8)
-                            if opt["classification_model"]["feat_type"] == "dec":
-                                feats.append(fd)
-                                # Uncomment the following lines to visualize features from the diffusion model
-                                # for level in range(0, len(fd_A_t)):
-                                #     print_feats(
-                                #         opt=opt,
-                                #         train_data=train_data,
-                                #         feats_A=fd_A_t,
-                                #         feats_B=fd_B_t,
-                                #         level=level,
-                                #         t=t,
-                                #     )
-                                del fe
-                            else:
-                                feats.append(fe)
-                                del fd
-                    else:
-                        feats = train_data["image"]
+                    # Feeding data to diffusion model and get features
+                    diffusion.feed_data(train_data)
+                    feats = []
+                    for t in opt["classification_model"]["time_steps"]:
+                        fe, fd = diffusion.get_single_representation(
+                            t=t
+                        )  # np.random.randint(low=2, high=8)
+                        if opt["classification_model"]["feat_type"] == "dec":
+                            feats.append(fd)
+                            # Uncomment the following lines to visualize features from the diffusion model
+                            # for level in range(0, len(fd_A_t)):
+                            #     print_feats(
+                            #         opt=opt,
+                            #         train_data=train_data,
+                            #         feats_A=fd_A_t,
+                            #         feats_B=fd_B_t,
+                            #         level=level,
+                            #         t=t,
+                            #     )
+                            del fe
+                        else:
+                            feats.append(fe)
+                            del fd
 
                     # for i in range(0, len(fd_A)):
                     #     print(fd_A[i].shape)

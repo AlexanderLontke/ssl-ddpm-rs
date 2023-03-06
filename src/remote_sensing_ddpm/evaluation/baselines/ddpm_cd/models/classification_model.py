@@ -59,6 +59,7 @@ class Classfication(BaseModel):
 
         self.len_train_dataloader = opt["len_train_dataloader"]
         self.len_val_dataloader = opt["len_val_dataloader"]
+        self.use_diffusion = opt["classification_model"]["use_diffusion"]
 
     # Feeding all data to the classification model
     def feed_data(self, feats, data):
@@ -68,7 +69,10 @@ class Classfication(BaseModel):
     # Optimize the parameters of the classification model
     def optimize_parameters(self):
         self.opt_classification.zero_grad()
-        self.prediction = self.classification_net(self.feats)
+        if self.use_diffusion:
+            self.prediction = self.classification_net(self.feats)
+        else:
+            self.prediction = self.classification_net(self.data["image"])
         l_classification = self.loss_func(self.prediction, self.data["L"].long())
         l_classification.backward()
         self.opt_classification.step()
