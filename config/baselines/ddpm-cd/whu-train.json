@@ -11,7 +11,7 @@
         "results": "results",
         "checkpoint": "checkpoint",
         //"resume_state": null
-        "resume_state": "experiments/ddpm-RS-Unet_220428_183313/checkpoint/I190000_E97" //"experiments/ddpm-RS-Unet_220425_062858/checkpoint/I60000_E8" //set path to pre-trained diffusion model
+        "resume_state": "/netscratch2/alontke/master_thesis/checkpoints/ddpm-cd/I190000_E97" //"experiments/ddpm-RS-Unet_220425_062858/checkpoint/I60000_E8" //set path to pre-trained diffusion model
     },
 
     "path_cd": { //set the path
@@ -28,8 +28,8 @@
             "name": "WHU-CD-256",
             "dataroot": "/netscratch2/alontke/master_thesis/data/WHU-CD-256/",
             "resolution": 256, // high resolution
-            "batch_size": 8,
-            "num_workers": 8,
+            "batch_size": 4,
+            "num_workers": 4,
             "use_shuffle": true,
             "data_len": -1 // -1 represents all data used in train
         },
@@ -38,7 +38,7 @@
             "dataroot": "/netscratch2/alontke/master_thesis/data/WHU-CD-256/",
             "resolution": 256, // high resolution
             "batch_size": 4,
-            "num_workers": 8,
+            "num_workers": 4,
             "use_shuffle": true,
             "data_len": -1 // -1 represents all data used in train
         },
@@ -47,7 +47,7 @@
             "dataroot": "/netscratch2/alontke/master_thesis/data/WHU-CD-256/",
             "resolution": 256, // high resolution
             "batch_size": 4,
-            "num_workers": 8,
+            "num_workers": 4,
             "use_shuffle": false,
             "data_len": -1 // -1 represents all data used in train
         }

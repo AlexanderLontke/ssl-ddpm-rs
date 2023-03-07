@@ -64,7 +64,8 @@
       50,
       100,
       400
-    ]
+    ],
+    "use_diffusion": true
   },
   "model": {
     "which_model_G": "sr3",
@@ -120,7 +121,7 @@
     "val_print_freq": 50,
     "optimizer": {
       "type": "adam",
-      "lr": 1e-4
+      "lr": 1e-6
     },
     "sheduler": {
       "lr_policy": "linear",
