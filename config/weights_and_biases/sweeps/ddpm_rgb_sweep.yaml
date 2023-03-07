@@ -1,0 +1,40 @@
+program: "src/remote_sensing_ddpm/evaluation/baselines/ddpm_cd/main.py"
+method: bayes
+metric:
+  name: validation/epoch_accuracy
+  goal: maximize
+parameters:
+  lr:
+    distribution: "uniform"
+    min: 0.001
+    max: 0.0000001
+  use_diffusion:
+    values: [true]
+    # TODO think about how to compensate for additional parameters:
+    # Including U-Net would be fairer but overkill
+#  batch_size:
+#    values: [2, 4, 8, 10] Keep to maximum
+#  optimizer:
+#    values: ["adam", "adamw"] Keep to what they did in the paper
+#  dropout:
+#    values: [0.2, 0.3, 0.4, 0.5] Keep to paper (0.2)
+#  diffusion_feats:
+#    values: ["enc", "dec"]
+#  diffusion_time_steps:
+#    values:
+#      - [50]
+#      - [50, 100]
+#      - [50, 100, 400]
+#      - [50 , 100, 400, 650]
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - "--config"
+  - "your-training-config.json"
+  - "--gpu"
+  - "0"
+  - "-enable_wandb"
+  - ${args}
+project: ddpm-RS-ClassificationHead
+name: "Sweep with diffusion"

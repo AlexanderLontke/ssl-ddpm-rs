@@ -16,6 +16,8 @@ from sklearn.metrics import (
     precision_score
 )
 
+from remote_sensing_ddpm.evaluation.baselines.ddpm_cd.util import set_option_from_sweep
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -81,6 +83,17 @@ if __name__ == "__main__":
 
     # Score aggregation
     score_aggregation = "macro"
+
+    # Set options from sweep
+    if opt["phase"] == "train":
+        opt["train"]["optimizer"]["lr"] = set_option_from_sweep(
+            wandb_config_key="lr",
+            option_value=opt["train"]["optimizer"]["lr"]
+        )
+    opt["classification_model"]["use_diffusion"] = set_option_from_sweep(
+        wandb_config_key="use_diffusion",
+        option_value=opt["classification_model"]["use_diffusion"],
+    )
 
     # Loading change-detction datasets.
     for phase, dataset_opt in opt["datasets"].items():
