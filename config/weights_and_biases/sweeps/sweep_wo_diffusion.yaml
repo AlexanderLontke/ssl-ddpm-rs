@@ -6,10 +6,10 @@ metric:
 parameters:
   lr:
     distribution: "uniform"
-    min: 0.001
-    max: 0.0000001
+    max: 0.001
+    min: 0.0000001
   use_diffusion:
-    values: [true]
+    values: [false]
     # TODO think about how to compensate for additional parameters:
     # Including U-Net would be fairer but overkill
 #  batch_size:
@@ -31,10 +31,9 @@ command:
   - ${interpreter}
   - ${program}
   - "--config"
-  - "your-training-config.json"
+  - "config/baselines/ddpm-cd/classification.json"
   - "--gpu"
   - "0"
   - "-enable_wandb"
-  - ${args}
 project: ddpm-RS-ClassificationHead
-name: "Sweep with diffusion"
+name: "Sweep without diffusion"
