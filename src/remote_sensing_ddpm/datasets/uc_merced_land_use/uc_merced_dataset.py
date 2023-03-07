@@ -2,9 +2,7 @@ import glob
 import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset
-from remote_sensing_ddpm.evaluation.baselines.ddpm_cd.data.util import (
-    transform_augment,
-)
+from remote_sensing_ddpm.evaluation.baselines.ddpm_cd.data.util import transform_augment
 from tqdm import tqdm
 
 IMAGE_CONVERT = "RGB"
@@ -30,16 +28,10 @@ UC_MERCED_CLASSES = [
     "runway",
     "sparseresidential",
     "storagetanks",
-    "tenniscourt"
+    "tenniscourt",
 ]
-STRING_TO_INT = {
-    label: i
-    for i, label in enumerate(UC_MERCED_CLASSES)
-}
-INT_TO_STRING = {
-    i: label
-    for i, label in enumerate(UC_MERCED_CLASSES)
-}
+STRING_TO_INT = {label: i for i, label in enumerate(UC_MERCED_CLASSES)}
+INT_TO_STRING = {i: label for i, label in enumerate(UC_MERCED_CLASSES)}
 
 
 class UCMerced(Dataset):

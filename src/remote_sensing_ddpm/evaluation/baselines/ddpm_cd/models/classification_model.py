@@ -84,9 +84,7 @@ class Classfication(BaseModel):
         with torch.no_grad():
             if isinstance(self.classification_net, nn.DataParallel):
                 if self.use_diffusion:
-                    self.prediction = self.classification_net.module.forward(
-                        self.feats
-                    )
+                    self.prediction = self.classification_net.module.forward(self.feats)
                 else:
                     self.prediction = self.classification_net.module.forward(
                         self.data["image"]

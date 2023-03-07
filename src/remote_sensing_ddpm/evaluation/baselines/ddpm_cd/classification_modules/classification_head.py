@@ -90,7 +90,8 @@ class ClassificationHead(nn.Module):
         if self.use_diffusion:
             self.decoder = nn.ModuleList()
             for i in tqdm(
-                range(0, len(self.feat_scales)), desc="Instantiating classification blocks"
+                range(0, len(self.feat_scales)),
+                desc="Instantiating classification blocks",
             ):
                 dim = get_in_channels(
                     [self.feat_scales[i]], inner_channel, channel_multiplier
@@ -104,20 +105,12 @@ class ClassificationHead(nn.Module):
                     )
                     self.decoder.append(AttentionBlock(dim=dim, dim_out=dim_out))
         else:
-            self.decoder = nn.Conv2d(
-                3, 128, kernel_size=3, padding=1
-            )
+            self.decoder = nn.Conv2d(3, 128, kernel_size=3, padding=1)
         # Final classification head
         # Conv Layers
-        self.clfr_stg1 = nn.Conv2d(
-            128, 64, kernel_size=5, padding=0
-        )
-        self.clfr_stg2 = nn.Conv2d(
-            64, 32, kernel_size=4, padding=0
-        )
-        self.clfr_stg3 = nn.Conv2d(
-            32, 16, kernel_size=5, padding=0
-        )
+        self.clfr_stg1 = nn.Conv2d(128, 64, kernel_size=5, padding=0)
+        self.clfr_stg2 = nn.Conv2d(64, 32, kernel_size=4, padding=0)
+        self.clfr_stg3 = nn.Conv2d(32, 16, kernel_size=5, padding=0)
         self.pool = nn.MaxPool2d(4, 2)
         self.relu = nn.ReLU()
         # Fully connected Layers
