@@ -10,11 +10,7 @@ import os
 import numpy as np
 from misc.print_diffuse_feats import print_feats
 from tqdm import tqdm
-from sklearn.metrics import (
-    accuracy_score,
-    recall_score,
-    precision_score
-)
+from sklearn.metrics import accuracy_score, recall_score, precision_score
 
 from remote_sensing_ddpm.evaluation.baselines.ddpm_cd.util import set_option_from_sweep
 
@@ -87,8 +83,7 @@ if __name__ == "__main__":
     # Set options from sweep
     if opt["phase"] == "train":
         opt["train"]["optimizer"]["lr"] = set_option_from_sweep(
-            wandb_config_key="lr",
-            option_value=opt["train"]["optimizer"]["lr"]
+            wandb_config_key="lr", option_value=opt["train"]["optimizer"]["lr"]
         )
     opt["classification_model"]["use_diffusion"] = set_option_from_sweep(
         wandb_config_key="use_diffusion",
@@ -156,7 +151,11 @@ if __name__ == "__main__":
                 "lr: %0.7f\n" % classifier.opt_classification.param_groups[0]["lr"]
             )
             logger.info(message)
-            with tqdm(enumerate(train_loader), desc="Training Network", total=len(train_loader)) as iterator:
+            with tqdm(
+                enumerate(train_loader),
+                desc="Training Network",
+                total=len(train_loader),
+            ) as iterator:
                 for current_step, train_data in iterator:
                     # Feeding data to diffusion model and get features
                     diffusion.feed_data(train_data)
@@ -189,7 +188,9 @@ if __name__ == "__main__":
                     classifier.feed_data(feats, train_data)
                     current_predictions, current_loss = classifier.optimize_parameters()
                     labels.extend(train_data["L"].cpu().numpy())
-                    predictions.extend(torch.argmax(current_predictions, dim=1).cpu().numpy())
+                    predictions.extend(
+                        torch.argmax(current_predictions, dim=1).cpu().numpy()
+                    )
                     epoch_loss.append(current_loss)
                     if wandb_logger:
                         wandb_logger._wandb.log(
@@ -255,7 +256,9 @@ if __name__ == "__main__":
                             classifier.feed_data(feats, val_data)
                             current_predictions, current_loss = classifier.test()
                             val_labels.extend(val_data["L"].cpu().numpy())
-                            val_predictions.extend(torch.argmax(current_predictions, dim=1).cpu().numpy())
+                            val_predictions.extend(
+                                torch.argmax(current_predictions, dim=1).cpu().numpy()
+                            )
                             val_loss.append(current_loss)
                             message = f"[Validating classifier]. Loss: {current_loss}"
                             val_iter.desc = message
@@ -263,9 +266,7 @@ if __name__ == "__main__":
                             # log running batch status for val data
                             if wandb_logger:
                                 wandb_logger._wandb.log(
-                                    {
-                                        "validation/iter_loss": current_loss
-                                    }
+                                    {"validation/iter_loss": current_loss}
                                 )
                     validation_accuracy = accuracy_score(
                         y_true=val_labels,
@@ -335,16 +336,14 @@ if __name__ == "__main__":
                 classifier.feed_data(feats, test_data)
                 current_predictions, current_loss = classifier.test()
                 testing_labels.extend(test_data["L"].cpu().numpy())
-                testing_predictions.extend(torch.argmax(current_predictions, dim=1).cpu().numpy())
+                testing_predictions.extend(
+                    torch.argmax(current_predictions, dim=1).cpu().numpy()
+                )
                 testing_loss.append(current_loss)
                 message = f"[Testing classifier]. Loss: {current_loss}"
                 test_iter.desc = message
                 if wandb_logger:
-                    wandb_logger._wandb.log(
-                        {
-                            "testing/iter_loss": current_loss
-                        }
-                    )
+                    wandb_logger._wandb.log({"testing/iter_loss": current_loss})
 
         if wandb_logger:
             wandb_logger._wandb.log_metrics(
