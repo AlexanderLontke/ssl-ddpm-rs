@@ -23,3 +23,9 @@ def noise_like(shape, device, repeat=False):
         return torch.randn(shape, device=device)
 
     return repeat_noise() if repeat else noise()
+
+
+def inverse_transform(tensors):
+    """Convert tensors from [-1., 1.] to [0., 255.]"""
+    # https://learnopencv.com/denoising-diffusion-probabilistic-models/
+    return ((tensors.clamp(-1, 1) + 1.0) / 2.0) * 255.0
