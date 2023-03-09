@@ -11,6 +11,7 @@ import numpy as np
 from misc.print_diffuse_feats import print_feats
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score, recall_score, precision_score
+from pytorch_lightning import seed_everything
 
 from remote_sensing_ddpm.evaluation.baselines.ddpm_cd.util import set_option_from_sweep
 
@@ -51,6 +52,11 @@ if __name__ == "__main__":
     logger = logging.getLogger("base")
     logger.info(Logger.dict2str(opt))
     tb_logger = SummaryWriter(log_dir=opt["path"]["tb_logger"])
+
+    # Seed everything
+    seed_everything(
+        seed=opt["seed"],
+    )
 
     # Initialize WandbLogger
     if opt["enable_wandb"]:
