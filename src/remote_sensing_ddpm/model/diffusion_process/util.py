@@ -6,6 +6,7 @@ class DiffusionTarget(Enum):
     X_0 = "x_0"
     EPS = "eps"
 
+
 def extract_into_tensor(a, t, x_shape):
     b, *_ = t.shape
     out = a.gather(-1, t)
@@ -22,5 +23,3 @@ def noise_like(shape, device, repeat=False):
         return torch.randn(shape, device=device)
 
     return repeat_noise() if repeat else noise()
-
-
