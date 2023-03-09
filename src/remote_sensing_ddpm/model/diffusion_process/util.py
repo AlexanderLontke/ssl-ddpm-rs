@@ -1,0 +1,26 @@
+from enum import Enum
+import torch
+
+
+class DiffusionTarget(Enum):
+    X_0 = "x_0"
+    EPS = "eps"
+
+def extract_into_tensor(a, t, x_shape):
+    b, *_ = t.shape
+    out = a.gather(-1, t)
+    return out.reshape(b, *((1,) * (len(x_shape) - 1)))
+
+
+def noise_like(shape, device, repeat=False):
+    def repeat_noise():
+        return torch.randn((1, *shape[1:]), device=device).repeat(
+            shape[0], *((1,) * (len(shape) - 1))
+        )
+
+    def noise():
+        return torch.randn(shape, device=device)
+
+    return repeat_noise() if repeat else noise()
+
+

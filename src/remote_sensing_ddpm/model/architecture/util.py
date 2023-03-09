@@ -1,17 +1,5 @@
-from inspect import isfunction
-
 import torch
 from torch import nn
-
-
-def exists(val):
-    return val is not None
-
-
-def default(val, d):
-    if exists(val):
-        return val
-    return d() if isfunction(d) else d
 
 
 def conv_nd(dims, *args, **kwargs):
