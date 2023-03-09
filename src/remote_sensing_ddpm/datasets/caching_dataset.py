@@ -13,7 +13,7 @@ class CachingDataset(Dataset):
         model: DDPM,
         feature_timesteps: List[int],
         image_key: str,
-        label_key: str
+        label_key: str,
     ):
         self.feature_timesteps = feature_timesteps
         self.items = []
