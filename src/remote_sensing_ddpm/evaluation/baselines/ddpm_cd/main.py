@@ -312,7 +312,7 @@ if __name__ == "__main__":
                     classifier.save_network(current_epoch, is_best_model=is_best_model)
 
                 if wandb_logger:
-                    wandb_logger.log_metrics({"epoch": current_epoch - 1})
+                    wandb_logger.log_metrics({"epoch": current_epoch})
             logger.info("End of training.")
     else:
         logger.info("Begin Model Evaluation (testing).")
