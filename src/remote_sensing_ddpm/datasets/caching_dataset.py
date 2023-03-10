@@ -1,7 +1,7 @@
 from typing import List
 from tqdm import tqdm
 
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 
 # Diffusion Model
 from remote_sensing_ddpm.evaluation.baselines.ddpm_cd.models.model import DDPM
@@ -18,8 +18,14 @@ class CachingDataset(Dataset):
     ):
         self.feature_timesteps = feature_timesteps
         self.items = []
+
+        data_loader = DataLoader(
+            dataset=parent_dataset,
+            batch_size=16,
+            num_workers=4,
+        )
         # Create cached representations
-        for i in tqdm(range(len(parent_dataset)), desc="Computing Representations"):
+        for i in tqdm(enumerate(data_loader), desc="Computing Representations", total=len(data_loader)):
             current_item = parent_dataset.__getitem__(i)
             assert all(hasattr(current_item, k) for k in [image_key, label_key])
             image = current_item[image_key]
