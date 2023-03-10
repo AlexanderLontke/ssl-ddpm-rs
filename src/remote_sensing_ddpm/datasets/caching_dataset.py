@@ -21,20 +21,21 @@ class CachingDataset(Dataset):
 
         data_loader = DataLoader(
             dataset=parent_dataset,
-            batch_size=16,
+            batch_size=10,
             num_workers=4,
         )
         # Create cached representations
-        for i in tqdm(enumerate(data_loader), desc="Computing Representations", total=len(data_loader)):
-            current_item = parent_dataset.__getitem__(i)
-            assert all(hasattr(current_item, k) for k in [image_key, label_key])
+        for _, current_item in tqdm(enumerate(data_loader), desc="Computing Representations", total=len(data_loader)):
+            # assert all(hasattr(current_item, k) for k in [image_key, label_key])
             image = current_item[image_key]
             label = current_item[label_key]
             model.feed_data(current_item)
             feats = []
             for t in self.feature_timesteps:
                 _, decoder_feats = model.get_single_representation(t=t)
-                feats.append(decoder_feats)
+                feats.append([f.cpu() for f in decoder_feats])
+                del decoder_feats
+            
             self.items += [{"feats": feats, image_key: image, label_key: label}]
 
     def __len__(self):

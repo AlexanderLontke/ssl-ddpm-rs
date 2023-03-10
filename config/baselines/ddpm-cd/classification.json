@@ -2,6 +2,9 @@
   "name": "ddpm-RS-ClassificationHead",
   "phase": "train",
   "seed": 42,
+  "gpu_ids":[
+    0
+  ],
   "path": {
     "log": "logs",
     "tb_logger": "tb_logger",
