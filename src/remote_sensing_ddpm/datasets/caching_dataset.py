@@ -1,4 +1,5 @@
 from typing import List
+from tqdm import tqdm
 
 from torch.utils.data import Dataset
 
@@ -18,7 +19,7 @@ class CachingDataset(Dataset):
         self.feature_timesteps = feature_timesteps
         self.items = []
         # Create cached representations
-        for i in range(len(parent_dataset)):
+        for i in tqdm(range(len(parent_dataset)), desc="Computing Representations"):
             current_item = parent_dataset.__getitem__(i)
             assert all(hasattr(current_item, k) for k in [image_key, label_key])
             image = current_item[image_key]
