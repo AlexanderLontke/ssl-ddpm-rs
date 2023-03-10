@@ -1,13 +1,19 @@
+from typing import Optional
 from functools import partial
 
 import numpy as np
-from numpy import random
+
+from tqdm import tqdm
 
 import torch
 from torch import nn
 
 # Util
-from remote_sensing_ddpm.model.diffusion_process.util import extract_into_tensor, DiffusionTarget
+from remote_sensing_ddpm.model.diffusion_process.util import (
+    extract_into_tensor,
+    DiffusionTarget,
+)
+from remote_sensing_ddpm.model.util import default
 
 # Beta Schedule
 from remote_sensing_ddpm.model.diffusion_process.beta_schedule import make_beta_schedule
@@ -44,17 +50,23 @@ class DDPM:
             )
         )
 
-        # Cache often used values
+        # Cache values often used for approximating p_{\theta}(x_{t-1}|x_{t})
         self.alphas = to_torch(1.0 - self.betas)
         self.alphas_cumprod = to_torch(np.cumprod(self.alphas))
         self.sqrt_alphas_cumprod = to_torch(np.sqrt(self.alphas_cumprod))
         self.sqrt_one_minus_alphas_cumprod = to_torch(np.sqrt(1 - self.alphas_cumprod))
+        # Cache values often used to sample from p_{\theta}(x_{t-1}|x_{t})
+        self.sqrt_alphas = to_torch(np.sqrt(self.alphas))
+        self.sqrt_betas = to_torch(np.sqrt(self.betas))
 
         # Setup loss
         self.loss = nn.MSELoss()
 
+    # Methods relating to approximating p_{\theta}(x_{t-1}|x_{t})
     def training_step(self, x_0):
-        t = torch.randint(0, self.beta_schedule_steps, (x_0.shape[0],), device=self.device).long()
+        t = torch.randint(
+            0, self.beta_schedule_steps, (x_0.shape[0],), device=self.device
+        ).long()
         return self.p_losses(
             x_0=x_0,
             t=t,
@@ -80,7 +92,9 @@ class DDPM:
         elif self.diffusion_target == DiffusionTarget.EPS:
             target = noise
         else:
-            raise NotImplementedError(f"Diffusion target {self.diffusion_target} not supported")
+            raise NotImplementedError(
+                f"Diffusion target {self.diffusion_target} not supported"
+            )
 
         loss_t_simple = self.loss(model_x, target)
         return loss_t_simple
@@ -100,3 +114,41 @@ class DDPM:
             * epsilon_noise
         )
         return noised_x, epsilon_noise
+
+    # Methods related to sampling from the distribution p_{\theta}(x_{t-1}|x_{t})
+    @torch.no_grad()
+    def p_sample(self, x_t, t):
+        """
+        Method implementing one DDPM sampling step
+        :param x_t: sample at current timestep
+        :param t: denotes current timestep
+        :return: x at timestep t-1
+        """
+        z = torch.rand((1,)) if t > 1 else 0
+        model_estimation = self.diffusion_model(x_t, t)
+        # Note: 1 - alpha_t = beta_t
+        x_t_minus_one = (
+            1.0
+            / self.sqrt_alphas[t]
+            * (
+                x_t
+                - (self.betas[t] / self.sqrt_one_minus_alphas_cumprod[t])
+                * model_estimation
+            )
+            + self.sqrt_betas[t] * z
+        )
+        return x_t_minus_one
+
+    @torch.no_grad()
+    def p_sample_loop(self, shape, starting_noise: Optional[torch.Tensor] = None):
+        x_t = default(starting_noise, lambda: torch.randn(shape, device=self.device))
+        for t in tqdm(
+            reversed(range(self.beta_schedule_steps)),
+            desc="DDPM sampling:",
+            total=self.beta_schedule_steps,
+        ):
+            x_t = self.p_sample(
+                x_t=x_t,
+                t=t,
+            )
+        return x_t
