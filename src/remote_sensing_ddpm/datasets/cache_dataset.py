@@ -50,7 +50,7 @@ if __name__ == '__main__':
         caching_dataset = CachingDataset(
             parent_dataset=dataset,
             model=model,
-            feature_timesteps=opt["model"],
+            feature_timesteps=opt["classification_model"]["time_steps"],
             image_key="image",
             label_key="L",
         )
