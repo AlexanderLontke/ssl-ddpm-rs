@@ -4,7 +4,7 @@ import torch
 from pytorch_lightning import seed_everything
 
 from remote_sensing_ddpm.evaluation.baselines.ddpm_cd import create_model
-from remote_sensing_ddpm.datasets.uc_merced_land_use.uc_merced_dataset import UCMerced
+from remote_sensing_ddpm.datasets.uc_merced_land_use.uc_merced_dataset import UCMerced, INT_TO_STRING
 from remote_sensing_ddpm.datasets.caching_dataset import CachingDataset
 
 
@@ -53,8 +53,6 @@ if __name__ == '__main__':
             feature_timesteps=opt["classification_model"]["time_steps"],
             image_key="image",
             label_key="L",
-        )
-        torch.save(
-            obj=caching_dataset,
-            f=f"/netscratch2/alontke/master_thesis/data/UCMerced_LandUse/CachedFeatures/{k}"
+            data_root="/netscratch2/alontke/master_thesis/data/UCMerced_LandUse/CachedFeatures",
+            label_to_nl_dict=INT_TO_STRING,
         )
