@@ -3,7 +3,7 @@ from torch import nn
 
 from einops import rearrange, repeat, einsum
 
-from remote_sensing_ddpm.u_net_model.architecture.util import default, exists
+from remote_sensing_ddpm.u_net_model.util import default, exists
 
 
 class CrossAttention(nn.Module):
