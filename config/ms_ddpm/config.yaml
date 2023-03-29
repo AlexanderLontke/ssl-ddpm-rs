@@ -1,0 +1,40 @@
+name: &NAME rs-ddpm-ms
+seed: 42
+
+# DATA SET CONFIG
+dataset:
+  module: # TODO
+  params: # TODO
+
+torch_data_loader:
+  batch_size: 8
+  shuffle: True
+  num_workers: -1
+
+# MODEL INSTANTIATION
+p_theta_model:
+  module: remote_sensing_ddpm.u_net_model.architecture.u_net.UNetModel
+  params: # TODO
+
+ddpm:
+  diffusion_target: eps
+  # TODO
+
+# MODEL TRAINING
+pl_trainer:
+  accelerator: gpu
+  max_epochs: 20
+  log_every_n_steps: 5
+  precision: "half"
+  gradient_clip_algorithm: "norm"
+  enable_checkpointing: True
+  # UNCOMMENT FOR DEBUGGING
+  # fast_dev_run: True
+
+pl_wandb_logger:
+  project: *NAME
+
+pl_checkpoint_callback:
+  monitor: "train/mse_loss"
+  save_top_K: 2
+  every_n_epochs: 5
