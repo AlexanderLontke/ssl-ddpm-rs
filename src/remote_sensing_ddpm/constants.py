@@ -1,6 +1,8 @@
 from enum import Enum
 
 # Configuration keys for instantiation and training loop
+# Seed
+SEED_CONFIG_KEY = "seed"
 # Data
 TORCH_DATASET_CONFIG_KEY = "torch_dataset"
 TORCH_DATA_LOADER_CONFIG_KEY = "torch_data_loader"

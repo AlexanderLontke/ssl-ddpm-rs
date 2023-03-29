@@ -13,6 +13,7 @@ from pytorch_lightning.loggers import WandbLogger
 # Util
 from remote_sensing_ddpm.util import instantiate_python_class_from_string_config
 from remote_sensing_ddpm.constants import (
+    SEED_CONFIG_KEY,
     TORCH_DATASET_CONFIG_KEY,
     TORCH_DATA_LOADER_CONFIG_KEY,
     P_THETA_MODEL_CONFIG_KEY,
@@ -27,6 +28,9 @@ from remote_sensing_ddpm.diffusion_process.ddpm import LitDDPM
 
 
 def main(config: Dict):
+    # Set seed
+    pl.seed_everything(config[SEED_CONFIG_KEY])
+
     # Instantiate dataset
     train_dataset = instantiate_python_class_from_string_config(
         class_config=config[TORCH_DATASET_CONFIG_KEY]
@@ -49,9 +53,8 @@ def main(config: Dict):
     # - Checkpointing
     trainer = pl.Trainer(
         **config[PL_TRAINER_CONFIG_KEY],
-        # logger=WandbLogger(**config[PL_WANDB_LOGGER_CONFIG_KEY]),
+        logger=WandbLogger(**config[PL_WANDB_LOGGER_CONFIG_KEY]),
         callbacks=[
-            ModelSummary(),
             ModelCheckpoint(
                 **config[PL_MODEL_CHECKPOINT_CONFIG_KEY],
             ),

@@ -165,6 +165,6 @@ class LitDDPM(pl.LightningModule):
 
     def configure_optimizers(self):
         lr = self.learning_rate
-        params = list(self.model.parameters())
+        params = list(self.diffusion_model.parameters())
         opt = torch.optim.AdamW(params, lr=lr)
         return opt
