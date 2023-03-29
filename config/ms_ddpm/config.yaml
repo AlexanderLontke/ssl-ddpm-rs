@@ -15,7 +15,7 @@ torch_dataset:
 torch_data_loader:
   batch_size: 4
   shuffle: True
-  num_workers: -1
+  num_workers: 8
 
 # MODEL INSTANTIATION
 p_theta_model:
