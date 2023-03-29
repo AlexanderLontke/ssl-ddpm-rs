@@ -32,6 +32,7 @@ class LitDDPM(pl.LightningModule):
         beta_schedule_steps: int,
         beta_schedule_linear_start: float,
         beta_schedule_linear_end: float,
+        learning_rate: float,
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -63,6 +64,9 @@ class LitDDPM(pl.LightningModule):
 
         # Setup loss
         self.loss = nn.MSELoss()
+
+        # Setup learning
+        self.learning_rate = learning_rate
 
     # Methods relating to approximating p_{\theta}(x_{t-1}|x_{t})
     def training_step(self, x_0):
@@ -158,3 +162,9 @@ class LitDDPM(pl.LightningModule):
                 t=t,
             )
         return x_t
+
+    def configure_optimizers(self):
+        lr = self.learning_rate
+        params = list(self.model.parameters())
+        opt = torch.optim.AdamW(params, lr=lr)
+        return opt

@@ -41,6 +41,7 @@ ddpm:
   beta_schedule_steps: 1000
   beta_schedule_linear_start: 0.0001
   beta_schedule_linear_end: 0.02
+  learning_rate: 0.0001
 
 # MODEL TRAINING
 pl_trainer:
