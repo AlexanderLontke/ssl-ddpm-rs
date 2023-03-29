@@ -38,30 +38,25 @@ class LitDDPM(pl.LightningModule):
         self.diffusion_model = p_theta_model
         self.diffusion_target = diffusion_target
 
-        # Helper function
-        to_torch = partial(
-            torch.tensor, dtype=torch.float32, device=self.device, requires_grad=False
-        )
-
         # Fix beta schedule
         self.beta_schedule_steps = beta_schedule_steps
-        self.betas = to_torch(
+        self.betas = torch.tensor(
             make_beta_schedule(
                 schedule=schedule_type,
                 n_timestep=beta_schedule_steps,
                 linear_start=beta_schedule_linear_start,
                 linear_end=beta_schedule_linear_end,
-            )
+            ), dtype=torch.float32, device=self.device, requires_grad=False,
         )
 
         # Cache values often used for approximating p_{\theta}(x_{t-1}|x_{t})
-        self.alphas = to_torch(1.0 - self.betas)
-        self.alphas_cumprod = to_torch(np.cumprod(self.alphas))
-        self.sqrt_alphas_cumprod = to_torch(np.sqrt(self.alphas_cumprod))
-        self.sqrt_one_minus_alphas_cumprod = to_torch(np.sqrt(1 - self.alphas_cumprod))
+        self.alphas = 1.0 - self.betas
+        self.alphas_cumprod = np.cumprod(self.alphas)
+        self.sqrt_alphas_cumprod = np.sqrt(self.alphas_cumprod)
+        self.sqrt_one_minus_alphas_cumprod = np.sqrt(1 - self.alphas_cumprod)
         # Cache values often used to sample from p_{\theta}(x_{t-1}|x_{t})
-        self.sqrt_alphas = to_torch(np.sqrt(self.alphas))
-        self.sqrt_betas = to_torch(np.sqrt(self.betas))
+        self.sqrt_alphas = np.sqrt(self.alphas)
+        self.sqrt_betas = np.sqrt(self.betas)
 
         # Setup loss
         self.loss = nn.MSELoss()

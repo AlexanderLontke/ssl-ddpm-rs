@@ -1,7 +1,7 @@
 from torch import nn
 import torch.nn.functional as F
 
-from remote_sensing_ddpm.u_net_model.architecture.util import default
+from remote_sensing_ddpm.u_net_model.util import default
 
 
 class GEGLU(nn.Module):
