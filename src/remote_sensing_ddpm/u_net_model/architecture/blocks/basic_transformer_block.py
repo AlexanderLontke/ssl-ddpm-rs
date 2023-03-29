@@ -1,13 +1,13 @@
 from torch import nn
 
 # Util
-from remote_sensing_ddpm.model.architecture.util import checkpoint
+from remote_sensing_ddpm.u_net_model.architecture.util import checkpoint
 
 # Modules
-from remote_sensing_ddpm.model.architecture.modules.cross_attention import (
+from remote_sensing_ddpm.u_net_model.architecture.modules.cross_attention import (
     CrossAttention,
 )
-from remote_sensing_ddpm.model.architecture.modules.feed_forward import FeedForward
+from remote_sensing_ddpm.u_net_model.architecture.modules.feed_forward import FeedForward
 
 
 class BasicTransformerBlock(nn.Module):

@@ -1,7 +1,7 @@
 from torch import nn
 
-from remote_sensing_ddpm.model.architecture.blocks.timestep_block import TimestepBlock
-from remote_sensing_ddpm.model.architecture.blocks.spatial_transformer import (
+from remote_sensing_ddpm.u_net_model.architecture.blocks.timestep_block import TimestepBlock
+from remote_sensing_ddpm.u_net_model.architecture.blocks.spatial_transformer import (
     SpatialTransformer,
 )
 

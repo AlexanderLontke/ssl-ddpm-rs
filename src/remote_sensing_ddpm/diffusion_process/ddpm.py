@@ -7,31 +7,37 @@ from tqdm import tqdm
 
 import torch
 from torch import nn
+import pytorch_lightning as pl
 
 # Util
-from remote_sensing_ddpm.model.diffusion_process.util import (
+from remote_sensing_ddpm.constants import (
+    TRAINING_LOSS_METRIC_KEY
+)
+from remote_sensing_ddpm.diffusion_process.util import (
     extract_into_tensor,
+)
+from remote_sensing_ddpm.constants import (
     DiffusionTarget,
 )
-from remote_sensing_ddpm.model.util import default
+from remote_sensing_ddpm.u_net_model.util import default
 
 # Beta Schedule
-from remote_sensing_ddpm.model.diffusion_process.beta_schedule import make_beta_schedule
+from remote_sensing_ddpm.diffusion_process.beta_schedule import make_beta_schedule
 
 
-class DDPM:
+class LitDDPM(pl.LightningModule):
     def __init__(
         self,
-        diffusion_model: nn.Module,
+        p_theta_model: nn.Module,
         diffusion_target: DiffusionTarget,
         schedule_type: str,
         beta_schedule_steps: int,
         beta_schedule_linear_start: float,
         beta_schedule_linear_end: float,
-        device: str,
     ):
-        self.device = torch.device(device)
-        self.diffusion_model = diffusion_model
+        super().__init__()
+        self.save_hyperparameters()
+        self.diffusion_model = p_theta_model
         self.diffusion_target = diffusion_target
 
         # Helper function
@@ -67,12 +73,13 @@ class DDPM:
         t = torch.randint(
             0, self.beta_schedule_steps, (x_0.shape[0],), device=self.device
         ).long()
-        return self.p_losses(
-            x_0=x_0,
-            t=t,
+        loss = self.p_loss(x_0=x_0, t=t)
+        self.log(
+            TRAINING_LOSS_METRIC_KEY, loss, prog_bar=True, on_epoch=True,
         )
+        return loss
 
-    def p_losses(self, x_0, t):
+    def p_loss(self, x_0, t):
         """
         Calculates the variational lower bound loss of p_{\theta}(x_{t-1}|x_{t}) based on the simplified
         difference between the distribution q(x_{t}|x_{t+1}) and p_{\theta}(x_{t}|x_{t+1})

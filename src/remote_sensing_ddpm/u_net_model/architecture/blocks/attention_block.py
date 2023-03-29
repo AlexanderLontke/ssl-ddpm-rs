@@ -1,7 +1,7 @@
 from torch import nn
 
 # Util
-from remote_sensing_ddpm.model.architecture.util import (
+from remote_sensing_ddpm.u_net_model.architecture.util import (
     normalization,
     conv_nd,
     zero_module,
@@ -9,7 +9,7 @@ from remote_sensing_ddpm.model.architecture.util import (
 )
 
 # Modules
-from remote_sensing_ddpm.model.architecture.modules.qkv_attention import QKVAttention
+from remote_sensing_ddpm.u_net_model.architecture.modules.qkv_attention import QKVAttention
 
 
 class AttentionBlock(nn.Module):

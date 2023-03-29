@@ -1,11 +1,4 @@
-from enum import Enum
 import torch
-
-
-class DiffusionTarget(Enum):
-    X_0 = "x_0"
-    EPS = "eps"
-
 
 def extract_into_tensor(a, t, x_shape):
     b, *_ = t.shape

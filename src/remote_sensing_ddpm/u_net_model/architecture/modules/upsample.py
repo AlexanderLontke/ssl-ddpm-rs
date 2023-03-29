@@ -1,6 +1,6 @@
 from torch import nn
 import torch.nn.functional as F
-from remote_sensing_ddpm.model.architecture.util import conv_nd
+from remote_sensing_ddpm.u_net_model.architecture.util import conv_nd
 
 
 class Upsample(nn.Module):

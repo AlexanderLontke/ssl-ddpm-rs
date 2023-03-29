@@ -4,28 +4,28 @@ import torch as th
 from torch import nn
 
 # Util
-from remote_sensing_ddpm.model.architecture.util import (
+from remote_sensing_ddpm.u_net_model.architecture.util import (
     conv_nd,
     zero_module,
     normalization,
 )
 
 # Blocks
-from remote_sensing_ddpm.model.architecture.blocks.res_block import ResBlock
-from remote_sensing_ddpm.model.architecture.blocks.spatial_transformer import (
+from remote_sensing_ddpm.u_net_model.architecture.blocks.res_block import ResBlock
+from remote_sensing_ddpm.u_net_model.architecture.blocks.spatial_transformer import (
     SpatialTransformer,
 )
-from remote_sensing_ddpm.model.architecture.blocks.timestep_embed_sequential import (
+from remote_sensing_ddpm.u_net_model.architecture.blocks.timestep_embed_sequential import (
     TimestepEmbedSequential,
 )
-from remote_sensing_ddpm.model.architecture.blocks.attention_block import AttentionBlock
+from remote_sensing_ddpm.u_net_model.architecture.blocks.attention_block import AttentionBlock
 
 # Modules
-from remote_sensing_ddpm.model.architecture.modules.downsample import Downsample
-from remote_sensing_ddpm.model.architecture.modules.upsample import Upsample
+from remote_sensing_ddpm.u_net_model.architecture.modules.downsample import Downsample
+from remote_sensing_ddpm.u_net_model.architecture.modules.upsample import Upsample
 
 # Embedding
-from remote_sensing_ddpm.model.architecture.embeddings.sinusoidal_embedding import (
+from remote_sensing_ddpm.u_net_model.architecture.embeddings.sinusoidal_embedding import (
     create_sinusoidal_timestep_embedding,
 )
 
