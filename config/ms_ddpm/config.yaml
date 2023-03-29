@@ -3,8 +3,14 @@ seed: 42
 
 # DATA SET CONFIG
 dataset:
-  module: # TODO
-  params: # TODO
+  module: remote_sensing_core.ben_ge_s.ben_ge_s_dataset.BenGeS
+  params:
+    data_index_path: "/ds2/remote_sensing/ben-ge/ben-ge-s/ben-ge-s_sentinel12_meta.csv"
+    esaworldcover_index_path: "/ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-2/s2_npy/ben-ge-s_esaworldcover.csv"
+    root_dir_s1: "/ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-1/s1_npy/"
+    root_dir_s2: "/ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-2/s2_npy/"
+    number_of_classes: 11
+    bands: "RGB"
 
 torch_data_loader:
   batch_size: 8
@@ -14,11 +20,27 @@ torch_data_loader:
 # MODEL INSTANTIATION
 p_theta_model:
   module: remote_sensing_ddpm.u_net_model.architecture.u_net.UNetModel
-  params: # TODO
+  params:
+    in_channels: 3
+    model_channels: 320
+    out_channels: 3
+    num_res_blocks: 2
+    attention_resolutions: [ 4, 2, 1 ]
+    dropout: 0.3
+    channel_mult: [ 1, 2, 4, 4 ]
+    use_checkpoint: False
+    num_heads: 8
+    use_spatial_transformer: False
+    transformer_depth: 1
+    # Only needed when providing prompt
+    # context_dim: -1
 
 ddpm:
   diffusion_target: eps
-  # TODO
+  schedule_type: linear
+  beta_schedule_steps: 1000
+  beta_schedule_linear_start: 0.0001
+  beta_schedule_linear_end: 0.02
 
 # MODEL TRAINING
 pl_trainer:

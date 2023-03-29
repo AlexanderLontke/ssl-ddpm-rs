@@ -64,7 +64,6 @@ class UNetModel(nn.Module):
 
     def __init__(
         self,
-        image_size,
         in_channels,
         model_channels,
         out_channels,
@@ -111,7 +110,6 @@ class UNetModel(nn.Module):
                 num_heads != -1
             ), "Either num_heads or num_head_channels has to be set"
 
-        self.image_size = image_size
         self.in_channels = in_channels
         self.model_channels = model_channels
         self.out_channels = out_channels
