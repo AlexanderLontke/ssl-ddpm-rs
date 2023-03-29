@@ -9,7 +9,9 @@ from remote_sensing_ddpm.u_net_model.architecture.util import (
 )
 
 # Modules
-from remote_sensing_ddpm.u_net_model.architecture.modules.qkv_attention import QKVAttention
+from remote_sensing_ddpm.u_net_model.architecture.modules.qkv_attention import (
+    QKVAttention,
+)
 
 
 class AttentionBlock(nn.Module):

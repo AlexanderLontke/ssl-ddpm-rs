@@ -18,7 +18,9 @@ from remote_sensing_ddpm.u_net_model.architecture.blocks.spatial_transformer imp
 from remote_sensing_ddpm.u_net_model.architecture.blocks.timestep_embed_sequential import (
     TimestepEmbedSequential,
 )
-from remote_sensing_ddpm.u_net_model.architecture.blocks.attention_block import AttentionBlock
+from remote_sensing_ddpm.u_net_model.architecture.blocks.attention_block import (
+    AttentionBlock,
+)
 
 # Modules
 from remote_sensing_ddpm.u_net_model.architecture.modules.downsample import Downsample

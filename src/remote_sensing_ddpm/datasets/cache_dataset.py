@@ -4,7 +4,10 @@ import torch
 from pytorch_lightning import seed_everything
 
 from remote_sensing_ddpm.evaluation.baselines.ddpm_cd import create_model
-from remote_sensing_ddpm.datasets.uc_merced_land_use.uc_merced_dataset import UCMerced, INT_TO_STRING
+from remote_sensing_ddpm.datasets.uc_merced_land_use.uc_merced_dataset import (
+    UCMerced,
+    INT_TO_STRING,
+)
 from remote_sensing_ddpm.datasets.caching_dataset import CachingDataset
 
 
@@ -13,21 +16,17 @@ class NoneDict(dict):
         return dict.get(self, key)
 
 
-if __name__ == '__main__':
-    seed_everything(
-        seed=42
-    )
+if __name__ == "__main__":
+    seed_everything(seed=42)
 
     training_parent_dataset = UCMerced(
         data_root="/netscratch2/alontke/master_thesis/data/UCMerced_LandUse/Images",
         phase="train",
-
     )
 
     validation_parent_dataset = UCMerced(
         data_root="/netscratch2/alontke/master_thesis/data/UCMerced_LandUse/Images",
         phase="val",
-
     )
 
     test_parent_dataset = UCMerced(
@@ -38,7 +37,7 @@ if __name__ == '__main__':
     all_datasets = {
         "train": training_parent_dataset,
         "val": validation_parent_dataset,
-        "test": test_parent_dataset
+        "test": test_parent_dataset,
     }
 
     with open("config/baselines/ddpm-cd/classification.json") as config_file:

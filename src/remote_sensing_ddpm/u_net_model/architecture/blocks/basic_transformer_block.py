@@ -7,7 +7,9 @@ from remote_sensing_ddpm.u_net_model.architecture.util import checkpoint
 from remote_sensing_ddpm.u_net_model.architecture.modules.cross_attention import (
     CrossAttention,
 )
-from remote_sensing_ddpm.u_net_model.architecture.modules.feed_forward import FeedForward
+from remote_sensing_ddpm.u_net_model.architecture.modules.feed_forward import (
+    FeedForward,
+)
 
 
 class BasicTransformerBlock(nn.Module):

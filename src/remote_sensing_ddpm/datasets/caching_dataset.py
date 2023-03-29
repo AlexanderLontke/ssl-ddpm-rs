@@ -29,7 +29,11 @@ class CachingDataset:
             num_workers=4,
         )
         # Create cached representations
-        for _, current_item in tqdm(enumerate(data_loader), desc="Computing Representations", total=len(data_loader)):
+        for _, current_item in tqdm(
+            enumerate(data_loader),
+            desc="Computing Representations",
+            total=len(data_loader),
+        ):
             images = current_item[image_key]
             labels = current_item[label_key]
             batch_size, *_ = labels.shape
@@ -46,7 +50,9 @@ class CachingDataset:
                 current_feats = []
                 for j in range(len(self.feature_timesteps)):
                     current_feats.append(feats[j][i])
-                current_root_path = Path(data_root) / f"{label_to_nl_dict[current_label]}"
+                current_root_path = (
+                    Path(data_root) / f"{label_to_nl_dict[current_label]}"
+                )
                 current_root_path.mkdir(parents=True, exist_ok=True)
                 file_number = 0
                 if current_label in counts.keys():

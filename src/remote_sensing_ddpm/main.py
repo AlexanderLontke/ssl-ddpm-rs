@@ -16,8 +16,9 @@ from remote_sensing_ddpm.constants import (
     DDPM_CONFIG_KEY,
     PL_TRAINER_CONFIG_KEY,
     PL_WANDB_LOGGER_CONFIG_KEY,
-    PL_MODEL_CHECKPOINT_CONFIG_KEY
+    PL_MODEL_CHECKPOINT_CONFIG_KEY,
 )
+
 # Diffusion
 from remote_sensing_ddpm.diffusion_process.ddpm import LitDDPM
 
@@ -27,18 +28,14 @@ def main(config: Dict):
     train_dataset = ...
     # Instantiate dataloader from data set
     train_data_loader = DataLoader(
-        dataset=train_dataset,
-        **config[TORCH_DATA_LOADER_CONFIG_KEY]
+        dataset=train_dataset, **config[TORCH_DATA_LOADER_CONFIG_KEY]
     )
     # Instantiate model approximating p_theta(x_{t-1}|x_t)
     p_theta_model = instantiate_python_class_from_string_config(
         class_config=config[P_THETA_MODEL_CONFIG_KEY]
     )
-    # TODO Instantiate DDPM class
-    ddpm_pl_module = LitDDPM(
-        p_theta_model=p_theta_model,
-        **config[DDPM_CONFIG_KEY]
-    )
+    # Instantiate DDPM class
+    ddpm_pl_module = LitDDPM(p_theta_model=p_theta_model, **config[DDPM_CONFIG_KEY])
 
     # PL-Trainer with the following features:
     # - Model Summary
@@ -47,15 +44,13 @@ def main(config: Dict):
     # - Checkpointing
     trainer = pl.Trainer(
         **config[PL_TRAINER_CONFIG_KEY],
-        logger=WandbLogger(
-            **config[PL_WANDB_LOGGER_CONFIG_KEY]
-        ),
+        logger=WandbLogger(**config[PL_WANDB_LOGGER_CONFIG_KEY]),
         callbacks=[
             ModelSummary(),
             ModelCheckpoint(
                 **config[PL_MODEL_CHECKPOINT_CONFIG_KEY],
             ),
-        ]
+        ],
     )
     # Run training
     trainer.fit(

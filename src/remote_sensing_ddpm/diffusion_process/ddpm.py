@@ -10,9 +10,7 @@ from torch import nn
 import pytorch_lightning as pl
 
 # Util
-from remote_sensing_ddpm.constants import (
-    TRAINING_LOSS_METRIC_KEY
-)
+from remote_sensing_ddpm.constants import TRAINING_LOSS_METRIC_KEY
 from remote_sensing_ddpm.diffusion_process.util import (
     extract_into_tensor,
 )
@@ -75,7 +73,10 @@ class LitDDPM(pl.LightningModule):
         ).long()
         loss = self.p_loss(x_0=x_0, t=t)
         self.log(
-            TRAINING_LOSS_METRIC_KEY, loss, prog_bar=True, on_epoch=True,
+            TRAINING_LOSS_METRIC_KEY,
+            loss,
+            prog_bar=True,
+            on_epoch=True,
         )
         return loss
 
