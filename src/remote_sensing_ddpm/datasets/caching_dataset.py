@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import List, Dict
 from tqdm import tqdm
@@ -29,23 +30,24 @@ class CachingDataset:
         )
         # Create cached representations
         for _, current_item in tqdm(enumerate(data_loader), desc="Computing Representations", total=len(data_loader)):
-            batch_size, *_ = current_item.shape
             images = current_item[image_key]
             labels = current_item[label_key]
+            batch_size, *_ = labels.shape
             model.feed_data(current_item)
             feats = []
             for t in self.feature_timesteps:
                 _, decoder_feats = model.get_single_representation(t=t)
                 feats.append([f.cpu() for f in decoder_feats])
                 del decoder_feats
-            print("Batch size", batch_size)
-            print("Len feats", len(feats))
             counts = {}
             for i in range(batch_size):
                 current_image = images[i]
-                current_label = labels[i]
-                current_feats = feats[i]
+                current_label = labels[i].item()
+                current_feats = []
+                for j in range(len(self.feature_timesteps)):
+                    current_feats.append(feats[j][i])
                 current_root_path = Path(data_root) / f"{label_to_nl_dict[current_label]}"
+                current_root_path.mkdir(parents=True, exist_ok=True)
                 file_number = 0
                 if current_label in counts.keys():
                     file_number = counts[current_label]
