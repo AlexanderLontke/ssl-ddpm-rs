@@ -64,7 +64,7 @@ def main(config: Dict):
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Add run arguments
     parser = argparse.ArgumentParser()
     parser.add_argument(

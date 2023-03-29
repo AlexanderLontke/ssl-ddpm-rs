@@ -46,7 +46,10 @@ class LitDDPM(pl.LightningModule):
                 n_timestep=beta_schedule_steps,
                 linear_start=beta_schedule_linear_start,
                 linear_end=beta_schedule_linear_end,
-            ), dtype=torch.float32, device=self.device, requires_grad=False,
+            ),
+            dtype=torch.float32,
+            device=self.device,
+            requires_grad=False,
         )
 
         # Cache values often used for approximating p_{\theta}(x_{t-1}|x_{t})
