@@ -2,7 +2,7 @@ name: &NAME rs-ddpm-ms
 seed: 42
 
 # DATA SET CONFIG
-dataset:
+torch_dataset:
   module: remote_sensing_core.ben_ge_s.ben_ge_s_dataset.BenGeS
   params:
     data_index_path: "/ds2/remote_sensing/ben-ge/ben-ge-s/ben-ge-s_sentinel12_meta.csv"
@@ -13,7 +13,7 @@ dataset:
     bands: "RGB"
 
 torch_data_loader:
-  batch_size: 8
+  batch_size: 4
   shuffle: True
   num_workers: -1
 

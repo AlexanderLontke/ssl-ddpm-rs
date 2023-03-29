@@ -2,6 +2,7 @@ from enum import Enum
 
 # Configuration keys for instantiation and training loop
 # Data
+TORCH_DATASET_CONFIG_KEY = "torch_dataset"
 TORCH_DATA_LOADER_CONFIG_KEY = "torch_data_loader"
 # Models
 P_THETA_MODEL_CONFIG_KEY = "p_theta_model"

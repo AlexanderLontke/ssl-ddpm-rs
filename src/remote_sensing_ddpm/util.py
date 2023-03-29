@@ -22,4 +22,4 @@ def instantiate_python_class_from_string_config(class_config: Dict):
     # Import necessary module
     module = import_module(module_name)
     # Instantiate class with config values
-    return module.__getattr__(class_name)(**class_config[STRING_PARAMS_CONFIG_KEY])
+    return getattr(module, class_name)(**class_config[STRING_PARAMS_CONFIG_KEY])
