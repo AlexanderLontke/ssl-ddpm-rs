@@ -33,6 +33,7 @@ class LitDDPM(pl.LightningModule):
         beta_schedule_linear_start: float,
         beta_schedule_linear_end: float,
         learning_rate: float,
+        data_key: Optional[str] = None,
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -68,8 +69,13 @@ class LitDDPM(pl.LightningModule):
         # Setup learning
         self.learning_rate = learning_rate
 
+        # Data access
+        self.data_key = data_key
+
     # Methods relating to approximating p_{\theta}(x_{t-1}|x_{t})
     def training_step(self, x_0):
+        if self.data_key:
+            x_0 = x_0[self.data_key]
         t = torch.randint(
             0, self.beta_schedule_steps, (x_0.shape[0],), device=self.device
         ).long()
