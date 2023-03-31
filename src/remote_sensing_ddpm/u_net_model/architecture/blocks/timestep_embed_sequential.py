@@ -22,4 +22,4 @@ class TimestepEmbedSequential(nn.Sequential, TimestepBlock):
                 x = layer(x, context)
             else:
                 x = layer(x)
-        return
+        return x

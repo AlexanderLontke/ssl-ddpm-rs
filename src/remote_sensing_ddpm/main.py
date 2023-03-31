@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 
 # PyTorch Lightning
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import ModelSummary, ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
 # Util

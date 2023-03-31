@@ -55,13 +55,13 @@ class LitDDPM(pl.LightningModule):
         )
 
         # Cache values often used for approximating p_{\theta}(x_{t-1}|x_{t})
-        self.alphas = 1.0 - self.betas
-        self.alphas_cumprod = np.cumprod(self.alphas)
-        self.sqrt_alphas_cumprod = np.sqrt(self.alphas_cumprod)
-        self.sqrt_one_minus_alphas_cumprod = np.sqrt(1 - self.alphas_cumprod)
+        self.register_buffer("alphas", 1.0 - self.betas)
+        self.register_buffer("alphas_cumprod", np.cumprod(self.alphas))
+        self.register_buffer("sqrt_alphas_cumprod", np.sqrt(self.alphas_cumprod))
+        self.register_buffer("sqrt_one_minus_alphas_cumprod", np.sqrt(1 - self.alphas_cumprod))
         # Cache values often used to sample from p_{\theta}(x_{t-1}|x_{t})
-        self.sqrt_alphas = np.sqrt(self.alphas)
-        self.sqrt_betas = np.sqrt(self.betas)
+        self.register_buffer("sqrt_alphas", np.sqrt(self.alphas))
+        self.register_buffer("sqrt_betas", np.sqrt(self.betas))
 
         # Setup loss
         self.loss = nn.MSELoss()

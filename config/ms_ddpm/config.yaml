@@ -13,7 +13,7 @@ torch_dataset:
     bands: "RGB"
 
 torch_data_loader:
-  batch_size: 4
+  batch_size: 2
   shuffle: True
   num_workers: 8
 
@@ -42,6 +42,7 @@ ddpm:
   beta_schedule_linear_start: 0.0001
   beta_schedule_linear_end: 0.02
   learning_rate: 0.0001
+  data_key: "s2_img"
 
 # MODEL TRAINING
 pl_trainer:
