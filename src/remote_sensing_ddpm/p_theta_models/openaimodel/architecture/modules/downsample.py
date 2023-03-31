@@ -1,5 +1,5 @@
 from torch import nn
-from remote_sensing_ddpm.u_net_model.architecture.util import conv_nd, avg_pool_nd
+from remote_sensing_ddpm.p_theta_models.openaimodel.architecture.util import conv_nd, avg_pool_nd
 
 
 class Downsample(nn.Module):

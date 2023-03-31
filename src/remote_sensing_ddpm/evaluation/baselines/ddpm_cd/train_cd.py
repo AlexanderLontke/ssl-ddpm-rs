@@ -9,8 +9,6 @@ from core.wandb_logger import WandbLogger
 from tensorboardX import SummaryWriter
 import os
 import numpy as np
-from remote_sensing_ddpm.evaluation.baselines.ddpm_cd.cd_modules.cd_head import cd_head
-from misc.print_diffuse_feats import print_feats
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

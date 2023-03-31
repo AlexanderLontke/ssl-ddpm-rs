@@ -3,13 +3,12 @@ import logging
 import torch
 import torch.nn as nn
 from torch.nn import init
-from torch.nn import modules
 
 logger = logging.getLogger("base")
-from remote_sensing_ddpm.evaluation.baselines.ddpm_cd.cd_modules.cd_head_v2 import (
+from remote_sensing_ddpm.p_theta_models.ddpm_cd_model.cd_modules.cd_head_v2 import (
     cd_head_v2,
 )
-from remote_sensing_ddpm.evaluation.baselines.ddpm_cd.classification_modules.classification_head import (
+from remote_sensing_ddpm.p_theta_models.ddpm_cd_model.classification_modules import (
     ClassificationHead,
 )
 
@@ -91,15 +90,13 @@ def init_weights(net, init_type="kaiming", scale=1, std=0.02):
 def define_G(opt):
     model_opt = opt["model"]
     if model_opt["which_model_G"] == "ddpm":
-        from remote_sensing_ddpm.evaluation.baselines.ddpm_cd.ddpm_modules import (
+        from remote_sensing_ddpm.p_theta_models.ddpm_cd_model.ddpm_modules import (
             diffusion,
-            unet,
         )
+        from remote_sensing_ddpm.p_theta_models.ddpm_cd_model.ddpm_modules import unet
     elif model_opt["which_model_G"] == "sr3":
-        from remote_sensing_ddpm.evaluation.baselines.ddpm_cd.sr3_modules import (
-            diffusion,
-            unet,
-        )
+        from remote_sensing_ddpm.p_theta_models.ddpm_cd_model.sr3_modules import unet
+        from remote_sensing_ddpm.p_theta_models.ddpm_cd_model.sr3_modules import diffusion
     if ("norm_groups" not in model_opt["unet"]) or model_opt["unet"][
         "norm_groups"
     ] is None:

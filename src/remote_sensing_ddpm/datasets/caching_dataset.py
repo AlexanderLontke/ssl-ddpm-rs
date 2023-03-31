@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import List, Dict
 from tqdm import tqdm
@@ -7,7 +6,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 
 # Diffusion Model
-from remote_sensing_ddpm.evaluation.baselines.ddpm_cd.models.model import DDPM
+from remote_sensing_ddpm.p_theta_models.ddpm_cd_model.model import DDPM
 
 
 class CachingDataset:

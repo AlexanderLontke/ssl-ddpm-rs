@@ -1,0 +1,62 @@
+name: &NAME rs-ddpm-ms
+seed: 42
+
+# DATA SET CONFIG
+torch_dataset:
+  module: remote_sensing_core.ben_ge_s.ben_ge_s_dataset.BenGeS
+  params:
+    data_index_path: "/ds2/remote_sensing/ben-ge/ben-ge-s/ben-ge-s_sentinel12_meta.csv"
+    esaworldcover_index_path: "/ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-2/s2_npy/ben-ge-s_esaworldcover.csv"
+    root_dir_s1: "/ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-1/s1_npy/"
+    root_dir_s2: "/ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-2/s2_npy/"
+    number_of_classes: 11
+    bands: "RGB"
+
+torch_data_loader:
+  batch_size: 2
+  shuffle: True
+  num_workers: 8
+
+# MODEL INSTANTIATION
+p_theta_model:
+  module: remote_sensing_ddpm.p_theta_models.ddpm_cd_model.sr3_modules.unet.UNet
+  params:
+    in_channel: 3
+    out_channel: 3
+    norm_groups: 32
+    inner_channel: 128
+    channel_mults: [ 1, 2, 4, 8, 8 ]
+    attn_res: 16
+    res_blocks: 2
+    dropout: 0.2
+    image_size: 120
+ddpm:
+  diffusion_target: eps
+  schedule_type: linear
+  beta_schedule_steps: 1000
+  beta_schedule_linear_start: 0.0001
+  beta_schedule_linear_end: 0.02
+  learning_rate: 0.0001
+  data_key: "s2_img"
+
+# MODEL TRAINING
+pl_trainer:
+  accelerator: gpu
+  max_epochs: 20
+  log_every_n_steps: 1
+  precision: "16-mixed"
+  gradient_clip_algorithm: "norm"
+  enable_checkpointing: True
+  # UNCOMMENT FOR DEBUGGING
+  fast_dev_run: True
+
+pl_wandb_logger:
+  project: *NAME
+
+pl_checkpoint_callback:
+  monitor: "train/mse_loss"
+  save_top_k: 2
+  every_n_epochs: 5
+
+
+

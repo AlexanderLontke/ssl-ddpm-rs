@@ -4,7 +4,7 @@ from collections import OrderedDict
 import torch
 import torch.nn as nn
 import os
-import remote_sensing_ddpm.evaluation.baselines.ddpm_cd.models.networks as networks
+import remote_sensing_ddpm.p_theta_models.ddpm_cd_model.networks as networks
 from .base_model import BaseModel
 from remote_sensing_ddpm.evaluation.baselines.ddpm_cd.misc.metric_tools import (
     ConfuseMatrixMeter,

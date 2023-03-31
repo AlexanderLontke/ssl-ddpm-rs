@@ -9,7 +9,7 @@ logger = logging.getLogger("base")
 
 
 def create_model(opt):
-    from remote_sensing_ddpm.evaluation.baselines.ddpm_cd.models.model import DDPM as M
+    from remote_sensing_ddpm.p_theta_models.ddpm_cd_model.model import DDPM as M
 
     m = M(opt)
     logger.info("Model [{:s}] is created.".format(m.__class__.__name__))
@@ -17,7 +17,7 @@ def create_model(opt):
 
 
 def create_CD_model(opt):
-    from remote_sensing_ddpm.evaluation.baselines.ddpm_cd.models.cd_model import CD as M
+    from remote_sensing_ddpm.p_theta_models.ddpm_cd_model.cd_model import CD as M
 
     m = M(opt)
     logger.info("Cd Model [{:s}] is created.".format(m.__class__.__name__))
@@ -25,7 +25,7 @@ def create_CD_model(opt):
 
 
 def create_classification_model(opt):
-    from remote_sensing_ddpm.evaluation.baselines.ddpm_cd.models.classification_model import (
+    from remote_sensing_ddpm.p_theta_models.ddpm_cd_model import (
         Classfication as M,
     )
 

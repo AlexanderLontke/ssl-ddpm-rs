@@ -1,5 +1,4 @@
 from typing import Optional
-from functools import partial
 
 import numpy as np
 
@@ -17,7 +16,7 @@ from remote_sensing_ddpm.diffusion_process.util import (
 from remote_sensing_ddpm.constants import (
     DiffusionTarget,
 )
-from remote_sensing_ddpm.u_net_model.util import default
+from remote_sensing_ddpm.p_theta_models.openaimodel.util import default
 
 # Beta Schedule
 from remote_sensing_ddpm.diffusion_process.beta_schedule import make_beta_schedule

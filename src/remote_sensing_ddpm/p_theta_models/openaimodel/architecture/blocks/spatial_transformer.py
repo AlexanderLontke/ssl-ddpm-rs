@@ -2,8 +2,8 @@ from torch import nn
 
 from einops import rearrange
 
-from remote_sensing_ddpm.u_net_model.architecture.util import zero_module
-from remote_sensing_ddpm.u_net_model.architecture.blocks.basic_transformer_block import (
+from remote_sensing_ddpm.p_theta_models.openaimodel.architecture.util import zero_module
+from remote_sensing_ddpm.p_theta_models.openaimodel.architecture.blocks.basic_transformer_block import (
     BasicTransformerBlock,
 )
 
