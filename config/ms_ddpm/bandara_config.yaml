@@ -35,7 +35,7 @@ p_theta_model:
     attn_res: 16
     res_blocks: 2
     dropout: 0.2
-    image_size: 120
+    image_size: 128
 ddpm:
   diffusion_target: eps
   schedule_type: linear

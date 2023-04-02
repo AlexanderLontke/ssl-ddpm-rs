@@ -60,7 +60,7 @@ def main(config: Dict):
     # - Checkpointing
     trainer = pl.Trainer(
         **config[PL_TRAINER_CONFIG_KEY],
-        logger=WandbLogger(**config[PL_WANDB_LOGGER_CONFIG_KEY]),
+        logger=WandbLogger(**config[PL_WANDB_LOGGER_CONFIG_KEY], config=config),
         callbacks=[
             ModelCheckpoint(
                 **config[PL_MODEL_CHECKPOINT_CONFIG_KEY],
