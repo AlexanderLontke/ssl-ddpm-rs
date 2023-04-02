@@ -14,6 +14,7 @@ from pytorch_lightning.loggers import WandbLogger
 from remote_sensing_ddpm.util import instantiate_python_class_from_string_config
 from remote_sensing_ddpm.constants import (
     SEED_CONFIG_KEY,
+    DATASET_TRANSFORM_CONFIG_KEY,
     TORCH_DATASET_CONFIG_KEY,
     TORCH_DATA_LOADER_CONFIG_KEY,
     P_THETA_MODEL_CONFIG_KEY,
@@ -31,9 +32,15 @@ def main(config: Dict):
     # Set seed
     pl.seed_everything(config[SEED_CONFIG_KEY])
 
+    # Instantiate dataset Transform
+    dataset_transform = instantiate_python_class_from_string_config(
+        class_config=config[DATASET_TRANSFORM_CONFIG_KEY]
+    )
+
     # Instantiate dataset
     train_dataset = instantiate_python_class_from_string_config(
-        class_config=config[TORCH_DATASET_CONFIG_KEY]
+        class_config=config[TORCH_DATASET_CONFIG_KEY],
+        transform=dataset_transform
     )
     # Instantiate dataloader from data set
     train_data_loader = DataLoader(

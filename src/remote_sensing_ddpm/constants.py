@@ -4,6 +4,7 @@ from enum import Enum
 # Seed
 SEED_CONFIG_KEY = "seed"
 # Data
+DATASET_TRANSFORM_CONFIG_KEY = "dataset_transform"
 TORCH_DATASET_CONFIG_KEY = "torch_dataset"
 TORCH_DATA_LOADER_CONFIG_KEY = "torch_data_loader"
 # Models

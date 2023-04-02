@@ -2,6 +2,12 @@ name: &NAME rs-ddpm-ms
 seed: 42
 
 # DATA SET CONFIG
+dataset_transform:
+  module: remote_sensing_core.ben_ge_s.composite_image_transform.CompositeImageTransform
+  params:
+    padding_parameters:
+      padding: 4
+
 torch_dataset:
   module: remote_sensing_core.ben_ge_s.ben_ge_s_dataset.BenGeS
   params:
