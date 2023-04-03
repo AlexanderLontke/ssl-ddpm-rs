@@ -37,7 +37,7 @@ p_theta_model:
     res_blocks: 2
     dropout: 0.2
     image_size: 128
-ddpm:
+diffusion_mode:
   diffusion_target: eps
   schedule_type: linear
   beta_schedule_steps: 1000
