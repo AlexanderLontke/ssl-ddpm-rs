@@ -38,7 +38,7 @@ p_theta_model:
     dropout: 0.2
     image_size: 128
 diffusion_model:
-  module: "lit_diffusion.ddpm.ddpm.LitDDPM"
+  module: "lit_diffusion.ddpm.lit_ddpm.LitDDPM"
   params:
     diffusion_target: eps
     schedule_type: linear
@@ -68,3 +68,7 @@ pl_checkpoint_callback:
   monitor: "train/mse_loss"
   save_top_k: 2
   every_n_epochs: 5
+
+sampling:
+  shape: [3, 128, 128]
+  strict_ckpt_loading: False
