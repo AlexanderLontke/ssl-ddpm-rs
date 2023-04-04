@@ -10,8 +10,12 @@ from remote_sensing_ddpm.p_theta_models.openaimodel.architecture.util import (
 from remote_sensing_ddpm.p_theta_models.openaimodel.architecture.blocks.timestep_block import (
     TimestepBlock,
 )
-from remote_sensing_ddpm.p_theta_models.openaimodel.architecture.modules.upsample import Upsample
-from remote_sensing_ddpm.p_theta_models.openaimodel.architecture.modules.downsample import Downsample
+from remote_sensing_ddpm.p_theta_models.openaimodel.architecture.modules.upsample import (
+    Upsample,
+)
+from remote_sensing_ddpm.p_theta_models.openaimodel.architecture.modules.downsample import (
+    Downsample,
+)
 
 
 class ResBlock(TimestepBlock):

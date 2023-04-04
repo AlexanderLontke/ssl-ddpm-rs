@@ -96,7 +96,9 @@ def define_G(opt):
         from remote_sensing_ddpm.p_theta_models.ddpm_cd_model.ddpm_modules import unet
     elif model_opt["which_model_G"] == "sr3":
         from remote_sensing_ddpm.p_theta_models.ddpm_cd_model.sr3_modules import unet
-        from remote_sensing_ddpm.p_theta_models.ddpm_cd_model.sr3_modules import diffusion
+        from remote_sensing_ddpm.p_theta_models.ddpm_cd_model.sr3_modules import (
+            diffusion,
+        )
     if ("norm_groups" not in model_opt["unet"]) or model_opt["unet"][
         "norm_groups"
     ] is None:
