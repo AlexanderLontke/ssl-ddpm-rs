@@ -56,3 +56,6 @@ MANIFEST
 # Wandb Experiments
 experiments/*
 wandb/*
+
+# Checkpoints
+*.ckpt
