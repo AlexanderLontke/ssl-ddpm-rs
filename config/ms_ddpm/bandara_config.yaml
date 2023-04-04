@@ -37,14 +37,19 @@ p_theta_model:
     res_blocks: 2
     dropout: 0.2
     image_size: 128
-diffusion_mode:
-  diffusion_target: eps
-  schedule_type: linear
-  beta_schedule_steps: 1000
-  beta_schedule_linear_start: 0.0001
-  beta_schedule_linear_end: 0.02
-  learning_rate: 0.0001
-  data_key: "s2_img"
+diffusion_model:
+  module: "lit_diffusion.ddpm.ddpm.LitDDPM"
+  params:
+    diffusion_target: eps
+    schedule_type: linear
+    beta_schedule_steps: 1000
+    beta_schedule_linear_start: 0.0001
+    beta_schedule_linear_end: 0.02
+    learning_rate: 0.00001
+    data_key: "s2_img"
+    learning_rate_scheduler_config:
+      module: torch.optim.lr_schedulers.LinearLR
+      params:
 
 # MODEL TRAINING
 pl_trainer:
