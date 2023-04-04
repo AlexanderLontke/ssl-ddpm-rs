@@ -48,8 +48,7 @@ diffusion_model:
     learning_rate: 0.00001
     data_key: "s2_img"
     learning_rate_scheduler_config:
-      module: torch.optim.lr_schedulers.LinearLR
-      params:
+      module: torch.optim.lr_scheduler.LinearLR
 
 # MODEL TRAINING
 pl_trainer:
