@@ -17,7 +17,7 @@ torch_dataset:
     root_dir_s1: "/ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-1/s1_npy/"
     root_dir_s2: "/ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-2/s2_npy/"
     number_of_classes: 11
-    bands: "RGB"
+    bands: "ALL"
 
 torch_data_loader:
   batch_size: 16
@@ -72,3 +72,5 @@ pl_checkpoint_callback:
 sampling:
   shape: [3, 128, 128]
   strict_ckpt_loading: False
+  device: cuda
+  batch_size: 16
