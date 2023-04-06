@@ -12,12 +12,14 @@ dataset_transform:
 torch_dataset:
   module: remote_sensing_core.ben_ge_s.ben_ge_s_dataset.BenGeS
   params:
-    data_index_path: "/ds2/remote_sensing/ben-ge/ben-ge-s/ben-ge-s_sentinel12_meta.csv"
-    esaworldcover_index_path: "/ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-2/s2_npy/ben-ge-s_esaworldcover.csv"
-    root_dir_s1: "/ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-1/s1_npy/"
-    root_dir_s2: "/ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-2/s2_npy/"
-    number_of_classes: 11
-    bands: "ALL"
+    root_dir_s1: /ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-1/s1_npy/
+    root_dir_s2: /ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-2/s2_npy/
+    root_dir_world_cover: /ds2/remote_sensing/ben-ge/ben-ge-s/esaworldcover
+    root_dir_glo_30_dem: /ds2/remote_sensing/ben-ge/ben-ge-s/glo-30_dem
+    era5_data_path: /ds2/remote_sensing/ben-ge/ben-ge-s/ben-ge-s_era-5.csv
+    esa_world_cover_index_path: /ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-2/s2_npy/ben-ge-s_esaworldcover.csv
+    sentinel_1_2_metadata_path: /ds2/remote_sensing/ben-ge/ben-ge-s/ben-ge-s_sentinel12_meta.csv
+    s2_bands: "ALL"
 
 torch_data_loader:
   batch_size: 16
@@ -28,8 +30,8 @@ torch_data_loader:
 p_theta_model:
   module: remote_sensing_ddpm.p_theta_models.ddpm_cd_model.sr3_modules.unet.UNet
   params:
-    in_channel: 3
-    out_channel: 3
+    in_channel: 12
+    out_channel: 12
     norm_groups: 32
     inner_channel: 128
     channel_mults: [ 1, 2, 4, 8, 8 ]
