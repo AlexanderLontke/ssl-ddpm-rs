@@ -1,7 +1,7 @@
 name: &NAME rs-ddpm-ms
 seed: 42
 
-# DATA SET CONFIG  
+# DATA SET CONFIG
 train_torch_data_loader:
   module: torch.utils.data.DataLoader
   kwargs:

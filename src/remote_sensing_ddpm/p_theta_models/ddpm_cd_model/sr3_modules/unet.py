@@ -310,17 +310,18 @@ class UNet(nn.Module):
         if feat_need:
             fe = feats.copy()
 
+        fm = []
         # Passing through middle layer
         for layer in self.mid:
             if isinstance(layer, ResnetBlocWithAttn):
                 x = layer(x, t)
+                if feat_need:
+                    fm.append(x)
             else:
                 x = layer(x)
 
         # Saving decoder features for CD Head
-        if feat_need:
-            fd = []
-
+        fd = []
         # Diffiusion decoder
         for layer in self.ups:
             if isinstance(layer, ResnetBlocWithAttn):
@@ -335,6 +336,6 @@ class UNet(nn.Module):
 
         # Output encoder and decoder features if feat_need
         if feat_need:
-            return fe, Reverse(fd)
+            return fe, fm, Reverse(fd)
         else:
             return x
