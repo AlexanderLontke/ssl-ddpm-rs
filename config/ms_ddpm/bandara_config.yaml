@@ -2,45 +2,40 @@ name: &NAME rs-ddpm-ms
 seed: 42
 
 # DATA SET CONFIG
-torch_dataset:
-  module: remote_sensing_core.ben_ge_s.ben_ge_s_dataset.BenGeS
+train_torch_data_loader:
+  module: torch.utils.data.DataLoader
   kwargs:
-    transform:
-      module: remote_sensing_core.ben_ge_s.composite_image_transform.CompositeImageTransform
+    batch_size: 24
+    shuffle: True
+    num_workers: 4
+    dataset:
+      module: remote_sensing_core.ben_ge_s.ben_ge_s_dataset.BenGeS
       kwargs:
-        convert_from_numpy: True
-        padding_parameters:
-          padding: 4
-    root_dir_s1: /ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-1/s1_npy/
-    root_dir_s2: /ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-2/s2_npy/
-    root_dir_world_cover: /ds2/remote_sensing/ben-ge/ben-ge-s/esaworldcover
-    root_dir_glo_30_dem: /ds2/remote_sensing/ben-ge/ben-ge-s/glo-30_dem
-    era5_data_path: /ds2/remote_sensing/ben-ge/ben-ge-s/ben-ge-s_era-5.csv
-    esa_world_cover_index_path: /ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-2/s2_npy/ben-ge-s_esaworldcover.csv
-    sentinel_1_2_metadata_path: /ds2/remote_sensing/ben-ge/ben-ge-s/ben-ge-s_sentinel12_meta.csv
-    s2_bands: "ALL"
+        root_dir_s1: /ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-1/s1_npy/
+        root_dir_s2: /ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-2/s2_npy/
+        root_dir_world_cover: /ds2/remote_sensing/ben-ge/ben-ge-s/esaworldcover/npy/
+        root_dir_glo_30_dem: /ds2/remote_sensing/ben-ge/ben-ge-s/glo-30_dem
+        era5_data_path: /ds2/remote_sensing/ben-ge/ben-ge-s/ben-ge-s_era-5.csv
+        esa_world_cover_index_path: /ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-2/s2_npy/ben-ge-s_esaworldcover.csv
+        sentinel_1_2_metadata_path: /ds2/remote_sensing/ben-ge/ben-ge-s/ben-ge-s_sentinel12_meta.csv
+        s2_bands: "RGB"
+        s2_transform:
+          module: lit_diffusion.utils.min_max_scaler.MinMaxScaler
+          kwargs:
+            minimum_value: 0
+            maximum_value: 10000
+        transform:
+          module: remote_sensing_core.ben_ge_s.composite_image_transform.CompositeImageTransform
+          kwargs:
+            convert_from_numpy: True
+            padding_parameters:
+              padding: 4
 
-torch_data_loader:
-  batch_size: 16
-  shuffle: True
-  num_workers: 8
 
 # MODEL INSTANTIATION
 diffusion_model:
   module: "lit_diffusion.ddpm.lit_ddpm.LitDDPM"
   kwargs:
-    p_theta_model:
-      module: remote_sensing_ddpm.p_theta_models.ddpm_cd_model.sr3_modules.unet.UNet
-      kwargs:
-        in_channel: 12
-        out_channel: 12
-        norm_groups: 32
-        inner_channel: 128
-        channel_mults: [ 1, 2, 4, 8, 8 ]
-        attn_res: [ 16 ]
-        res_blocks: 2
-        dropout: 0.2
-        image_size: 128
     diffusion_target: eps
     schedule_type: linear
     beta_schedule_steps: 1000
@@ -51,6 +46,18 @@ diffusion_model:
     learning_rate_scheduler_config:
       module: torch.optim.lr_scheduler.LinearLR
       delay: 1
+    p_theta_model:
+      module: remote_sensing_ddpm.p_theta_models.ddpm_cd_model.sr3_modules.unet.UNet
+      kwargs:
+        in_channel: 3
+        out_channel: 3
+        norm_groups: 32
+        inner_channel: 128
+        channel_mults: [ 1, 2, 4, 8, 8 ]
+        attn_res: [ 16 ]
+        res_blocks: 2
+        dropout: 0.2
+        image_size: 128
 
 # MODEL TRAINING
 pl_trainer:
@@ -58,7 +65,7 @@ pl_trainer:
   max_epochs: 100
   log_every_n_steps: 1
   precision: "16-mixed"
-  gradient_clip_algorithm: "norm"
+  # gradient_clip_algorithm: "norm"
   enable_checkpointing: True
   # UNCOMMENT FOR DEBUGGING
   # fast_dev_run: True
