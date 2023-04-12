@@ -25,9 +25,7 @@ def create_CD_model(opt):
 
 
 def create_classification_model(opt):
-    from remote_sensing_ddpm.p_theta_models.ddpm_cd_model import (
-        Classfication as M,
-    )
+    from remote_sensing_ddpm.p_theta_models.ddpm_cd_model import Classfication as M
 
     m = M(opt)
     logger.info("Cd Model [{:s}] is created.".format(m.__class__.__name__))

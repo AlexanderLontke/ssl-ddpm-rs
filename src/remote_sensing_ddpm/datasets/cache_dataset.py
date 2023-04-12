@@ -42,9 +42,7 @@ if __name__ == "__main__":
 
     with open("config/baselines/ddpm-cd/classification.json") as config_file:
         opt = NoneDict(json.load(config_file))
-    model = create_model(
-        opt=opt,
-    )
+    model = create_model(opt=opt,)
     for k, dataset in all_datasets.items():
         caching_dataset = CachingDataset(
             parent_dataset=dataset,
