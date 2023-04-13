@@ -35,7 +35,7 @@ class FeatureExtractor(nn.Module):
         self.feature_section = FeatureSection(feature_section)
         self.feature_levels = feature_levels
         self.vectorize_output = vectorize_output
-        self.t = t
+        self.t = torch.Tensor(t).to(diffusion_pl_module.device)
 
     @torch.no_grad()
     def forward(self, x, *args, **kwargs):
