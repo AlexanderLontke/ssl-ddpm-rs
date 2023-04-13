@@ -15,6 +15,7 @@ class LitDownstreamTask(pl.LightningModule):
     def __init__(
         self,
         downstream_model: DownstreamTaskModel,
+        learning_rate: float,
         loss: nn.Module,
         data_key: str,
         target_key: str,
@@ -28,6 +29,8 @@ class LitDownstreamTask(pl.LightningModule):
         self.data_key = data_key
         self.target_key = target_key
 
+        # Setup learning rate
+        self.learning_rate = learning_rate
         # Setup loss
         self.loss = loss
         # Setup metrics

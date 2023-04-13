@@ -83,3 +83,5 @@ sampling:
   strict_ckpt_loading: False
   device: cuda
   batch_size: 16
+  safe_intermediaries_every_n_steps: 100
+  clip_denoised: True
