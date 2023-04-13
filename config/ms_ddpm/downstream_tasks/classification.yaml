@@ -54,7 +54,7 @@ train_torch_data_loader:
 
 
 # MODEL INSTANTIATION
-diffusion_model:
+pl_module:
   module: remote_sensing_ddpm.downstream_tasks.lit_downstream_task.LitDownstreamTask
   kwargs:
     loss:
@@ -80,7 +80,7 @@ diffusion_model:
         feature_extractor:
           module: remote_sensing_ddpm.downstream_tasks.lit_downstream_task.downstream_models.modules.feature_extractor.FeatureExtractor
           kwargs:
-            checkpoint_path: "TBD"
+            checkpoint_path: "rs-ddpm-ms/6dpqsyxu/checkpoints/epoch=9-step=5000.ckpt"
             feature_section: "middle"
             feature_levels: [0]
             vectorize_output: True
@@ -126,7 +126,7 @@ pl_wandb_logger:
   project: *NAME
 
 pl_checkpoint_callback:
-  monitor: "TBD"
+  monitor: "train/BCELoss"
   save_top_k: 3
   every_n_epochs: 5
 
