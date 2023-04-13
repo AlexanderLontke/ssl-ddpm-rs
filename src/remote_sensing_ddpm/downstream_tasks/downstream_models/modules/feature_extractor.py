@@ -3,10 +3,7 @@ from enum import Enum
 
 import torch
 from torch import nn
-import numpy as np
 import pytorch_lightning as pl
-
-from lit_diffusion.ddpm.lit_ddpm import LitDDPM
 
 
 class FeatureSection(Enum):
@@ -43,7 +40,7 @@ class FeatureExtractor(nn.Module):
     @torch.no_grad()
     def forward(self, x, *args, **kwargs):
         # Add noise to sample...
-        x_noisy = self.q_sample(x_0=x, t=self.t)
+        x_noisy = self.diffusion_pl_module.q_sample(x_0=x, t=self.t)
         # ... and pass it through the model
         encoder_features, middle_features, decoder_features = self.p_theta_model(
             x_noisy, time=self.t, feat_need=True, *args, **kwargs
