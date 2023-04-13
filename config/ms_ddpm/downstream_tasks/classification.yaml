@@ -9,21 +9,42 @@ train_torch_data_loader:
     shuffle: True
     num_workers: 4
     dataset:
-      module: remote_sensing_core.ben_ge_s.ben_ge_s_dataset.BenGeS
+      module: remote_sensing_core.ben_ge.ben_ge_dataset.BenGe
       kwargs:
-        root_dir_s1: /ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-1/s1_npy/
-        root_dir_s2: /ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-2/s2_npy/
-        root_dir_world_cover: /ds2/remote_sensing/ben-ge/ben-ge-s/esaworldcover/npy/
-        root_dir_glo_30_dem: /ds2/remote_sensing/ben-ge/ben-ge-s/glo-30_dem
-        era5_data_path: /ds2/remote_sensing/ben-ge/ben-ge-s/ben-ge-s_era-5.csv
-        esa_world_cover_index_path: /ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-2/s2_npy/ben-ge-s_esaworldcover.csv
-        sentinel_1_2_metadata_path: /ds2/remote_sensing/ben-ge/ben-ge-s/ben-ge-s_sentinel12_meta.csv
-        s2_bands: "RGB"
-        s2_transform:
-          module: lit_diffusion.utils.min_max_scaler.MinMaxScaler
+        data_index_path: /ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-2/s2_npy/ben-ge-s_esaworldcover.csv
+        sentinel_1_2_metadata_path: /ds2/remote_sensing/ben-ge/ben-ge/ben-ge-s_sentinel12_meta.csv
+        sentinel_1_modality:
+          module: remote_sensing_core.ben_ge.modalities.sentinel_1.Sentinel1Modality
           kwargs:
-            minimum_value: 0
-            maximum_value: 10000
+            data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/sentinel-1/s1_npy/
+            numpy_dtype: "float32"
+        sentinel_2_modality:
+          module: remote_sensing_core.ben_ge.modalities.sentinel_2.Sentinel2Modality
+          kwargs:
+            data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/sentinel-2/s2_npy/
+            numpy_dtype: "float32"
+            s2_bands: "RGB"
+            transform:
+              module: remote_sensing_core.ben_ge.modalities.sentinel_2.Sentinel2Transform
+              kwargs:
+                clip_values: 10000
+                transform:
+                  module: lit_diffusion.utils.min_max_scaler.MinMaxScaler
+                  kwargs:
+                    minimum_value: 0
+                    maximum_value: 10000
+        esa_world_cover_modality:
+          module: remote_sensing_core.ben_ge.modalities.esa_worldcover.EsaWorldCoverModality
+          kwargs:
+            data_root_path: /ds2/remote_sensing/ben-ge/ben-ge-s/esaworldcover/npy/
+            numpy_dtype: "float32"
+            esa_world_cover_index_path: /ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-2/s2_npy/ben-ge-s_esaworldcover.csv
+            multiclass_label_top_k: 1
+        glo_30_dem_modality:
+          module: remote_sensing_core.ben_ge.modalities.glo_30_dem.Glo30DemModality
+          kwargs:
+            data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/glo-30_dem/
+            numpy_dtype: "float32"
         transform:
           module: remote_sensing_core.ben_ge_s.composite_image_transform.CompositeImageTransform
           kwargs:
@@ -34,15 +55,30 @@ train_torch_data_loader:
 
 # MODEL INSTANTIATION
 diffusion_model:
-  module: "remote_sensing_ddpm.downstream_tasks.lit_downstream_task.LitDownstreamTask"
+  module: remote_sensing_ddpm.downstream_tasks.lit_downstream_task.LitDownstreamTask
   kwargs:
+    loss:
+      module: torch.nn.BCELoss
+    data_key: "s2_img"
+    target_key: "multiclass_label"
+    training_metrics:
+      Accuracy: torchmetrics.Accuracy
+      kwargs:
+        task: "multiclass"
+        num_classes: 11
+    validation_metrics:
+      Accuracy: torchmetrics.Accuracy
+      kwargs:
+        task: "multiclass"
+        num_classes: 11
+
     downstream_model:
-      module: "remote_sensing_ddpm.downstream_tasks.lit_downstream_task.downstream_models.vector_output"
+      module: remote_sensing_ddpm.downstream_tasks.lit_downstream_task.downstream_models.vector_output
       kwargs:
         input_size: 65536
         output_size: 11
         feature_extractor:
-          module: "remote_sensing_ddpm.downstream_tasks.lit_downstream_task.downstream_models.modules.feature_extractor.FeatureExtractor"
+          module: remote_sensing_ddpm.downstream_tasks.lit_downstream_task.downstream_models.modules.feature_extractor.FeatureExtractor
           kwargs:
             checkpoint_path: "TBD"
             feature_section: "middle"
@@ -50,7 +86,7 @@ diffusion_model:
             vectorize_output: True
             t: 0
             diffusion_pl_module:
-              module: "lit_diffusion.ddpm.lit_ddpm.LitDDPM"
+              module: lit_diffusion.ddpm.lit_ddpm.LitDDPM
               kwargs:
                 diffusion_target: eps
                 schedule_type: linear
@@ -63,7 +99,7 @@ diffusion_model:
                   module: torch.optim.lr_scheduler.LinearLR
                   delay: 1
                 p_theta_model:
-                  module: "remote_sensing_ddpm.p_theta_models.ddpm_cd_model.sr3_modules.unet.UNet"
+                  module: remote_sensing_ddpm.p_theta_models.ddpm_cd_model.sr3_modules.unet.UNet
                   kwargs:
                     in_channel: 3
                     out_channel: 3
