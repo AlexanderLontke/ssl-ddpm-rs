@@ -2,6 +2,7 @@ from typing import Any, Callable, Dict, Optional
 
 import torch
 from pytorch_lightning.utilities.types import STEP_OUTPUT
+from remote_sensing_ddpm.downstream_tasks.downstream_models.downstream_task_model import DownstreamTaskModel
 from torch import nn
 
 import pytorch_lightning as pl
@@ -13,10 +14,10 @@ from lit_diffusion.constants import LOGGING_TRAIN_PREFIX, LOGGING_VAL_PREFIX
 class LitDownstreamTask(pl.LightningModule):
     def __init__(
         self,
-        downstream_model: nn.Module,
+        downstream_model: DownstreamTaskModel,
         loss: nn.Module,
         data_key: str,
-        target_kay: str,
+        target_key: str,
         training_metrics: Optional[Dict[str, Callable]] = None,
         validation_metrics: Optional[Dict[str, Callable]] = None,
         *args,
@@ -25,7 +26,7 @@ class LitDownstreamTask(pl.LightningModule):
         super().__init__(*args, **kwargs)
         self.downstream_model = downstream_model
         self.data_key = data_key
-        self.target_key = target_kay
+        self.target_key = target_key
 
         # Setup loss
         self.loss = loss
@@ -81,3 +82,11 @@ class LitDownstreamTask(pl.LightningModule):
             metrics_dict=self.validation_metrics,
             logging_prefix=LOGGING_VAL_PREFIX,
         )
+
+    def configure_optimizers(self) -> Any:
+        return_dict = {}
+        lr = self.learning_rate
+        params = list(self.downstream_model.get_parameters_to_optimize())
+        opt = torch.optim.Adam(params, lr=lr)
+        return_dict["optimizer"] = opt
+        return return_dict
