@@ -7,6 +7,7 @@ from torch import nn
 
 class FeatureSection(Enum):
     ENCODER = "encoder"
+    MIDDLE = "middle"
     DECODER = "decoder"
     BOTH = "both"
 
@@ -28,19 +29,23 @@ class FeatureExtractor(nn.Module):
         self.vectorize_output = vectorize_output
 
     def forward(self, x, *args, **kwargs):
-        encoder_features, decoder_features = self.representation_model(
+        encoder_features, middle_features, decoder_features = self.representation_model(
             x, *args, **kwargs
         )
 
         # Select side of the model to get the features from
         if self.feature_section == FeatureSection.ENCODER:
             features_all_levels = encoder_features
-            del decoder_features
+            del decoder_features, middle_features
+        elif self.feature_section == FeatureSection.MIDDLE:
+            features_all_levels = middle_features
+            del encoder_features, decoder_features
         elif self.feature_section == FeatureSection.DECODER:
             features_all_levels = decoder_features
-            del encoder_features
+            del encoder_features, middle_features
         elif self.feature_section == FeatureSection.BOTH:
             features_all_levels = torch.cat([encoder_features, decoder_features])
+            del middle_features
         else:
             raise NotImplementedError(
                 f"Feature section: {self.feature_section} is not implemented"
