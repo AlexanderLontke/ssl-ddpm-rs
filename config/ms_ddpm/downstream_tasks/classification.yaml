@@ -11,17 +11,17 @@ train_torch_data_loader:
     dataset:
       module: remote_sensing_core.ben_ge.ben_ge_dataset.BenGe
       kwargs:
-        data_index_path: /ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-2/s2_npy/ben-ge-s_esaworldcover.csv
-        sentinel_1_2_metadata_path: /ds2/remote_sensing/ben-ge/ben-ge/ben-ge-s_sentinel12_meta.csv
+        data_index_path: /netscratch2/nkesseli/master-thesis-benge/src/_master_thesis_benge_supervised_learning/scripts/data-split/data-split-folder/ben-ge-train20.csv
+        sentinel_1_2_metadata_path: /ds2/remote_sensing/ben-ge/ben-ge/ben-ge_meta.csv
         sentinel_1_modality:
           module: remote_sensing_core.ben_ge.modalities.sentinel_1.Sentinel1Modality
           kwargs:
-            data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/sentinel-1/s1_npy/
+            data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/sentinel-1/
             numpy_dtype: "float32"
         sentinel_2_modality:
           module: remote_sensing_core.ben_ge.modalities.sentinel_2.Sentinel2Modality
           kwargs:
-            data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/sentinel-2/s2_npy/
+            data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/sentinel-2/
             numpy_dtype: "float32"
             s2_bands: "RGB"
             transform:
@@ -36,9 +36,59 @@ train_torch_data_loader:
         esa_world_cover_modality:
           module: remote_sensing_core.ben_ge.modalities.esa_worldcover.EsaWorldCoverModality
           kwargs:
-            data_root_path: /ds2/remote_sensing/ben-ge/ben-ge-s/esaworldcover/npy/
+            data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/esaworldcover/npy/
             numpy_dtype: "float32"
-            esa_world_cover_index_path: /ds2/remote_sensing/ben-ge/ben-ge-s/sentinel-2/s2_npy/ben-ge-s_esaworldcover.csv
+            esa_world_cover_index_path: /netscratch2/nkesseli/master-thesis-benge/src/_master_thesis_benge_supervised_learning/scripts/data-split/data-split-folder/ben-ge-train20.csv
+            multiclass_label_top_k: 1
+        glo_30_dem_modality:
+          module: remote_sensing_core.ben_ge.modalities.glo_30_dem.Glo30DemModality
+          kwargs:
+            data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/glo-30_dem/
+            numpy_dtype: "float32"
+        transform:
+          module: remote_sensing_core.transforms.composite_image_transform.CompositeImageTransform
+          kwargs:
+            convert_from_numpy: True
+            padding_parameters:
+              padding: 4
+
+validation_torch_data_loader:
+  module: torch.utils.data.DataLoader
+  kwargs:
+    batch_size: 24
+    shuffle: True
+    num_workers: 4
+    dataset:
+      module: remote_sensing_core.ben_ge.ben_ge_dataset.BenGe
+      kwargs:
+        data_index_path: /netscratch2/nkesseli/master-thesis-benge/src/_master_thesis_benge_supervised_learning/scripts/data-split/data-split-folder/ben-ge-test20.csv
+        sentinel_1_2_metadata_path: /ds2/remote_sensing/ben-ge/ben-ge/ben-ge_meta.csv
+        sentinel_1_modality:
+          module: remote_sensing_core.ben_ge.modalities.sentinel_1.Sentinel1Modality
+          kwargs:
+            data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/sentinel-1/
+            numpy_dtype: "float32"
+        sentinel_2_modality:
+          module: remote_sensing_core.ben_ge.modalities.sentinel_2.Sentinel2Modality
+          kwargs:
+            data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/sentinel-2/
+            numpy_dtype: "float32"
+            s2_bands: "RGB"
+            transform:
+              module: remote_sensing_core.ben_ge.modalities.sentinel_2.Sentinel2Transform
+              kwargs:
+                clip_values: 10000
+                transform:
+                  module: lit_diffusion.utils.min_max_scaler.MinMaxScaler
+                  kwargs:
+                    minimum_value: 0
+                    maximum_value: 10000
+        esa_world_cover_modality:
+          module: remote_sensing_core.ben_ge.modalities.esa_worldcover.EsaWorldCoverModality
+          kwargs:
+            data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/esaworldcover/npy/
+            numpy_dtype: "float32"
+            esa_world_cover_index_path: /netscratch2/nkesseli/master-thesis-benge/src/_master_thesis_benge_supervised_learning/scripts/data-split/data-split-folder/ben-ge-test20.csv
             multiclass_label_top_k: 1
         glo_30_dem_modality:
           module: remote_sensing_core.ben_ge.modalities.glo_30_dem.Glo30DemModality
@@ -57,6 +107,7 @@ train_torch_data_loader:
 pl_module:
   module: remote_sensing_ddpm.downstream_tasks.lit_downstream_task.LitDownstreamTask
   kwargs:
+    learning_rate: 0.0001
     loss:
       module: torch.nn.BCELoss
     data_key: "s2_img"
@@ -71,14 +122,13 @@ pl_module:
       kwargs:
         task: "multiclass"
         num_classes: 11
-
     downstream_model:
-      module: remote_sensing_ddpm.downstream_tasks.lit_downstream_task.downstream_models.vector_output
+      module: remote_sensing_ddpm.downstream_tasks.downstream_models.vector_output.VectorOutputDownstreamTask
       kwargs:
         input_size: 65536
         output_size: 11
         feature_extractor:
-          module: remote_sensing_ddpm.downstream_tasks.lit_downstream_task.downstream_models.modules.feature_extractor.FeatureExtractor
+          module: remote_sensing_ddpm.downstream_tasks.downstream_models.modules.feature_extractor.FeatureExtractor
           kwargs:
             checkpoint_path: "rs-ddpm-ms/6dpqsyxu/checkpoints/epoch=9-step=5000.ckpt"
             feature_section: "middle"
