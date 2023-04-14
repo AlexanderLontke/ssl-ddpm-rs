@@ -1,6 +1,33 @@
 name: &NAME rs-ddpm-ms
 seed: 42
 
+# Shared Modality configs
+sentinel_1_modality: &S1_MODALITY
+  module: remote_sensing_core.ben_ge.modalities.sentinel_1.Sentinel1Modality
+  kwargs:
+    data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/sentinel-1/
+    numpy_dtype: "float32"
+sentinel_2_modality: &S2_MODALITY
+  module: remote_sensing_core.ben_ge.modalities.sentinel_2.Sentinel2Modality
+  kwargs:
+    data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/sentinel-2/
+    numpy_dtype: "float32"
+    s2_bands: "RGB"
+    transform:
+      module: remote_sensing_core.ben_ge.modalities.sentinel_2.Sentinel2Transform
+      kwargs:
+        clip_values: [ 0, 10000 ]
+        transform:
+          module: lit_diffusion.utils.min_max_scaler.MinMaxScaler
+          kwargs:
+            minimum_value: 0
+            maximum_value: 10000
+glo_30_dem_modality: &GLO_30_DEM_MODALITY
+  module: remote_sensing_core.ben_ge.modalities.glo_30_dem.Glo30DemModality
+  kwargs:
+    data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/glo-30_dem/
+    numpy_dtype: "float32"
+
 # DATA SET CONFIG
 train_torch_data_loader:
   module: torch.utils.data.DataLoader
@@ -13,26 +40,8 @@ train_torch_data_loader:
       kwargs:
         data_index_path: /netscratch2/nkesseli/master-thesis-benge/src/_master_thesis_benge_supervised_learning/scripts/data-split/data-split-folder/ben-ge-train20.csv
         sentinel_1_2_metadata_path: /ds2/remote_sensing/ben-ge/ben-ge/ben-ge_meta.csv
-        sentinel_1_modality:
-          module: remote_sensing_core.ben_ge.modalities.sentinel_1.Sentinel1Modality
-          kwargs:
-            data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/sentinel-1/
-            numpy_dtype: "float32"
-        sentinel_2_modality:
-          module: remote_sensing_core.ben_ge.modalities.sentinel_2.Sentinel2Modality
-          kwargs:
-            data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/sentinel-2/
-            numpy_dtype: "float32"
-            s2_bands: "RGB"
-            transform:
-              module: remote_sensing_core.ben_ge.modalities.sentinel_2.Sentinel2Transform
-              kwargs:
-                clip_values: [ 0, 10000 ]
-                transform:
-                  module: lit_diffusion.utils.min_max_scaler.MinMaxScaler
-                  kwargs:
-                    minimum_value: 0
-                    maximum_value: 10000
+        sentinel_1_modality: *S1_MODALITY
+        sentinel_2_modality: *S2_MODALITY
         esa_world_cover_modality:
           module: remote_sensing_core.ben_ge.modalities.esa_worldcover.EsaWorldCoverModality
           kwargs:
@@ -40,11 +49,7 @@ train_torch_data_loader:
             numpy_dtype: "float32"
             esa_world_cover_index_path: /netscratch2/nkesseli/master-thesis-benge/src/_master_thesis_benge_supervised_learning/scripts/data-split/data-split-folder/ben-ge-train20.csv
             multiclass_label_top_k: 1
-        glo_30_dem_modality:
-          module: remote_sensing_core.ben_ge.modalities.glo_30_dem.Glo30DemModality
-          kwargs:
-            data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/glo-30_dem/
-            numpy_dtype: "float32"
+        glo_30_dem_modality: *GLO_30_DEM_MODALITY
         transform:
           module: remote_sensing_core.transforms.composite_image_transform.CompositeImageTransform
           kwargs:
@@ -63,26 +68,8 @@ validation_torch_data_loader:
       kwargs:
         data_index_path: /netscratch2/nkesseli/master-thesis-benge/src/_master_thesis_benge_supervised_learning/scripts/data-split/data-split-folder/ben-ge-test20.csv
         sentinel_1_2_metadata_path: /ds2/remote_sensing/ben-ge/ben-ge/ben-ge_meta.csv
-        sentinel_1_modality:
-          module: remote_sensing_core.ben_ge.modalities.sentinel_1.Sentinel1Modality
-          kwargs:
-            data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/sentinel-1/
-            numpy_dtype: "float32"
-        sentinel_2_modality:
-          module: remote_sensing_core.ben_ge.modalities.sentinel_2.Sentinel2Modality
-          kwargs:
-            data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/sentinel-2/
-            numpy_dtype: "float32"
-            s2_bands: "RGB"
-            transform:
-              module: remote_sensing_core.ben_ge.modalities.sentinel_2.Sentinel2Transform
-              kwargs:
-                clip_values: 10000
-                transform:
-                  module: lit_diffusion.utils.min_max_scaler.MinMaxScaler
-                  kwargs:
-                    minimum_value: 0
-                    maximum_value: 10000
+        sentinel_1_modality: *S1_MODALITY
+        sentinel_2_modality: *S2_MODALITY
         esa_world_cover_modality:
           module: remote_sensing_core.ben_ge.modalities.esa_worldcover.EsaWorldCoverModality
           kwargs:
@@ -90,11 +77,7 @@ validation_torch_data_loader:
             numpy_dtype: "float32"
             esa_world_cover_index_path: /netscratch2/nkesseli/master-thesis-benge/src/_master_thesis_benge_supervised_learning/scripts/data-split/data-split-folder/ben-ge-test20.csv
             multiclass_label_top_k: 1
-        glo_30_dem_modality:
-          module: remote_sensing_core.ben_ge.modalities.glo_30_dem.Glo30DemModality
-          kwargs:
-            data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/glo-30_dem/
-            numpy_dtype: "float32"
+        glo_30_dem_modality: *GLO_30_DEM_MODALITY
         transform:
           module: remote_sensing_core.transforms.composite_image_transform.CompositeImageTransform
           kwargs:
@@ -109,18 +92,20 @@ pl_module:
   kwargs:
     learning_rate: 0.0001
     loss:
-      module: torch.nn.BCELoss
+      module: torch.nn.CrossEntropyLoss
     target_key: "multiclass_label"
     training_metrics:
-      Accuracy: torchmetrics.Accuracy
-      kwargs:
-        task: "multiclass"
-        num_classes: 11
+      accuracy: 
+        module: torchmetrics.Accuracy
+        kwargs:
+          task: "multiclass"
+          num_classes: 11
     validation_metrics:
-      Accuracy: torchmetrics.Accuracy
-      kwargs:
-        task: "multiclass"
-        num_classes: 11
+      accuracy: 
+        module: torchmetrics.Accuracy
+        kwargs:
+          task: "multiclass"
+          num_classes: 11
     downstream_model:
       module: remote_sensing_ddpm.downstream_tasks.downstream_models.classification_downstream_task.ClassificationDownstreamTask
       kwargs:
@@ -167,19 +152,19 @@ pl_module:
 # MODEL TRAINING
 pl_trainer:
   accelerator: gpu
-  max_epochs: 100
+  max_epochs: 10
   log_every_n_steps: 1
   precision: "16-mixed"
   # gradient_clip_algorithm: "norm"
   enable_checkpointing: True
   # UNCOMMENT FOR DEBUGGING
-  fast_dev_run: True
+  # fast_dev_run: True
 
 pl_wandb_logger:
   project: *NAME
 
 pl_checkpoint_callback:
-  monitor: "train/BCELoss"
+  monitor: "train/CrossEntropyLoss"
   save_top_k: 3
   every_n_epochs: 5
 
