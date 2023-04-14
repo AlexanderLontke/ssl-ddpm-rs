@@ -17,7 +17,6 @@ class LitDownstreamTask(pl.LightningModule):
         downstream_model: DownstreamTaskModel,
         learning_rate: float,
         loss: nn.Module,
-        data_key: str,
         target_key: str,
         training_metrics: Optional[Dict[str, Callable]] = None,
         validation_metrics: Optional[Dict[str, Callable]] = None,
@@ -26,7 +25,6 @@ class LitDownstreamTask(pl.LightningModule):
     ):
         super().__init__(*args, **kwargs)
         self.downstream_model = downstream_model
-        self.data_key = data_key
         self.target_key = target_key
 
         # Setup learning rate
@@ -41,11 +39,10 @@ class LitDownstreamTask(pl.LightningModule):
         self, batch, metrics_dict: Optional[Dict[str, Callable]], logging_prefix: str
     ):
         # Get data sample
-        x = batch[self.data_key]
         y = batch[self.target_key]
-        batch_size, *_ = x.shape
+        batch_size, *_ = y.shape
 
-        y_hat = self.downstream_model(x)
+        y_hat = self.downstream_model(batch)
         loss = self.loss(y_hat, y)
 
         # Log trainings loss

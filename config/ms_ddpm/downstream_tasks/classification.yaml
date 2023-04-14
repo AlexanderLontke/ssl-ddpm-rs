@@ -27,7 +27,7 @@ train_torch_data_loader:
             transform:
               module: remote_sensing_core.ben_ge.modalities.sentinel_2.Sentinel2Transform
               kwargs:
-                clip_values: 10000
+                clip_values: [ 0, 10000 ]
                 transform:
                   module: lit_diffusion.utils.min_max_scaler.MinMaxScaler
                   kwargs:
@@ -56,7 +56,7 @@ validation_torch_data_loader:
   module: torch.utils.data.DataLoader
   kwargs:
     batch_size: 24
-    shuffle: True
+    shuffle: False
     num_workers: 4
     dataset:
       module: remote_sensing_core.ben_ge.ben_ge_dataset.BenGe
@@ -96,7 +96,7 @@ validation_torch_data_loader:
             data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/glo-30_dem/
             numpy_dtype: "float32"
         transform:
-          module: remote_sensing_core.ben_ge_s.composite_image_transform.CompositeImageTransform
+          module: remote_sensing_core.transforms.composite_image_transform.CompositeImageTransform
           kwargs:
             convert_from_numpy: True
             padding_parameters:
@@ -110,7 +110,6 @@ pl_module:
     learning_rate: 0.0001
     loss:
       module: torch.nn.BCELoss
-    data_key: "s2_img"
     target_key: "multiclass_label"
     training_metrics:
       Accuracy: torchmetrics.Accuracy
@@ -130,11 +129,15 @@ pl_module:
         feature_extractor:
           module: remote_sensing_ddpm.downstream_tasks.downstream_models.modules.feature_extractor.FeatureExtractor
           kwargs:
+            data_key: "sentinel_2"
             checkpoint_path: "rs-ddpm-ms/6dpqsyxu/checkpoints/epoch=9-step=5000.ckpt"
+            map_location: "cuda"
             feature_section: "middle"
             feature_levels: [0]
             vectorize_output: True
             t: 0
+            p_theta_model_kwargs:
+              feat_need: True
             diffusion_pl_module:
               module: lit_diffusion.ddpm.lit_ddpm.LitDDPM
               kwargs:
@@ -144,7 +147,7 @@ pl_module:
                 beta_schedule_linear_start: 0.0001
                 beta_schedule_linear_end: 0.02
                 learning_rate: 0.00001
-                data_key: "s2_img"
+                data_key: "sentinel_2"
                 learning_rate_scheduler_config:
                   module: torch.optim.lr_scheduler.LinearLR
                   delay: 1

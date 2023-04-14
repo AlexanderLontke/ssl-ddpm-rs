@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import Any, Dict, List, Union
 from enum import Enum
 
 import torch
@@ -16,34 +16,49 @@ class FeatureSection(Enum):
 class FeatureExtractor(nn.Module):
     def __init__(
         self,
+        data_key: str,
         diffusion_pl_module: pl.LightningModule,
         checkpoint_path: str,
+        map_location: str,
         feature_section: Union[str, FeatureSection],
         feature_levels: List[int],
         vectorize_output: bool,
         t: int,
+        p_theta_model_kwargs: Dict[str, Any],
         *args,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
+        self.data_key = data_key
         self.diffusion_pl_module = diffusion_pl_module.load_from_checkpoint(
             checkpoint_path=checkpoint_path,
             p_theta_model=diffusion_pl_module.p_theta_model,
-            **kwargs,
+            map_location=map_location,
         )
 
         self.feature_section = FeatureSection(feature_section)
         self.feature_levels = feature_levels
         self.vectorize_output = vectorize_output
-        self.t = torch.Tensor(t).to(diffusion_pl_module.device)
+        self.t = t
+        self.p_theta_model_kwargs = p_theta_model_kwargs
 
     @torch.no_grad()
-    def forward(self, x, *args, **kwargs):
+    def forward(self, batch):
+        # Get data sample
+        x_0 = batch[self.data_key]
+
+        # Determine any further required inputs from the data set
+        model_kwargs = self.diffusion_pl_module.get_p_theta_model_kwargs_from_batch(batch=batch)
+
         # Add noise to sample...
-        x_noisy = self.diffusion_pl_module.q_sample(x_0=x, t=self.t)
+        batch_size, *_ = x_0.shape
+        t = torch.full(size=(batch_size, ), fill_value=self.t, device=x_0.device)
+        x_noisy, _ = self.diffusion_pl_module.q_sample(x_0=x_0, t=t)
+
+
         # ... and pass it through the model
-        encoder_features, middle_features, decoder_features = self.p_theta_model(
-            x_noisy, time=self.t, feat_need=True, *args, **kwargs
+        encoder_features, middle_features, decoder_features = self.diffusion_pl_module.p_theta_model(
+            x_noisy, t, **self.p_theta_model_kwargs, **model_kwargs
         )
 
         # Select side of the model to get the features from
@@ -68,7 +83,6 @@ class FeatureExtractor(nn.Module):
             final_features.append(features_all_levels[level])
 
         if self.vectorize_output:
-            # TODO maybe add pooling?
-            final_features = [features.flatten() for features in final_features]
+            final_features = [features.flatten(start_dim=1) for features in final_features]
             final_features = torch.concat(final_features)
         return final_features
