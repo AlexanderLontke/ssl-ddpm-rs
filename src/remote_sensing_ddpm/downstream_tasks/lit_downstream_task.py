@@ -43,12 +43,12 @@ class LitDownstreamTask(pl.LightningModule):
         batch_size, *_ = y.shape
 
         y_hat = self.downstream_model(batch)
-        loss = self.loss(y_hat, y)
+        step_loss = self.loss(y_hat, y)
 
         # Log trainings loss
         self.log(
-            logging_prefix + str(loss.__name__),
-            loss,
+            logging_prefix + type(self.loss).__name__,
+            step_loss,
             prog_bar=True,
             on_epoch=True,
             batch_size=batch_size,
@@ -57,13 +57,15 @@ class LitDownstreamTask(pl.LightningModule):
         # Log any additional metrics
         if metrics_dict:
             for metric_name, metric_function in metrics_dict.items():
+                if hasattr(metric_function, "device"):
+                    metric_function.to(y_hat.device)
                 self.log(
                     name=logging_prefix + metric_name,
                     value=metric_function(y_hat, y),
                     on_epoch=True,
                     batch_size=batch_size,
                 )
-        return loss
+        return step_loss
 
     def training_step(
         self, batch: Dict[str, torch.Tensor], *args: Any, **kwargs: Any
