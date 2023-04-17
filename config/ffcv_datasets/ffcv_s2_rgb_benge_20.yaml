@@ -1,0 +1,26 @@
+# DATA SET CONFIG
+sentinel_2_modality: &S2_MODALITY
+  module: remote_sensing_core.ben_ge.modalities.sentinel_2.Sentinel2Modality
+  kwargs:
+    data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/sentinel-2/
+    numpy_dtype: "float32"
+    s2_bands: "RGB"
+
+
+dataset_config:
+  module: remote_sensing_core.ben_ge.ben_ge_dataset.BenGe
+  kwargs:
+    data_index_path: /ds2/remote_sensing/ben-ge/ben-ge-s/data-index/ben-ge-s-train.csv
+    sentinel_1_2_metadata_path: /ds2/remote_sensing/ben-ge/ben-ge-s/ben-ge-s_sentinel12_meta.csv
+    sentinel_2_modality: *S2_MODALITY
+
+# FFCV Writer Config
+ffcv_writer_config:
+  module: ffcv.writer.DatasetWriter
+  kwargs:
+    fname: /netscratch2/alontke/master_thesis/data/ffcv/ben_ge_s_train_s2_rgb.beton
+    fields:
+      sentinel_2:
+        module: ffcv.fields:RGBImageField
+        kwargs:
+          max_resolution: 120
