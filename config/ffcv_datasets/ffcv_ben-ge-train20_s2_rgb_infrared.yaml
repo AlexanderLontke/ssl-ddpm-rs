@@ -10,8 +10,8 @@ sentinel_2_modality: &S2_MODALITY
 dataset_config:
   module: remote_sensing_core.ben_ge.ben_ge_dataset.BenGe
   kwargs:
-    data_index_path: /ds2/remote_sensing/ben-ge/ben-ge-s/data-index/ben-ge-s-train.csv
-    sentinel_1_2_metadata_path: /ds2/remote_sensing/ben-ge/ben-ge-s/ben-ge-s_sentinel12_meta.csv
+    data_index_path: /netscratch2/nkesseli/master-thesis-benge/src/_master_thesis_benge_supervised_learning/scripts/data-split/data-split-folder/ben-ge-train20.csv
+    sentinel_1_2_metadata_path: /ds2/remote_sensing/ben-ge/ben-ge/ben-ge_meta.csv
     sentinel_2_modality: *S2_MODALITY
     output_as_tuple: True
 
@@ -19,8 +19,8 @@ dataset_config:
 ffcv_writer_config:
   module: ffcv.writer.DatasetWriter
   kwargs:
-    fname: /netscratch2/alontke/master_thesis/data/ffcv/ben_ge_s_train_s2_rgb_infrared.beton
-    num_workers: 16
+    fname: /netscratch2/alontke/master_thesis/data/ffcv/ben-ge-train20_s2_rgb_infrared.beton
+    num_workers: 8
     fields:
       sentinel_2:
         module: ffcv.fields.NDArrayField
