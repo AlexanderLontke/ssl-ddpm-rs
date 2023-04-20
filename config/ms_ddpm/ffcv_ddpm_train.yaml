@@ -1,34 +1,48 @@
 name: &NAME rs-ddpm-ms
 seed: 42
 
+sentinel_2_pipeline: &S2_PIPELINE
+  - module: remote_sensing_core.transforms.ffcv.clipping.Clipping
+    kwargs:
+      clip_values: [0, 10000]
+  - module: remote_sensing_core.transforms.ffcv.min_max_scaler.MinMaxScaler
+    kwargs:
+      minimum_value: 0
+      maximum_value: 10000
+  - module: remote_sensing_core.transforms.ffcv.padding.Padding
+    kwargs:
+      padding: 4
+      padding_value: 0
+  - module: remote_sensing_core.transforms.ffcv.convert.Convert
+    kwargs:
+      target_dtype: "float32"
+  - module: ffcv.transforms.ToTensor
+
 # DATA SET CONFIG
 train_torch_data_loader:
   module: ffcv.loader.Loader
   kwargs:
-    fname: /netscratch2/alontke/master_thesis/data/ffcv/ben_ge_s_train_s2_rgb_infrared.beton
+    fname: /netscratch2/alontke/master_thesis/data/ffcv/ben-ge-train20_s2_rgb_infrared.beton
     batch_size: 24
     num_workers: 8
     order:
       module: ffcv.loader.OrderOption
-      args: [ 2 ]
+      args: [ 3 ]
     pipelines:
-      sentinel_2:
-    #     - module: remote_sensing_core.ben_ge.modalities.sentinel_2.Sentinel2Transform
-    #       kwargs:
-    #         clip_values: [ 0, 10000 ]
-    #         transform:
-    #           module: lit_diffusion.utils.min_max_scaler.MinMaxScaler
-    #           kwargs:
-    #             minimum_value: 0
-    #             maximum_value: 10000
-        - module: remote_sensing_core.transforms.ffcv.convert.Convert
-          kwargs:
-            target_dtype: "float32"
-        - module: remote_sensing_core.transforms.ffcv.padding.Padding
-          kwargs:
-            padding: 4
-            padding_value: 0
-        - module: ffcv.transforms.ToTensor
+      sentinel_2: *S2_PIPELINE
+
+validation_torch_data_loader:
+  module: ffcv.loader.Loader
+  kwargs:
+    fname: /netscratch2/alontke/master_thesis/data/ffcv/ben-ge-test20_s2_rgb_infrared.beton
+    batch_size: 24
+    num_workers: 8
+    order:
+      module: ffcv.loader.OrderOption
+      args: [ 1 ]
+    pipelines:
+      sentinel_2: *S2_PIPELINE
+        
 
 
 # MODEL INSTANTIATION
@@ -61,7 +75,7 @@ pl_module:
 # MODEL TRAINING
 pl_trainer:
   accelerator: gpu
-  max_epochs: 100
+  max_epochs: 10
   log_every_n_steps: 1
   precision: "16-mixed"
   # gradient_clip_algorithm: "norm"
@@ -83,4 +97,4 @@ sampling:
   device: cuda
   batch_size: 16
   safe_intermediaries_every_n_steps: 100
-  clip_denoised: True
+  clip_denoised: False

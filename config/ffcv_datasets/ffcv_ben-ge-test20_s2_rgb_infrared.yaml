@@ -1,0 +1,31 @@
+# DATA SET CONFIG
+sentinel_2_modality: &S2_MODALITY
+  module: remote_sensing_core.ben_ge.modalities.sentinel_2.Sentinel2Modality
+  kwargs:
+    data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/sentinel-2/
+    numpy_dtype: "float32"
+    s2_bands: "INFRARED"
+
+
+dataset_config:
+  module: remote_sensing_core.ben_ge.ben_ge_dataset.BenGe
+  kwargs:
+    data_index_path: /netscratch2/nkesseli/master-thesis-benge/src/_master_thesis_benge_supervised_learning/scripts/data-split/data-split-folder/ben-ge-test20.csv
+    sentinel_1_2_metadata_path: /ds2/remote_sensing/ben-ge/ben-ge/ben-ge_meta.csv
+    sentinel_2_modality: *S2_MODALITY
+    output_as_tuple: True
+
+# FFCV Writer Config
+ffcv_writer_config:
+  module: ffcv.writer.DatasetWriter
+  kwargs:
+    fname: /netscratch2/alontke/master_thesis/data/ffcv/ben-ge-test20_s2_rgb_infrared.beton
+    num_workers: 8
+    fields:
+      sentinel_2:
+        module: ffcv.fields.NDArrayField
+        kwargs:
+          dtype:
+            module: numpy.dtype
+            args: ["float32"]
+          shape: [4, 120, 120]
