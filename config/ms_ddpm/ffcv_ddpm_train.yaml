@@ -2,6 +2,7 @@ name: &NAME rs-ddpm-ms
 seed: 42
 
 sentinel_2_pipeline: &S2_PIPELINE
+  - module: ffcv.fields.decoders.NDArrayDecoder
   - module: remote_sensing_core.transforms.ffcv.clipping.Clipping
     kwargs:
       clip_values: [0, 10000]
