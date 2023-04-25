@@ -70,7 +70,7 @@ ffcv_writer_config:
   module: ffcv.writer.DatasetWriter
   kwargs:
     fname: /ds2/remote_sensing/ben-ge/ffcv/ben-ge-20-train.beton
-    num_workers: 8
+    num_workers: 4
     fields: # Needs to be alphabetically ordered to fit tuple order of data set
       climate_zone:
         module: ffcv.fields.FloatField
