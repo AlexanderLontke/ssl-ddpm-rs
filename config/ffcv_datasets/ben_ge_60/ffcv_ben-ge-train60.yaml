@@ -49,7 +49,7 @@ climate_zone_modality: &CLIMATE_ZONE_MODALITY
 dataset_config:
   module: remote_sensing_core.ben_ge.ben_ge_dataset.BenGe
   kwargs:
-    data_index_path: /netscratch2/nkesseli/master-thesis-benge/src/_master_thesis_benge_supervised_learning/scripts/data-split/data-split-folder/ben-ge-train20.csv
+    data_index_path: /netscratch2/nkesseli/master-thesis-benge/src/_master_thesis_benge_supervised_learning/scripts/data-split/data-split-folder/ben-ge-train60.csv
     sentinel_1_2_metadata_path: /ds2/remote_sensing/ben-ge/ben-ge/ben-ge_meta.csv
     sentinel_1_modality: *S1_MODALITY
     season_s1_modality: *SEASON_S1
@@ -69,43 +69,42 @@ numpy_dtype: &NP_DT
 ffcv_writer_config:
   module: ffcv.writer.DatasetWriter
   kwargs:
-    fname: /ds2/remote_sensing/ben-ge/ffcv/ben-ge-20-train.beton
-    num_workers: 4
-    fields: # Needs to be alphabetically ordered to fit tuple order of data set
+    fname: /ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-train.beton
+    num_workers: 8
+    fields: # Needs to be alphabetically ordered to fit tuple order of data set, except for field names which is always at the end
       climate_zone:
         module: ffcv.fields.FloatField
-        kwargs:
-          dtype: *NP_DT
+      elevation_difference_label:
+        module: ffcv.fields.FloatField
       era_5:
         module: ffcv.fields.NDArrayField
         kwargs:
           dtype: *NP_DT
-          shape: [1, 9]
+          shape: [ 9 ]
       esa_worldcover:
         module: ffcv.fields.NDArrayField
         kwargs:
           dtype: *NP_DT
-          shape: [ 1, 120, 120 ]
+          shape: [ 120, 120 ]
       glo_30_dem:
         module: ffcv.fields.NDArrayField
         kwargs:
           dtype: *NP_DT
           shape: [ 3, 120, 120 ]
-      multiclass_label:
+      multiclass_numeric_label:
         module: ffcv.fields.NDArrayField
         kwargs:
-          dtype:
-            module: numpy.dtype
-            args: [ "uint8" ]
-          shape: [ 1, 11 ]
+          dtype: *NP_DT
+          shape: [ 11 ]
+      multiclass_one_hot_label:
+        module: ffcv.fields.NDArrayField
+        kwargs:
+          dtype: *NP_DT
+          shape: [ 11 ]
       season_s1:
         module: ffcv.fields.FloatField
-        kwargs:
-          dtype: *NP_DT
       season_s2:
         module: ffcv.fields.FloatField
-        kwargs:
-          dtype: *NP_DT
       sentinel_1:
         module: ffcv.fields.NDArrayField
         kwargs:
@@ -116,3 +115,5 @@ ffcv_writer_config:
         kwargs:
           dtype: *NP_DT
           shape: [4, 120, 120]
+      field_names:
+        module: ffcv.fields.JSONField
