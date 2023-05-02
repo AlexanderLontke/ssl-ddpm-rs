@@ -1,0 +1,119 @@
+# Modality config
+sentinel_1_modality: &S1_MODALITY
+  module: remote_sensing_core.ben_ge.modalities.sentinel_1.Sentinel1Modality
+  kwargs:
+    data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/sentinel-1/
+    numpy_dtype: "float32"
+
+season_s1_modality: &SEASON_S1
+  module: remote_sensing_core.ben_ge.modalities.season_s1.SeasonS1Modality
+
+sentinel_2_modality: &S2_MODALITY
+  module: remote_sensing_core.ben_ge.modalities.sentinel_2.Sentinel2Modality
+  kwargs:
+    data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/sentinel-2/
+    numpy_dtype: "float32"
+    s2_bands: "ALL"
+
+season_s2_modality: &SEASON_S2
+  module: remote_sensing_core.ben_ge.modalities.season_s2.SeasonS2Modality
+
+esa_world_cover_modality: &EWC_MODALITY
+  module: remote_sensing_core.ben_ge.modalities.esa_worldcover.EsaWorldCoverModality
+  kwargs:
+    data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/esaworldcover/npy/
+    numpy_dtype: "float32"
+    esa_world_cover_index_path: /netscratch2/nkesseli/master-thesis-benge/src/_master_thesis_benge_supervised_learning/scripts/data-split/data-split-folder-2/ben-ge-test40.csv
+    multiclass_label_top_k: 1
+
+glo_30_dem_modality: &ELEVATION_MODALITY
+   module: remote_sensing_core.ben_ge.modalities.glo_30_dem.Glo30DemModality
+   kwargs:
+     data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/glo-30_dem/
+     numpy_dtype: "float32"
+
+era_5_modality: &ERA5MODALITY
+  module: remote_sensing_core.ben_ge.modalities.era5.Era5Modality
+  kwargs:
+    data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/era-5/ben-ge_era-5.csv
+    numpy_dtype: "float32"
+
+climate_zone_modality: &CLIMATE_ZONE_MODALITY
+  module: remote_sensing_core.ben_ge.modalities.climatezones.ClimateZoneModality
+  kwargs:
+    data_root_path: /ds2/remote_sensing/ben-ge/ben-ge/climatezones/ben-ge_climatezones.csv
+    numpy_dtype: "float32"
+
+
+# DATA SET CONFIG
+dataset_config:
+  module: remote_sensing_core.ben_ge.ben_ge_dataset.BenGe
+  kwargs:
+    data_index_path: /netscratch2/nkesseli/master-thesis-benge/src/_master_thesis_benge_supervised_learning/scripts/data-split/data-split-folder-2/ben-ge-test40.csv
+    sentinel_1_2_metadata_path: /ds2/remote_sensing/ben-ge/ben-ge/ben-ge_meta.csv
+    sentinel_1_modality: *S1_MODALITY
+    season_s1_modality: *SEASON_S1
+    sentinel_2_modality: *S2_MODALITY
+    season_s2_modality: *SEASON_S2
+    esa_world_cover_modality: *EWC_MODALITY
+    glo_30_dem_modality: *ELEVATION_MODALITY
+    era_5_modality: *ERA5MODALITY
+    climate_zone_modality: *CLIMATE_ZONE_MODALITY
+    output_as_tuple: True
+
+# FFCV Config
+numpy_dtype: &NP_DT
+  module: numpy.dtype
+  args: [ "float32" ]
+
+ffcv_writer_config:
+  module: ffcv.writer.DatasetWriter
+  kwargs:
+    fname: /ds2/remote_sensing/ben-ge/ffcv/ben-ge-40-test.beton
+    num_workers: 8
+    fields: # Needs to be alphabetically ordered to fit tuple order of data set, except for field names which is always at the end
+      climate_zone:
+        module: ffcv.fields.FloatField
+      elevation_difference_label:
+        module: ffcv.fields.FloatField
+      era_5:
+        module: ffcv.fields.NDArrayField
+        kwargs:
+          dtype: *NP_DT
+          shape: [ 9 ]
+      esa_worldcover:
+        module: ffcv.fields.NDArrayField
+        kwargs:
+          dtype: *NP_DT
+          shape: [ 120, 120 ]
+      glo_30_dem:
+        module: ffcv.fields.NDArrayField
+        kwargs:
+          dtype: *NP_DT
+          shape: [ 3, 120, 120 ]
+      multiclass_numeric_label:
+        module: ffcv.fields.NDArrayField
+        kwargs:
+          dtype: *NP_DT
+          shape: [ 11 ]
+      multiclass_one_hot_label:
+        module: ffcv.fields.NDArrayField
+        kwargs:
+          dtype: *NP_DT
+          shape: [ 11 ]
+      season_s1:
+        module: ffcv.fields.FloatField
+      season_s2:
+        module: ffcv.fields.FloatField
+      sentinel_1:
+        module: ffcv.fields.NDArrayField
+        kwargs:
+          dtype: *NP_DT
+          shape: [ 2, 120, 120 ]
+      sentinel_2:
+        module: ffcv.fields.NDArrayField
+        kwargs:
+          dtype: *NP_DT
+          shape: [12, 120, 120]
+      field_names:
+        module: ffcv.fields.JSONField
