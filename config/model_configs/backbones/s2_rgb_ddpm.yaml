@@ -10,7 +10,7 @@ sentinel_2_pipeline: &S2_PIPELINE
   - module: ffcv.fields.decoders.NDArrayDecoder
   - module: remote_sensing_core.transforms.ffcv.channel_selector.ChannelSelector
     kwargs:
-      bands: "RGB"
+      channels: [ 3, 2, 1]
   - module: remote_sensing_core.transforms.ffcv.clipping.Clipping
     kwargs:
       clip_values: [0, 10000]
@@ -47,7 +47,7 @@ train_torch_data_loader:
   kwargs:
     fname: *TRAIN_BETON_FILE
     batch_size: 24
-    num_workers: 8
+    num_workers: 4
     order:
       module: ffcv.loader.OrderOption
       args: [ 3 ] # 3 is Quasi random
@@ -59,7 +59,7 @@ validation_torch_data_loader:
   kwargs:
     fname: *VALIDATION_BETON_FILE
     batch_size: 24
-    num_workers: 8
+    num_workers: 4
     order:
       module: ffcv.loader.OrderOption
       args: [ 1 ]
@@ -77,7 +77,7 @@ pl_module:
     beta_schedule_linear_start: 0.0001
     beta_schedule_linear_end: 0.02
     learning_rate: 0.00001
-    data_key: 0 # "sentinel_2"
+    data_key: 0
     learning_rate_scheduler_config:
       module: torch.optim.lr_scheduler.LinearLR
       delay: 1
