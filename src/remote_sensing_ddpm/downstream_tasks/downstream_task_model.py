@@ -2,7 +2,7 @@ from abc import ABC
 from torch import nn
 
 
-class DownstreamTaskModel(nn.Module, ABC):
+class DownstreamTaskModel(nn.Module):
     def __init__(
         self, feature_extractor: nn.Module, downstream_layer: nn.Module, *args, **kwargs
     ):
