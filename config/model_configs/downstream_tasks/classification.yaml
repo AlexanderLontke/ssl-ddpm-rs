@@ -1,10 +1,11 @@
-name: &NAME rs-ddpm-ms
+name: &NAME rs-ddpm-ms-classification
 seed: 42
+device: &DEVICE cuda
 data_key: &DATA_KEY 1
 image_size: &IMAGE_SIZE 128
 image_channels: &IMAGE_CHANNELS 3
-train_beton_file: &TRAIN_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-40-train.beton
-validation_beton_file: &VALIDATION_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-40-test.beton
+train_beton_file: &TRAIN_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-20-train.beton
+validation_beton_file: &VALIDATION_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-20-validation.beton
 
 
 sentinel_2_pipeline: &S2_PIPELINE
@@ -28,6 +29,10 @@ sentinel_2_pipeline: &S2_PIPELINE
       target_dtype: "float32"
   - module: ffcv.transforms.ToTensor
 
+multiclass_one_hot_pipeline: &MC_OH_PIPELINE
+  - module: ffcv.transforms.ToTensor
+
+
 pipelines: &PIPELINES
   climate_zone: null
   elevation_differ: null
@@ -35,7 +40,7 @@ pipelines: &PIPELINES
   esa_worldcover: null
   glo_30_dem: null
   multiclass_numer: null
-  # multiclass_one_h: null
+  multiclass_one_h: *MC_OH_PIPELINE
   season_s1: null
   season_s2: null
   sentinel_1: null
@@ -71,9 +76,21 @@ metrics: &METRICS
   accuracy:
     module: torchmetrics.Accuracy
     kwargs:
-      task: "multiclass"
-      num_classes: 11
-      top_k: 1
+      task: "multilabel"
+      num_labels: 11
+      threshold: 0.5
+  recall:
+    module: torchmetrics.Recall
+    kwargs:
+      task: "multilabel"
+      num_labels: 11
+      threshold: 0.5
+  precision:
+    module: torchmetrics.Precision
+    kwargs:
+      task: "multilabel"
+      num_labels: 11
+      threshold: 0.5
 
 pl_module:
   module: remote_sensing_ddpm.downstream_tasks.lit_downstream_task.LitDownstreamTask
@@ -93,11 +110,11 @@ pl_module:
             input_size: 65536
             output_size: 11
         feature_extractor:
-          module: remote_sensing_ddpm.downstream_tasks.downstream_models.modules.feature_extractor.FeatureExtractor
+          module: remote_sensing_ddpm.downstream_tasks.modules.feature_extractor.FeatureExtractor
           kwargs:
             data_key: *DATA_KEY
             checkpoint_path: "rs-ddpm-ms/sta6sgv7/checkpoints/epoch=9-step=77640.ckpt"
-            map_location: "cuda"
+            map_location: *DEVICE
             feature_section: "middle"
             feature_levels: [0]
             vectorize_output: True
@@ -150,7 +167,7 @@ pl_checkpoint_callback:
   every_n_epochs: 5
 
 sampling:
-  shape: [3, 128, 128]
+  shape: [*IMAGE_CHANNELS, *IMAGE_SIZE, *IMAGE_SIZE]
   strict_ckpt_loading: False
-  device: cuda
+  device: *DEVICE
   batch_size: 16
