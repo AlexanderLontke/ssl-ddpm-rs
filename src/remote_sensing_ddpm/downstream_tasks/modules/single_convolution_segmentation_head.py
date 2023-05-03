@@ -1,10 +1,5 @@
 from torch import nn
 
-from remote_sensing_ddpm.downstream_tasks.downstream_models.downstream_task_model import (
-    DownstreamTaskModel,
-)
-
-
 def get_kernel_size(
     in_channels: int, out_channels: int, stride: int = 1, padding: int = 0
 ) -> int:
@@ -15,15 +10,16 @@ def get_kernel_size(
     return int(in_channels + 2 * padding - (out_channels - 1) * stride)
 
 
-class SegmentationDownstreamTask(DownstreamTaskModel):
-    def __init__(
-        self, feature_map_channels: int, output_map_channels: int, *args, **kwargs
-    ):
-        downstream_layer = nn.Conv2d(
+class SingleConvolutionSegmentationHead(nn.Module):
+    def __init__(self, feature_map_channels: int, output_map_channels: int, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.downstream_layer = nn.Conv2d(
             in_channels=feature_map_channels,
             kernel_size=get_kernel_size(
                 in_channels=feature_map_channels, out_channels=output_map_channels
             ),
             out_channels=output_map_channels,
         )
-        super().__init__(downstream_layer=downstream_layer, *args, **kwargs)
+
+    def forward(self, batch):
+        return self.downstream_layer(batch)
