@@ -55,7 +55,6 @@ class FeatureExtractor(nn.Module):
         t = torch.full(size=(batch_size, ), fill_value=self.t, device=x_0.device)
         x_noisy, _ = self.diffusion_pl_module.q_sample(x_0=x_0, t=t)
 
-
         # ... and pass it through the model
         encoder_features, middle_features, decoder_features = self.diffusion_pl_module.p_theta_model(
             x_noisy, t, **self.p_theta_model_kwargs, **model_kwargs
