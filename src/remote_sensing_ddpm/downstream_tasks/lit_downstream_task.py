@@ -8,7 +8,7 @@ from torch import nn
 import pytorch_lightning as pl
 
 # Lit diffusion
-from lit_diffusion.constants import LOGGING_TRAIN_PREFIX, LOGGING_VAL_PREFIX
+from lit_diffusion.diffusion_base.constants import LOGGING_TRAIN_PREFIX, LOGGING_VAL_PREFIX
 
 
 class LitDownstreamTask(pl.LightningModule):
