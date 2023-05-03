@@ -58,7 +58,7 @@ class LitDownstreamTask(pl.LightningModule):
         if metrics_dict:
             for metric_name, metric_function in metrics_dict.items():
                 if hasattr(metric_function, "device") and hasattr(metric_function, "to"):
-                    metric_function.to(y_hat.device)
+                    metric_function = metric_function.to(y_hat.device)
                 self.log(
                     name=logging_prefix + metric_name,
                     value=metric_function(y_hat, y),
