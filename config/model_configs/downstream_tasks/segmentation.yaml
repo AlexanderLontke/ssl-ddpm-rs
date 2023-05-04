@@ -33,7 +33,11 @@ esa_worldcover_pipeline: &EWC_PIPELINE
   - module: ffcv.fields.decoders.NDArrayDecoder
   - module: remote_sensing_core.transforms.ffcv.esa_world_cover_transform.EsaWorldCoverTransform
     kwargs:
-      divisor_and_subtractor: [10, 1]
+      divisor: 10.0
+      subtractor: 1.0
+  - module: remote_sensing_core.transforms.ffcv.convert.Convert
+    kwargs:
+      target_dtype: "int64"
   - module: ffcv.transforms.ToTensor
 
 
@@ -78,15 +82,25 @@ validation_torch_data_loader:
 # MODEL INSTANTIATION
 metrics: &METRICS
   accuracy:
-    module: torchmetrics.Accuracy
+    module: remote_sensing_ddpm.utils.torchmetrics_adapter.TorchmetricsAdapter
     kwargs:
-      task: "multiclass"
-      num_classes: 11
+      apply_argmax: True
+      device: *DEVICE
+      torchmetrics_module: 
+        module: torchmetrics.Accuracy
+        kwargs:
+          task: "multiclass"
+          num_classes: 11
   mIoU:
-    module: torchmetrics.JaccardIndex
+    module: remote_sensing_ddpm.utils.torchmetrics_adapter.TorchmetricsAdapter
     kwargs:
-      task: "multiclass"
-      num_classes: 11
+      apply_argmax: True
+      device: *DEVICE
+      torchmetrics_module: 
+        module: torchmetrics.JaccardIndex
+        kwargs:
+          task: "multiclass"
+          num_classes: 11
 
 pl_module:
   module: remote_sensing_ddpm.downstream_tasks.lit_downstream_task.LitDownstreamTask
@@ -103,6 +117,8 @@ pl_module:
         downstream_layer:
           module: remote_sensing_ddpm.downstream_tasks.modules.single_convolution_segmentation_head.SingleConvolutionSegmentationHead
           kwargs:
+            input_size: *IMAGE_SIZE
+            output_size: 120
             feature_map_channels: 128
             output_map_channels: 11
         feature_extractor:
@@ -113,7 +129,7 @@ pl_module:
             map_location: *DEVICE
             feature_section: "decoder"
             feature_levels: [1]
-            vectorize_output: True
+            vectorize_output: False
             t: 1
             p_theta_model_kwargs:
               feat_need: True

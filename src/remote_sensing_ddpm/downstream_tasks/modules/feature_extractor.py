@@ -80,8 +80,13 @@ class FeatureExtractor(nn.Module):
         final_features = []
         for level in self.feature_levels:
             final_features.append(features_all_levels[level])
-
-        if self.vectorize_output:
-            final_features = [features.flatten(start_dim=1) for features in final_features]
+        
+        if len(self.feature_levels) > 1: 
+            if self.vectorize_output:
+                final_features = [features.flatten(start_dim=1) for features in final_features]
             final_features = torch.concat(final_features)
+        else:
+            final_features = final_features[0]
+            if self.vectorize_output:
+                final_features = final_features.flatten(start_dim=1)
         return final_features
