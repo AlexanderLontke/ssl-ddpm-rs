@@ -1,7 +1,7 @@
 name: &NAME rs-ddpm-ms
 seed: 42
 image_size: &IMAGE_SIZE 128
-image_channels: &IMAGE_CHANNELS 3
+image_channels: &IMAGE_CHANNELS 6
 train_beton_file: &TRAIN_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-40-train.beton
 validation_beton_file: &VALIDATION_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-40-test.beton
 
@@ -10,7 +10,7 @@ sentinel_2_pipeline: &S2_PIPELINE
   - module: ffcv.fields.decoders.NDArrayDecoder
   - module: remote_sensing_core.transforms.ffcv.channel_selector.ChannelSelector
     kwargs:
-      channels: [ 3, 2, 1]
+      channels: [ 3, 2, 1, 7]
   - module: remote_sensing_core.transforms.ffcv.clipping.Clipping
     kwargs:
       clip_values: [0, 10000]
@@ -22,10 +22,12 @@ sentinel_2_pipeline: &S2_PIPELINE
     kwargs:
       padding: 4
       padding_value: 0
+  - module: remote_sensing_core.transforms.ffcv.convert.Convert
+    kwargs:
+      target_dtype: "float32"
   - module: ffcv.transforms.ToTensor
 
 seasons_pipeline: &SEASONS_PIPELINE
-  - module: ffcv.fields.decoders.NDArrayDecoder
   - module: remote_sensing_core.transforms.ffcv.min_max_scaler.MinMaxScaler
     kwargs:
       minimum_value: 0
@@ -33,6 +35,9 @@ seasons_pipeline: &SEASONS_PIPELINE
   - module: remote_sensing_core.transforms.ffcv.blow_up.BlowUp
     kwargs:
       new_shape: [1, 128, 128]
+  - module: remote_sensing_core.transforms.ffcv.convert.Convert
+    kwargs:
+      target_dtype: "float32"
   - module: ffcv.transforms.ToTensor
 
 pipelines: &PIPELINES
@@ -86,18 +91,19 @@ pl_module:
     beta_schedule_linear_end: 0.02
     learning_rate: 0.00001
     data_key: 2
+    stack_inputs_keys:
+      - "season_s1"
+      - "season_s2"
+    auxiliary_p_theta_model_input:
+      season_s1: 0
+      season_s2: 1
     learning_rate_scheduler_config:
       module: torch.optim.lr_scheduler.LinearLR
       delay: 1
     p_theta_model:
       module: lit_diffusion.utils.adapter_p_theta_model.AdapterPThetaModel
       kwargs:
-        auxiliary_p_theta_model_input:
-          season_s1: 0
-          season_s2: 1
-        stack_inputs_keys:
-          - "season_s1"
-          - "season_s2"
+        p_theta_model_call_timestep_key: "time"
         original_p_theta_model:
           module: remote_sensing_ddpm.p_theta_models.ddpm_cd_model.sr3_modules.unet.UNet
           kwargs:
