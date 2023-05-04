@@ -34,7 +34,7 @@ seasons_pipeline: &SEASONS_PIPELINE
       maximum_value: 1
   - module: remote_sensing_core.transforms.ffcv.blow_up.BlowUp
     kwargs:
-      new_shape: [1, 128, 128]
+      new_shape: [1, *IMAGE_SIZE, *IMAGE_SIZE]
   - module: remote_sensing_core.transforms.ffcv.convert.Convert
     kwargs:
       target_dtype: "float32"
@@ -75,7 +75,7 @@ validation_torch_data_loader:
     num_workers: 4
     order:
       module: ffcv.loader.OrderOption
-      args: [ 1 ]
+      args: [ 1 ] # 1 is Sequential
     pipelines: *PIPELINES
 
 
