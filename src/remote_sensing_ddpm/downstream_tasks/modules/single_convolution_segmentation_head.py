@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 
 def get_kernel_size(
@@ -22,4 +23,5 @@ class SingleConvolutionSegmentationHead(nn.Module):
         )
 
     def forward(self, batch):
-        return self.downstream_layer(batch)
+        output_map = self.downstream_layer(batch)
+        return torch.argmax(output_map, dim=1)
