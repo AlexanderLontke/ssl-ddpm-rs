@@ -88,7 +88,10 @@ def create_uc_merced_classification_dataset(dataset_opt, phase):
         UCMerced,
     )
 
-    dataset = UCMerced(**dataset_opt, phase=phase,)
+    dataset = UCMerced(
+        **dataset_opt,
+        phase=phase,
+    )
     logger = logging.getLogger("base")
     logger.info(
         "Dataset [{:s} - {:s} - {:s}] is created.".format(

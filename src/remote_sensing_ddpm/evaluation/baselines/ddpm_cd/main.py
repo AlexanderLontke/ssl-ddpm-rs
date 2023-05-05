@@ -60,7 +60,9 @@ if __name__ == "__main__":
     tb_logger = SummaryWriter(log_dir=opt["path"]["tb_logger"])
 
     # Seed everything
-    seed_everything(seed=opt["seed"],)
+    seed_everything(
+        seed=opt["seed"],
+    )
 
     # Initialize WandbLogger
     if opt["enable_wandb"]:
@@ -204,7 +206,9 @@ if __name__ == "__main__":
                     epoch_loss.append(current_loss)
                     if wandb_logger:
                         wandb_logger._wandb.log(
-                            {"training/iter_loss": current_loss,}
+                            {
+                                "training/iter_loss": current_loss,
+                            }
                         )
 
                     # log running batch status
@@ -215,7 +219,8 @@ if __name__ == "__main__":
                     wandb_logger._wandb.log(
                         {
                             "training/epoch_accuracy": accuracy_score(
-                                y_true=labels, y_pred=predictions,
+                                y_true=labels,
+                                y_pred=predictions,
                             ),
                             "training/epoch_recall": recall_score(
                                 y_true=labels,
@@ -276,7 +281,8 @@ if __name__ == "__main__":
                                     {"validation/iter_loss": current_loss}
                                 )
                     validation_accuracy = accuracy_score(
-                        y_true=val_labels, y_pred=val_predictions,
+                        y_true=val_labels,
+                        y_pred=val_predictions,
                     )
                     if wandb_logger:
                         wandb_logger._wandb.log(
@@ -355,7 +361,8 @@ if __name__ == "__main__":
             wandb_logger._wandb.log_metrics(
                 {
                     "validation/epoch_accuracy": accuracy_score(
-                        y_true=testing_labels, y_pred=testing_predictions,
+                        y_true=testing_labels,
+                        y_pred=testing_predictions,
                     ),
                     "validation/epoch_recall": recall_score(
                         y_true=testing_labels,

@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 
+
 def get_kernel_size(
     input_size: int, output_size: int, stride: int = 1, padding: int = 0
 ) -> int:
@@ -12,13 +13,19 @@ def get_kernel_size(
 
 
 class SingleConvolutionSegmentationHead(nn.Module):
-    def __init__(self, input_size: int, output_size: int, feature_map_channels: int, output_map_channels: int, *args, **kwargs):
+    def __init__(
+        self,
+        input_size: int,
+        output_size: int,
+        feature_map_channels: int,
+        output_map_channels: int,
+        *args,
+        **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self.downstream_layer = nn.Conv2d(
             in_channels=feature_map_channels,
-            kernel_size=get_kernel_size(
-                input_size=input_size, output_size=output_size
-            ),
+            kernel_size=get_kernel_size(input_size=input_size, output_size=output_size),
             out_channels=output_map_channels,
         )
 

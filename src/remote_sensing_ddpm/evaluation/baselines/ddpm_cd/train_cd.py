@@ -157,16 +157,13 @@ if __name__ == "__main__":
                 if current_step % opt["train"]["train_print_freq"] == 0:
                     # message
                     logs = change_detection.get_current_log()
-                    message = (
-                        "[Training CD]. epoch: [%d/%d]. Itter: [%d/%d], CD_loss: %.5f, running_mf1: %.5f\n"
-                        % (
-                            current_epoch,
-                            n_epoch - 1,
-                            current_step,
-                            len(train_loader),
-                            logs["l_cd"],
-                            logs["running_acc"],
-                        )
+                    message = "[Training CD]. epoch: [%d/%d]. Itter: [%d/%d], CD_loss: %.5f, running_mf1: %.5f\n" % (
+                        current_epoch,
+                        n_epoch - 1,
+                        current_step,
+                        len(train_loader),
+                        logs["l_cd"],
+                        logs["running_acc"],
                     )
                     logger.info(message)
 
@@ -305,15 +302,12 @@ if __name__ == "__main__":
                     if current_step % opt["train"]["val_print_freq"] == 0:
                         # message
                         logs = change_detection.get_current_log()
-                        message = (
-                            "[Validation CD]. epoch: [%d/%d]. Itter: [%d/%d], running_mf1: %.5f\n"
-                            % (
-                                current_epoch,
-                                n_epoch - 1,
-                                current_step,
-                                len(val_loader),
-                                logs["running_acc"],
-                            )
+                        message = "[Validation CD]. epoch: [%d/%d]. Itter: [%d/%d], running_mf1: %.5f\n" % (
+                            current_epoch,
+                            n_epoch - 1,
+                            current_step,
+                            len(val_loader),
+                            logs["running_acc"],
                         )
                         logger.info(message)
 

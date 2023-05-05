@@ -2,13 +2,18 @@ from typing import Any, Callable, Dict, Optional
 
 import torch
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from remote_sensing_ddpm.downstream_tasks.downstream_task_model import DownstreamTaskModel
+from remote_sensing_ddpm.downstream_tasks.downstream_task_model import (
+    DownstreamTaskModel,
+)
 from torch import nn
 
 import pytorch_lightning as pl
 
 # Lit diffusion
-from lit_diffusion.diffusion_base.constants import LOGGING_TRAIN_PREFIX, LOGGING_VAL_PREFIX
+from lit_diffusion.diffusion_base.constants import (
+    LOGGING_TRAIN_PREFIX,
+    LOGGING_VAL_PREFIX,
+)
 
 
 class LitDownstreamTask(pl.LightningModule):
@@ -57,7 +62,9 @@ class LitDownstreamTask(pl.LightningModule):
         # Log any additional metrics
         if metrics_dict:
             for metric_name, metric_function in metrics_dict.items():
-                if hasattr(metric_function, "device") and hasattr(metric_function, "to"):
+                if hasattr(metric_function, "device") and hasattr(
+                    metric_function, "to"
+                ):
                     metric_function = metric_function.to(y_hat.device)
                 self.log(
                     name=logging_prefix + metric_name,
