@@ -1,7 +1,7 @@
 from torch import nn
 
 
-class LinearClassificationHead(nn.Module):
+class LinearHead(nn.Module):
     def __init__(self, input_size: int, output_size: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.downstream_layer = nn.Sequential(

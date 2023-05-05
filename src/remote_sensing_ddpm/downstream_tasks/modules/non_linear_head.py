@@ -3,7 +3,7 @@ import numpy as np
 from torch import nn
 
 
-class NonLinearClassificationHead(nn.Module):
+class NonLinearHead(nn.Module):
     def __init__(self, input_size: int, output_size: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
