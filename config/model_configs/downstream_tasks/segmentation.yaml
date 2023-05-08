@@ -1,0 +1,78 @@
+name: &NAME rs-ddpm-ms-segmentation
+seed: 42
+device: &DEVICE cuda
+image_size: &IMAGE_SIZE 128
+image_channels: &IMAGE_CHANNELS 3
+
+downstream_task_specific_feature_extractor_kwargs:
+  feature_section: "decoder"
+  feature_levels: [ 1 ]
+  vectorize_output: False
+
+# MODEL INSTANTIATION
+metrics: &METRICS
+  accuracy:
+    module: remote_sensing_ddpm.utils.torchmetrics_adapter.TorchmetricsAdapter
+    kwargs:
+      apply_argmax: True
+      device: *DEVICE
+      torchmetrics_module: 
+        module: torchmetrics.Accuracy
+        kwargs:
+          task: "multiclass"
+          num_classes: 11
+  mIoU:
+    module: remote_sensing_ddpm.utils.torchmetrics_adapter.TorchmetricsAdapter
+    kwargs:
+      apply_argmax: True
+      device: *DEVICE
+      torchmetrics_module: 
+        module: torchmetrics.JaccardIndex
+        kwargs:
+          task: "multiclass"
+          num_classes: 11
+
+pl_module:
+  module: remote_sensing_ddpm.downstream_tasks.lit_downstream_task.LitDownstreamTask
+  kwargs:
+    learning_rate: 0.0001
+    loss:
+      module: torch.nn.CrossEntropyLoss
+    target_key: 0
+    training_metrics: *METRICS
+    validation_metrics: *METRICS
+    downstream_model:
+      module: remote_sensing_ddpm.downstream_tasks.downstream_task_model.DownstreamTaskModel
+      kwargs:
+        downstream_layer:
+          module: remote_sensing_ddpm.downstream_tasks.modules.single_convolution_segmentation_head.SingleConvolutionSegmentationHead
+          kwargs:
+            input_size: *IMAGE_SIZE
+            output_size: 120
+            feature_map_channels: 128
+            output_map_channels: 11
+
+# MODEL TRAINING
+pl_trainer:
+  accelerator: gpu
+  max_epochs: 10
+  log_every_n_steps: 1
+  precision: "16-mixed"
+  # gradient_clip_algorithm: "norm"
+  enable_checkpointing: True
+  # UNCOMMENT FOR DEBUGGING
+  # fast_dev_run: True
+
+pl_wandb_logger:
+  project: *NAME
+
+pl_checkpoint_callback:
+  monitor: "train/CrossEntropyLoss"
+  save_top_k: 3
+  every_n_epochs: 5
+
+sampling:
+  shape: [*IMAGE_CHANNELS, *IMAGE_SIZE, *IMAGE_SIZE]
+  strict_ckpt_loading: False
+  device: *DEVICE
+  batch_size: 16
