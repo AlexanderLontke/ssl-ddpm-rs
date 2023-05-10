@@ -251,7 +251,7 @@ class UNet(nn.Module):
         resamp_with_conv = False
         self.num_resolutions = num_resolutions = len(ch_mult)
         self.all_resolutions = all_resolutions = [
-            image_size // (2 ** i) for i in range(num_resolutions)
+            image_size // (2**i) for i in range(num_resolutions)
         ]
 
         self.conditional = conditional = with_time_emb

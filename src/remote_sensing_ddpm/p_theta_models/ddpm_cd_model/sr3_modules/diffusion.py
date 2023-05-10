@@ -23,7 +23,7 @@ def make_beta_schedule(
     if schedule == "quad":
         betas = (
             np.linspace(
-                linear_start ** 0.5, linear_end ** 0.5, n_timestep, dtype=np.float64
+                linear_start**0.5, linear_end**0.5, n_timestep, dtype=np.float64
             )
             ** 2
         )
@@ -238,7 +238,7 @@ class GaussianDiffusion(nn.Module):
         # random gama
         return (
             continuous_sqrt_alpha_cumprod * x_start
-            + (1 - continuous_sqrt_alpha_cumprod ** 2).sqrt() * noise
+            + (1 - continuous_sqrt_alpha_cumprod**2).sqrt() * noise
         )
 
     def p_losses(self, x_in, noise=None):

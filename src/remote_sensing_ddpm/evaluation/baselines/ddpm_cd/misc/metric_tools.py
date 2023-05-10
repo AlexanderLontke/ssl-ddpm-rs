@@ -155,7 +155,7 @@ def get_confuse_matrix(num_classes, label_gts, label_preds):
         mask = (label_gt >= 0) & (label_gt < num_classes)
         hist = np.bincount(
             num_classes * label_gt[mask].astype(int) + label_pred[mask],
-            minlength=num_classes ** 2,
+            minlength=num_classes**2,
         ).reshape(num_classes, num_classes)
         return hist
 

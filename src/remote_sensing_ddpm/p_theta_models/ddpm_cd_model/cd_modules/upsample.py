@@ -9,10 +9,10 @@ def icnr(x, scale=2, init=nn.init.kaiming_normal_):
     https://arxiv.org/abs/1707.02937
     """
     ni, nf, h, w = x.shape
-    ni2 = int(ni / (scale ** 2))
+    ni2 = int(ni / (scale**2))
     k = init(torch.zeros([ni2, nf, h, w])).transpose(0, 1)
     k = k.contiguous().view(ni2, nf, -1)
-    k = k.repeat(1, 1, scale ** 2)
+    k = k.repeat(1, 1, scale**2)
     k = k.contiguous().view([nf, ni, h, w]).transpose(0, 1)
     x.data.copy_(k)
 
@@ -25,7 +25,7 @@ class PixelShuffle(nn.Module):
 
     def __init__(self, n_channels, scale):
         super(PixelShuffle, self).__init__()
-        self.conv = nn.Conv2d(n_channels, n_channels * (scale ** 2), kernel_size=1)
+        self.conv = nn.Conv2d(n_channels, n_channels * (scale**2), kernel_size=1)
         icnr(self.conv.weight)
         self.shuf = nn.PixelShuffle(scale)
         self.relu = nn.ReLU(inplace=True)

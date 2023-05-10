@@ -131,7 +131,7 @@ def prepare(
         os.makedirs("{}/hr_{}".format(out_path, sizes[1]), exist_ok=True)
         os.makedirs("{}/sr_{}_{}".format(out_path, sizes[0], sizes[1]), exist_ok=True)
     else:
-        env = lmdb.open(out_path, map_size=1024 ** 4, readahead=False)
+        env = lmdb.open(out_path, map_size=1024**4, readahead=False)
 
     if n_worker > 1:
         # prepare data subsets
