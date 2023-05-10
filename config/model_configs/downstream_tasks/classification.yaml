@@ -4,6 +4,10 @@ device: &DEVICE cuda
 image_size: &IMAGE_SIZE 128
 image_channels: &IMAGE_CHANNELS 3
 
+label_pipeline:
+  multiclass_one_h:
+    - module: ffcv.transforms.ToTensor
+
 downstream_task_specific_feature_extractor_kwargs:
   feature_section: "middle"
   feature_levels: [ 0 ]
@@ -37,7 +41,7 @@ pl_module:
     learning_rate: 0.0001
     loss:
       module: torch.nn.CrossEntropyLoss
-    target_key: 0
+    target_key: "multiclass_one_h"
     training_metrics: *METRICS
     validation_metrics: *METRICS
     downstream_model:
