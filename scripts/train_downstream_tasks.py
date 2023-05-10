@@ -59,3 +59,46 @@ def train(feature_extractor_config: Dict, downstream_task_config: Dict):
 
     # run standard pytorch lightning training loop
     main(config=complete_config)
+
+
+if __name__ == '__main__':
+    import argparse
+    import yaml
+    from pathlib import Path
+
+    # Add run arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-f",
+        "--feature-extractor-config",
+        type=Path,
+        help="Path to feature extractor config yaml",
+        required=False,
+    )
+
+    parser.add_argument(
+        "-t",
+        "--downstream-task-config",
+        type=Path,
+        help="Path to downstream task config yaml",
+        required=False,
+    )
+
+    # Parse run arguments
+    args = parser.parse_args()
+
+    # Load feature extractor config file
+    fe_config_file_path = args.feature_extractor_config
+    with fe_config_file_path.open("r") as fe_config_file:
+        fe_config = yaml.safe_load(fe_config_file)
+
+    # Load downstream task config file
+    dt_config_file_path = args.downstream_task_config
+    with dt_config_file_path.open("r") as dt_config_file:
+        dt_config = yaml.safe_load(dt_config_file)
+
+    # Run main function
+    train(
+        feature_extractor_config=fe_config,
+        downstream_task_config=dt_config,
+    )
