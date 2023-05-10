@@ -1,11 +1,12 @@
 name: &NAME rs-ddpm-ms-classification
 seed: 42
 device: &DEVICE cuda
+target_key: &TARGET_KEY "multiclass_one_h"
 image_size: &IMAGE_SIZE 128
 image_channels: &IMAGE_CHANNELS 3
 
 label_pipeline:
-  multiclass_one_h:
+  *TARGET_KEY:
     - module: ffcv.transforms.ToTensor
 
 downstream_task_specific_feature_extractor_kwargs:
@@ -41,7 +42,7 @@ pl_module:
     learning_rate: 0.0001
     loss:
       module: torch.nn.CrossEntropyLoss
-    target_key: "multiclass_one_h"
+    target_key: *TARGET_KEY
     training_metrics: *METRICS
     validation_metrics: *METRICS
     downstream_model:

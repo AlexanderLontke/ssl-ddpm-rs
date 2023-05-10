@@ -1,8 +1,21 @@
 name: &NAME rs-ddpm-ms-segmentation
 seed: 42
 device: &DEVICE cuda
+target_key: &TARGET_KEY "esa_worldcover"
 image_size: &IMAGE_SIZE 128
 image_channels: &IMAGE_CHANNELS 3
+
+label_pipeline:
+  *TARGET_KEY:
+    - module: ffcv.fields.decoders.NDArrayDecoder
+    - module: remote_sensing_core.transforms.ffcv.esa_world_cover_transform.EsaWorldCoverTransform
+      kwargs:
+        divisor: 10.0
+        subtractor: 1.0
+    - module: remote_sensing_core.transforms.ffcv.convert.Convert
+      kwargs:
+        target_dtype: "int64"
+    - module: ffcv.transforms.ToTensor
 
 downstream_task_specific_feature_extractor_kwargs:
   feature_section: "decoder"
@@ -38,7 +51,7 @@ pl_module:
     learning_rate: 0.0001
     loss:
       module: torch.nn.CrossEntropyLoss
-    target_key: 0
+    target_key: *TARGET_KEY
     training_metrics: *METRICS
     validation_metrics: *METRICS
     downstream_model:
