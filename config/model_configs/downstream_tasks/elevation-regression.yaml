@@ -7,6 +7,9 @@ image_channels: &IMAGE_CHANNELS 3
 
 label_pipeline:
   *TARGET_KEY:
+    - module: remote_sensing_core.transforms.ffcv.convert.Convert
+      kwargs:
+        target_dtype: "float32"
     - module: ffcv.transforms.ToTensor
 
 downstream_task_specific_feature_extractor_kwargs:

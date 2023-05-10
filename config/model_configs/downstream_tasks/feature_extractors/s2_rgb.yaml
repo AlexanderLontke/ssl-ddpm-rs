@@ -43,7 +43,7 @@ pipelines: &PIPELINES
 
 # DATA SET CONFIG
 train_torch_data_loader:
-  module: remote_sensing_ddpm.utils.ffcv_loader_wrapper.loader.FFCVLoaderWrapper
+  module: remote_sensing_ddpm.utils.ffcv_loader_wrapper.FFCVLoaderWrapper
   kwargs:
     fname: *TRAIN_BETON_FILE
     batch_size: 24
@@ -55,7 +55,7 @@ train_torch_data_loader:
 
 
 validation_torch_data_loader:
-  module: remote_sensing_ddpm.utils.ffcv_loader_wrapper.loader.FFCVLoaderWrapper
+  module: remote_sensing_ddpm.utils.ffcv_loader_wrapper.FFCVLoaderWrapper
   kwargs:
     fname: *VALIDATION_BETON_FILE
     batch_size: 24
