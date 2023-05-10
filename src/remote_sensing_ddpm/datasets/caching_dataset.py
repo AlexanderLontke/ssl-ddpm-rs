@@ -22,7 +22,11 @@ class CachingDataset:
     ):
         self.feature_timesteps = feature_timesteps
 
-        data_loader = DataLoader(dataset=parent_dataset, batch_size=10, num_workers=4,)
+        data_loader = DataLoader(
+            dataset=parent_dataset,
+            batch_size=10,
+            num_workers=4,
+        )
         # Create cached representations
         for _, current_item in tqdm(
             enumerate(data_loader),
@@ -57,8 +61,10 @@ class CachingDataset:
                     counts[current_label] = 1
 
                 torch.save(
-                    obj=current_image, f=current_root_path / f"image_{file_number}.pth",
+                    obj=current_image,
+                    f=current_root_path / f"image_{file_number}.pth",
                 )
                 torch.save(
-                    obj=current_feats, f=current_root_path / f"feats_{file_number}.pth",
+                    obj=current_feats,
+                    f=current_root_path / f"feats_{file_number}.pth",
                 )

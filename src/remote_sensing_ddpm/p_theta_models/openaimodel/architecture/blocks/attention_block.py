@@ -22,7 +22,11 @@ class AttentionBlock(nn.Module):
     """
 
     def __init__(
-        self, channels, num_heads=1, num_head_channels=-1, use_checkpoint=False,
+        self,
+        channels,
+        num_heads=1,
+        num_head_channels=-1,
+        use_checkpoint=False,
     ):
         super().__init__()
         self.channels = channels

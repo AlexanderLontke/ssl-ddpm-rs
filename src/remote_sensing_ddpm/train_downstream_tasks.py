@@ -44,15 +44,18 @@ def train(feature_extractor_config: Dict, downstream_task_config: Dict):
     mapping = sorted(mapping)
 
     # Update new key word argument for both dataloaders
-    for dataloader_key in (TRAIN_TORCH_DATA_LOADER_CONFIG_KEY, VALIDATION_TORCH_DATA_LOADER_CONFIG_KEY):
+    for dataloader_key in (
+        TRAIN_TORCH_DATA_LOADER_CONFIG_KEY,
+        VALIDATION_TORCH_DATA_LOADER_CONFIG_KEY,
+    ):
         # 1. Update Pipelines
-        feature_extractor_config[dataloader_key][
-            PYTHON_KWARGS_CONFIG_KEY
-        ].update(PIPELINES_CONFIG_KEY, feature_extractor_config[PIPELINES_CONFIG_KEY])
+        feature_extractor_config[dataloader_key][PYTHON_KWARGS_CONFIG_KEY].update(
+            PIPELINES_CONFIG_KEY, feature_extractor_config[PIPELINES_CONFIG_KEY]
+        )
         # 2. Add mapping
-        feature_extractor_config[dataloader_key][
-            PYTHON_KWARGS_CONFIG_KEY
-        ].update("mapping", mapping)
+        feature_extractor_config[dataloader_key][PYTHON_KWARGS_CONFIG_KEY].update(
+            "mapping", mapping
+        )
 
     # fuse both dictionaries
     complete_config = safe_join_dicts(feature_extractor_config, downstream_task_config)
@@ -61,7 +64,7 @@ def train(feature_extractor_config: Dict, downstream_task_config: Dict):
     main(config=complete_config)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import argparse
     import yaml
     from pathlib import Path
