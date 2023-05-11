@@ -2,7 +2,7 @@ name: &NAME rs-ddpm-ms-regression
 seed: 42
 target_key: &TARGET_KEY "elevation_differ"
 device: &DEVICE cuda
-num_outputs: *NUM_OUTPUTS 1
+num_outputs: &NUM_OUTPUTS 1
 image_size: &IMAGE_SIZE 128
 image_channels: &IMAGE_CHANNELS 3
 
@@ -22,10 +22,6 @@ downstream_task_specific_feature_extractor_kwargs:
 metrics: &METRICS
   mean_squared_error:
     module: torchmetrics.MeanSquaredError
-  correlation:
-    module: torchmetrics.SpearmanCorrCoef
-    kwargs:
-      num_outputs: *NUM_OUTPUTS
 
 pl_module:
   module: remote_sensing_ddpm.downstream_tasks.lit_downstream_task.LitDownstreamTask
