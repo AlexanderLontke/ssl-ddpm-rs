@@ -1,15 +1,18 @@
 from typing import Iterator, List
 
-from torch.utils.data import DataLoader
+# FFCV
 from ffcv.loader import Loader
 
 
 class FFCVLoaderWrapper(Iterator):
     def __init__(self, mapping: List[str], *args, **kwargs):
         self.original_dataloader = Loader(*args, **kwargs)
-        self.len = self.original_dataloader.__len__()
-        self.original_dataloader_it = self.original_dataloader.__iter__()
         self.mapping = mapping
+
+    def __iter__(self):
+        self.original_dataloader_it = self.original_dataloader.__iter__()
+        self.len = self.original_dataloader_it.__len__()
+        return self
 
     def __len__(self):
         return self.len
