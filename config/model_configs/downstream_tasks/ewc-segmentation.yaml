@@ -2,6 +2,7 @@ name: &NAME rs-ddpm-ms-segmentation
 seed: 42
 device: &DEVICE cuda
 target_key: &TARGET_KEY "esa_worldcover"
+output_channels: &OUTPUT_CHANNELS 11
 image_size: &IMAGE_SIZE 128
 image_channels: &IMAGE_CHANNELS 3
 
@@ -33,7 +34,7 @@ metrics: &METRICS
         module: torchmetrics.Accuracy
         kwargs:
           task: "multiclass"
-          num_classes: 11
+          num_classes: *OUTPUT_CHANNELS
   mIoU:
     module: remote_sensing_ddpm.utils.torchmetrics_adapter.TorchmetricsAdapter
     kwargs:
@@ -43,7 +44,7 @@ metrics: &METRICS
         module: torchmetrics.JaccardIndex
         kwargs:
           task: "multiclass"
-          num_classes: 11
+          num_classes: *OUTPUT_CHANNELS
 
 pl_module:
   module: remote_sensing_ddpm.downstream_tasks.lit_downstream_task.LitDownstreamTask
@@ -63,7 +64,7 @@ pl_module:
             input_size: *IMAGE_SIZE
             output_size: 120
             feature_map_channels: 128
-            output_map_channels: 11
+            output_map_channels: *OUTPUT_CHANNELS
 
 # MODEL TRAINING
 pl_trainer:
@@ -83,9 +84,3 @@ pl_checkpoint_callback:
   monitor: "train/CrossEntropyLoss"
   save_top_k: 3
   every_n_epochs: 5
-
-sampling:
-  shape: [*IMAGE_CHANNELS, *IMAGE_SIZE, *IMAGE_SIZE]
-  strict_ckpt_loading: False
-  device: *DEVICE
-  batch_size: 16

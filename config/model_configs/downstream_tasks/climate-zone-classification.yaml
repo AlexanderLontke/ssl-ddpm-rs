@@ -1,38 +1,51 @@
-name: &NAME rs-ddpm-ms-regression
+name: &NAME rs-ddpm-ms-classification
 seed: 42
-target_key: &TARGET_KEY "elevation_differ"
 device: &DEVICE cuda
-num_outputs: *NUM_OUTPUTS 1
+target_key: &TARGET_KEY "climate_zone"
+num_labels: *NUM_LABELS 27
 image_size: &IMAGE_SIZE 128
 image_channels: &IMAGE_CHANNELS 3
 
 label_pipeline:
   *TARGET_KEY:
     - module: remote_sensing_core.transforms.ffcv.convert.Convert
-      kwargs:
-        target_dtype: "float32"
+        kwargs:
+          target_dtype: "int64"
     - module: ffcv.transforms.ToTensor
 
 downstream_task_specific_feature_extractor_kwargs:
   feature_section: "middle"
-  feature_levels: [0]
+  feature_levels: [ 0 ]
   vectorize_output: True
+
 
 # MODEL INSTANTIATION
 metrics: &METRICS
-  mean_squared_error:
-    module: torchmetrics.MeanSquaredError
-  correlation:
-    module: torchmetrics.SpearmanCorrCoef
+  accuracy:
+    module: torchmetrics.Accuracy
     kwargs:
-      num_outputs: *NUM_OUTPUTS
+      task: "multilabel"
+      num_labels: *NUM_LABELS
+      threshold: 0.5
+  recall:
+    module: torchmetrics.Recall
+    kwargs:
+      task: "multilabel"
+      num_labels: *NUM_LABELS
+      threshold: 0.5
+  precision:
+    module: torchmetrics.Precision
+    kwargs:
+      task: "multilabel"
+      num_labels: *NUM_LABELS
+      threshold: 0.5
 
 pl_module:
   module: remote_sensing_ddpm.downstream_tasks.lit_downstream_task.LitDownstreamTask
   kwargs:
     learning_rate: 0.0001
     loss:
-      module: torch.nn.MSELoss
+      module: torch.nn.CrossEntropyLoss
     target_key: *TARGET_KEY
     training_metrics: *METRICS
     validation_metrics: *METRICS
@@ -43,7 +56,8 @@ pl_module:
           module: remote_sensing_ddpm.downstream_tasks.modules.non_linear_head.NonLinearHead
           kwargs:
             input_size: 65536
-            output_size: *NUM_OUTPUTS
+            output_size: *NUM_LABELS
+
 
 # MODEL TRAINING
 pl_trainer:
@@ -60,7 +74,6 @@ pl_wandb_logger:
   project: *NAME
 
 pl_checkpoint_callback:
-  monitor: "train/MSELoss"
+  monitor: "train/CrossEntropyLoss"
   save_top_k: 3
   every_n_epochs: 5
-
