@@ -11,7 +11,7 @@ class FFCVLoaderWrapper(Iterator):
 
     def __iter__(self):
         self.original_dataloader_it = self.original_dataloader.__iter__()
-        self.len = self.original_dataloader_it.__len__()
+        self.len = self.original_dataloader.__len__()
         return self
 
     def __len__(self):
