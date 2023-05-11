@@ -6,6 +6,7 @@ from lit_diffusion.constants import (
     PYTHON_KWARGS_CONFIG_KEY,
     TRAIN_TORCH_DATA_LOADER_CONFIG_KEY,
     VALIDATION_TORCH_DATA_LOADER_CONFIG_KEY,
+    PL_MODULE_CONFIG_KEY,
 )
 
 FE_CONFIG_KEY = "feature_extractor"
@@ -24,20 +25,20 @@ def safe_join_dicts(dict_a: Dict, dict_b: Dict) -> Dict:
     return {**dict_a, **dict_b}
 
 
-def train(feature_extractor_config: Dict, downstream_task_config: Dict):
+def train(backbone_config: Dict, downstream_task_config: Dict):
     # Join downstream task specific and regular key word arguments
     additional_kwargs = downstream_task_config.pop(ADD_FE_KWARGS_CONFIG_KEY)
-    original_kwargs = feature_extractor_config[FE_CONFIG_KEY][PYTHON_KWARGS_CONFIG_KEY]
+    original_kwargs = backbone_config[FE_CONFIG_KEY][PYTHON_KWARGS_CONFIG_KEY]
     new_fe_kwargs = safe_join_dicts(additional_kwargs, original_kwargs)
-    feature_extractor_config[FE_CONFIG_KEY][PYTHON_KWARGS_CONFIG_KEY] = new_fe_kwargs
+    backbone_config[FE_CONFIG_KEY][PYTHON_KWARGS_CONFIG_KEY] = new_fe_kwargs
 
     # Add label pipeline from downstream config
     label_pipeline_config: Dict = downstream_task_config[LABEL_PIPELINE_CONFIG_KEY]
-    feature_extractor_config[PIPELINES_CONFIG_KEY].update(label_pipeline_config)
+    backbone_config[PIPELINES_CONFIG_KEY].update(label_pipeline_config)
 
     # Get index to key mapping based on all FFCV pipelines that are not none
     mapping = []
-    for k, v in feature_extractor_config[PIPELINES_CONFIG_KEY].items():
+    for k, v in backbone_config[PIPELINES_CONFIG_KEY].items():
         if v:
             mapping.append(k)
     # Sort mapping (alphabetically) so that it matches with the return order of the FFCV dataset
@@ -49,16 +50,20 @@ def train(feature_extractor_config: Dict, downstream_task_config: Dict):
         VALIDATION_TORCH_DATA_LOADER_CONFIG_KEY,
     ):
         # 1. Update Pipelines
-        feature_extractor_config[dataloader_key][PYTHON_KWARGS_CONFIG_KEY].update(
-            PIPELINES_CONFIG_KEY, feature_extractor_config[PIPELINES_CONFIG_KEY]
+        backbone_config[dataloader_key][PYTHON_KWARGS_CONFIG_KEY].update(
+            {PIPELINES_CONFIG_KEY: backbone_config[PIPELINES_CONFIG_KEY]}
         )
         # 2. Add mapping
-        feature_extractor_config[dataloader_key][PYTHON_KWARGS_CONFIG_KEY].update(
-            "mapping", mapping
+        backbone_config[dataloader_key][PYTHON_KWARGS_CONFIG_KEY].update(
+            {"mapping": mapping}
         )
 
-    # fuse both dictionaries
-    complete_config = safe_join_dicts(feature_extractor_config, downstream_task_config)
+    # Fuse both dictionaries
+    feature_extractor_config = backbone_config.pop(FE_CONFIG_KEY)
+    downstream_task_config[PL_MODULE_CONFIG_KEY][PYTHON_KWARGS_CONFIG_KEY][
+        "downstream_model"
+    ][PYTHON_KWARGS_CONFIG_KEY][FE_CONFIG_KEY] = feature_extractor_config
+    complete_config = safe_join_dicts(backbone_config, downstream_task_config)
 
     # run standard pytorch lightning training loop
     main(config=complete_config)
@@ -72,8 +77,8 @@ if __name__ == "__main__":
     # Add run arguments
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-f",
-        "--feature-extractor-config",
+        "-b",
+        "--backbone-config",
         type=Path,
         help="Path to feature extractor config yaml",
         required=False,
@@ -90,10 +95,10 @@ if __name__ == "__main__":
     # Parse run arguments
     args = parser.parse_args()
 
-    # Load feature extractor config file
-    fe_config_file_path = args.feature_extractor_config
-    with fe_config_file_path.open("r") as fe_config_file:
-        fe_config = yaml.safe_load(fe_config_file)
+    # Load backbone config file
+    b_config_file_path = args.backbone_config
+    with b_config_file_path.open("r") as b_config_file:
+        b_config = yaml.safe_load(b_config_file)
 
     # Load downstream task config file
     dt_config_file_path = args.downstream_task_config
@@ -102,6 +107,6 @@ if __name__ == "__main__":
 
     # Run main function
     train(
-        feature_extractor_config=fe_config,
+        backbone_config=b_config,
         downstream_task_config=dt_config,
     )

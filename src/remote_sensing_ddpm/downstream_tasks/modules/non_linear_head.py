@@ -10,7 +10,7 @@ class NonLinearHead(nn.Module):
         # Calculate layer sizes
         log_factor = np.log2(input_size)
         output_layer1 = int(input_size / log_factor)
-        output_layer2 = int(input_size / (log_factor ** 2))
+        output_layer2 = int(input_size / (log_factor**2))
 
         # Instantiate head
         self.downstream_layer = nn.Sequential(

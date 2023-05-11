@@ -112,7 +112,7 @@ class ClassificationHead(nn.Module):
         self.pool = nn.MaxPool2d(4, 2)
         self.relu = nn.ReLU()
         # Fully connected Layers
-        self.fc1 = nn.Linear(16 * (27 ** 2), 4096)
+        self.fc1 = nn.Linear(16 * (27**2), 4096)
         self.fc2 = nn.Linear(4096, 1024)
         self.fc3 = nn.Linear(1024, 256)
         self.fc4 = nn.Linear(256, out_channels)
