@@ -5,6 +5,7 @@ target_key: &TARGET_KEY "multiclass_one_h"
 num_labels: &NUM_LABELS 11
 image_size: &IMAGE_SIZE 128
 image_channels: &IMAGE_CHANNELS 3
+ewc_labels: &EWC_LABELS ["Tree cover", "Shrubland", "Grassland", "Cropland", "Built-up", "Bare", "Snow and Ice", "Permanenet water bodies", "Herbaceous wetland", "Mangroves", "Moss and lichen" ]
 
 label_pipeline:
   *TARGET_KEY:
@@ -17,25 +18,57 @@ downstream_task_specific_feature_extractor_kwargs:
 
 
 # MODEL INSTANTIATION
+metrics_args: &METRICS_KWARGS
+  task: "multilabel"  
+  num_labels: *NUM_LABELS
+  threshold: 0.5
+classwise_metrics_kwargs: &CW_METRICS_KWARGS
+  task: "multilabel"  
+  num_labels: *NUM_LABELS
+  threshold: 0.5
+  average: null
+
 metrics: &METRICS
   accuracy:
     module: torchmetrics.Accuracy
-    kwargs:
-      task: "multilabel"
-      num_labels: *NUM_LABELS
-      threshold: 0.5
+    kwargs: *METRICS_KWARGS
   recall:
     module: torchmetrics.Recall
-    kwargs:
-      task: "multilabel"
-      num_labels: *NUM_LABELS
-      threshold: 0.5
+    kwargs: *METRICS_KWARGS
   precision:
     module: torchmetrics.Precision
+    kwargs: *METRICS_KWARGS
+  f1:
+    module: torchmetrics.F1Score
+    kwargs: *METRICS_KWARGS
+  classwise_accuracy:
+    module: torchmetrics.ClasswiseWrapper
     kwargs:
-      task: "multilabel"
-      num_labels: *NUM_LABELS
-      threshold: 0.5
+      metric:
+        module: torchmetrics.Accuracy
+        kwargs: *CW_METRICS_KWARGS
+      labels: *EWC_LABELS
+  classwise_recall:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.Recall
+        kwargs: *CW_METRICS_KWARGS
+      labels: *EWC_LABELS
+  classwise_precision:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.Precision
+        kwargs: *CW_METRICS_KWARGS
+      labels: *EWC_LABELS
+  classwise_f1:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.F1Score
+        kwargs: *CW_METRICS_KWARGS
+      labels: *EWC_LABELS
 
 pl_module:
   module: remote_sensing_ddpm.downstream_tasks.lit_downstream_task.LitDownstreamTask
@@ -65,7 +98,7 @@ pl_trainer:
   # gradient_clip_algorithm: "norm"
   enable_checkpointing: True
   # UNCOMMENT FOR DEBUGGING
-  # fast_dev_run: True
+  fast_dev_run: True
 
 pl_wandb_logger:
   project: *NAME

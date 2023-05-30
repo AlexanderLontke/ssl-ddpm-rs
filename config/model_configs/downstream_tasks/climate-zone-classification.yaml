@@ -2,18 +2,13 @@ name: &NAME rs-ddpm-ms-classification
 seed: 42
 device: &DEVICE cuda
 target_key: &TARGET_KEY "climate_zone"
-num_labels: &NUM_LABELS 29
+num_labels: &NUM_LABELS 30
 image_size: &IMAGE_SIZE 128
 image_channels: &IMAGE_CHANNELS 3
 
 label_pipeline:
   *TARGET_KEY:
-    - module: remote_sensing_core.transforms.ffcv.convert.Convert
-      kwargs:
-        target_dtype: "int64"
-    - module: remote_sensing_core.transforms.ffcv.channel_selector.ChannelSelector
-      kwargs:
-        channels: [ 0 ]
+    - module: remote_sensing_core.transforms.ffcv.climatezone_transform.ClimateZoneTransform
     - module: ffcv.transforms.ToTensor
 
 downstream_task_specific_feature_extractor_kwargs:
