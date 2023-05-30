@@ -63,15 +63,26 @@ class LitDownstreamTask(pl.LightningModule):
         if metrics_dict:
             for metric_name, metric_function in metrics_dict.items():
                 if hasattr(metric_function, "device") and hasattr(
-                    metric_function, "to"
+                        metric_function, "to"
                 ):
                     metric_function = metric_function.to(y_hat.device)
-                self.log(
-                    name=logging_prefix + metric_name,
-                    value=metric_function(y_hat, y),
-                    on_epoch=True,
-                    batch_size=batch_size,
-                )
+                logging_kwargs = {
+                    "on_step": True,
+                    "on_epoch": True,
+                    "batch_size": batch_size
+                }
+                value = metric_function(y_hat, y)
+                if isinstance(value, Dict):
+                    self.log_dict(
+                        value,
+                        **logging_kwargs
+                    )
+                else:
+                    self.log(
+                        name=logging_prefix + metric_name,
+                        value=value,
+                        **logging_kwargs
+                    )
         return step_loss
 
     def training_step(
