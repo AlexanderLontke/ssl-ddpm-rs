@@ -23,6 +23,8 @@ downstream_task_specific_feature_extractor_kwargs:
 metrics: &METRICS
   mean_squared_error:
     module: torchmetrics.MeanSquaredError
+  mean_absolute_error:
+    module: torchmetrics.MeanAbsoluteError
 
 pl_module:
   module: remote_sensing_ddpm.downstream_tasks.lit_downstream_task.LitDownstreamTask

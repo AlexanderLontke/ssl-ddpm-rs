@@ -17,7 +17,7 @@ downstream_task_specific_feature_extractor_kwargs:
   vectorize_output: True
 
 
-# MODEL INSTANTIATION
+# METRICS
 metrics_args: &METRICS_KWARGS
   task: "multilabel"  
   num_labels: *NUM_LABELS
@@ -70,6 +70,7 @@ metrics: &METRICS
         kwargs: *CW_METRICS_KWARGS
       labels: *EWC_LABELS
 
+# MODEL INSTANTIATION
 pl_module:
   module: remote_sensing_ddpm.downstream_tasks.lit_downstream_task.LitDownstreamTask
   kwargs:
