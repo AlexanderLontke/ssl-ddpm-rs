@@ -19,8 +19,7 @@ def test_safe_join_dicts():
     # These should run without error
     safe_join_dicts(dict_a=reference_dict, dict_b=reference_dict_ok)
     safe_join_dicts(
-        dict_a=reference_dict,
-        dict_b=disjoint_dict,
+        dict_a=reference_dict, dict_b=disjoint_dict,
     )
 
     # These should fail

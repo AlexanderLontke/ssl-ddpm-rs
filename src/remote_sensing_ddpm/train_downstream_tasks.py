@@ -107,6 +107,5 @@ if __name__ == "__main__":
 
     # Run main function
     train(
-        backbone_config=b_config,
-        downstream_task_config=dt_config,
+        backbone_config=b_config, downstream_task_config=dt_config,
     )

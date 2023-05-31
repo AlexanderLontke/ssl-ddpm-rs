@@ -1,3 +1,4 @@
+import copy
 from typing import Any, Callable, Dict, Optional
 
 import torch
@@ -39,6 +40,13 @@ class LitDownstreamTask(pl.LightningModule):
         # Setup metrics
         self.training_metrics = training_metrics
         self.validation_metrics = validation_metrics
+        # Register feature extractor weights to assert that they remain unchanged at the end of training
+        self.register_buffer(
+            "original_fe_weights",
+            torch.Tensor(
+                copy.deepcopy(self.downstream_model.feature_extractor.parameters())
+            ),
+        )
 
     def _train_val_step(
         self, batch, metrics_dict: Optional[Dict[str, Callable]], logging_prefix: str
@@ -63,25 +71,20 @@ class LitDownstreamTask(pl.LightningModule):
         if metrics_dict:
             for metric_name, metric_function in metrics_dict.items():
                 if hasattr(metric_function, "device") and hasattr(
-                        metric_function, "to"
+                    metric_function, "to"
                 ):
                     metric_function = metric_function.to(y_hat.device)
                 logging_kwargs = {
                     "on_step": True,
                     "on_epoch": True,
-                    "batch_size": batch_size
+                    "batch_size": batch_size,
                 }
                 value = metric_function(y_hat, y)
                 if isinstance(value, Dict):
-                    self.log_dict(
-                        value,
-                        **logging_kwargs
-                    )
+                    self.log_dict(value, **logging_kwargs)
                 else:
                     self.log(
-                        name=logging_prefix + metric_name,
-                        value=value,
-                        **logging_kwargs
+                        name=logging_prefix + metric_name, value=value, **logging_kwargs
                     )
         return step_loss
 
@@ -110,3 +113,9 @@ class LitDownstreamTask(pl.LightningModule):
         opt = torch.optim.Adam(params, lr=lr)
         return_dict["optimizer"] = opt
         return return_dict
+
+    def on_train_end(self) -> None:
+        assert (
+            torch.Tensor(self.downstream_model.feature_extractor.parameters())
+            == self.original_fe_weights
+        ), "Backbone weights have changed during training"
