@@ -64,7 +64,13 @@ validation_torch_data_loader:
       module: ffcv.loader.OrderOption
       args: [ 1 ]
     pipelines: *PIPELINES
-        
+
+# METRICS TO TRACK
+metrics: &METRICS
+  mean_squared_error:
+    module: torchmetrics.MeanSquaredError
+  explained_variance:
+    module: torchmetrics.ExplainedVariance
 
 
 # MODEL INSTANTIATION
@@ -81,6 +87,8 @@ pl_module:
     learning_rate_scheduler_config:
       module: torch.optim.lr_scheduler.LinearLR
       delay: 1
+    training_metrics: *METRICS
+    validation_metrics: *METRICS
     p_theta_model:
       module: remote_sensing_ddpm.p_theta_models.ddpm_cd_model.sr3_modules.unet.UNet
       kwargs:
@@ -97,7 +105,7 @@ pl_module:
 # MODEL TRAINING
 pl_trainer:
   accelerator: gpu
-  max_epochs: 10
+  max_epochs: 30
   log_every_n_steps: 1
   precision: "16-mixed"
   # gradient_clip_algorithm: "norm"
@@ -107,6 +115,7 @@ pl_trainer:
 
 pl_wandb_logger:
   project: *NAME
+  name: "s2-rgb-backbone"
 
 pl_checkpoint_callback:
   monitor: "val/mse_loss"

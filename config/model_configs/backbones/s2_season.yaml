@@ -78,7 +78,12 @@ validation_torch_data_loader:
       args: [ 1 ] # 1 is Sequential
     pipelines: *PIPELINES
 
-
+# METRICS TO TRACK
+metrics: &METRICS
+  mean_squared_error:
+    module: torchmetrics.MeanSquaredError
+  explained_variance:
+    module: torchmetrics.ExplainedVariance
 
 # MODEL INSTANTIATION
 pl_module:
@@ -100,6 +105,8 @@ pl_module:
     learning_rate_scheduler_config:
       module: torch.optim.lr_scheduler.LinearLR
       delay: 1
+    training_metrics: *METRICS
+    validation_metrics: *METRICS
     p_theta_model:
       module: lit_diffusion.utils.adapter_p_theta_model.AdapterPThetaModel
       kwargs:
@@ -130,6 +137,7 @@ pl_trainer:
 
 pl_wandb_logger:
   project: *NAME
+  name: "s2-and-seasons-backbone"
 
 pl_checkpoint_callback:
   monitor: "val/mse_loss"

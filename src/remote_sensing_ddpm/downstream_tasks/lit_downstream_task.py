@@ -81,7 +81,10 @@ class LitDownstreamTask(pl.LightningModule):
                 }
                 value = metric_function(y_hat, y)
                 if isinstance(value, Dict):
-                    self.log_dict(value, **logging_kwargs)
+                    self.log_dict(
+                        dictionary={logging_prefix + k: v for k, v in value.items()},
+                        **logging_kwargs,
+                    )
                 else:
                     self.log(
                         name=logging_prefix + metric_name, value=value, **logging_kwargs

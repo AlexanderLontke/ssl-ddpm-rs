@@ -31,7 +31,7 @@ era5_pipeline: &ERA5_PIPELINE
 pipelines: &PIPELINES
   climate_zone: null
   elevation_differ: null
-  era_5: null
+  era_5: *ERA5_PIPELINE
   esa_worldcover: null
   glo_30_dem: null
   multiclass_numer: null
@@ -66,7 +66,12 @@ validation_torch_data_loader:
       args: [ 1 ]
     pipelines: *PIPELINES
 
-
+# METRICS TO TRACK
+metrics: &METRICS
+  mean_squared_error:
+    module: torchmetrics.MeanSquaredError
+  explained_variance:
+    module: torchmetrics.ExplainedVariance
 
 # MODEL INSTANTIATION
 pl_module:
@@ -94,6 +99,8 @@ pl_module:
         res_blocks: 2
         dropout: 0.2
         image_size: *IMAGE_SIZE
+    training_metrics: *METRICS
+    validation_metrics: *METRICS
 
 # MODEL TRAINING
 pl_trainer:
@@ -108,6 +115,7 @@ pl_trainer:
 
 pl_wandb_logger:
   project: *NAME
+  name: "s2-and-weather-backbone"
 
 pl_checkpoint_callback:
   monitor: "val/mse_loss"
