@@ -2,9 +2,10 @@ name: &NAME rs-ddpm-ms-regression
 seed: 42
 target_key: &TARGET_KEY "multiclass_numer"
 device: &DEVICE cuda
-num_outputs: &NUM_OUTPUTS 11
 image_size: &IMAGE_SIZE 128
 image_channels: &IMAGE_CHANNELS 3
+num_labels: &NUM_LABELS 11
+ewc_labels: &EWC_LABELS ["Tree cover", "Shrubland", "Grassland", "Cropland", "Built-up", "Bare", "Snow and Ice", "Permanenet water bodies", "Herbaceous wetland", "Mangroves", "Moss and lichen" ]
 
 label_pipeline:
   *TARGET_KEY:
@@ -18,11 +19,30 @@ downstream_task_specific_feature_extractor_kwargs:
   feature_levels: [0]
   vectorize_output: True
 
-# MODEL INSTANTIATION
+# METRICS
 metrics: &METRICS
   mean_squared_error:
     module: torchmetrics.MeanSquaredError
+  mean_absolute_error:
+    module: torchmetrics.MeanAbsoluteError
+  classwise_mse:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.MeanSquaredError
+        kwargs: 
+          average: null
+      labels: *EWC_LABELS
+  classwise_mae:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.MeanAbsoluteError
+        kwargs: 
+          average: null
+      labels: *EWC_LABELS
 
+# MODEL INSTANTIATION
 pl_module:
   module: remote_sensing_ddpm.downstream_tasks.lit_downstream_task.LitDownstreamTask
   kwargs:
@@ -39,7 +59,7 @@ pl_module:
           module: remote_sensing_ddpm.downstream_tasks.modules.non_linear_head.NonLinearHead
           kwargs:
             input_size: 65536
-            output_size: *NUM_OUTPUTS
+            output_size: *NUM_LABELS
 
 # MODEL TRAINING
 pl_trainer:

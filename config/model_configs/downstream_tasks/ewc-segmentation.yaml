@@ -5,6 +5,7 @@ target_key: &TARGET_KEY "esa_worldcover"
 output_channels: &OUTPUT_CHANNELS 11
 image_size: &IMAGE_SIZE 128
 image_channels: &IMAGE_CHANNELS 3
+ewc_labels: &EWC_LABELS ["Tree cover", "Shrubland", "Grassland", "Cropland", "Built-up", "Bare", "Snow and Ice", "Permanenet water bodies", "Herbaceous wetland", "Mangroves", "Moss and lichen" ]
 
 label_pipeline:
   *TARGET_KEY:
@@ -45,6 +46,36 @@ metrics: &METRICS
         kwargs:
           task: "multiclass"
           num_classes: *OUTPUT_CHANNELS
+  classwise_accuracy:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: remote_sensing_ddpm.utils.torchmetrics_adapter.TorchmetricsAdapter
+        kwargs:
+          apply_argmax: True
+          device: *DEVICE
+          torchmetrics_module: 
+            module: torchmetrics.Accuracy
+            kwargs:
+              task: "multiclass"
+              num_classes: *OUTPUT_CHANNELS
+              average: null
+      labels: *EWC_LABELS
+  classwise_mIoU:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: remote_sensing_ddpm.utils.torchmetrics_adapter.TorchmetricsAdapter
+        kwargs:
+          apply_argmax: True
+          device: *DEVICE
+          torchmetrics_module: 
+            module: torchmetrics.JaccardIndex
+            kwargs:
+              task: "multiclass"
+              num_classes: *OUTPUT_CHANNELS
+              average: null
+      labels: *EWC_LABELS
 
 pl_module:
   module: remote_sensing_ddpm.downstream_tasks.lit_downstream_task.LitDownstreamTask
