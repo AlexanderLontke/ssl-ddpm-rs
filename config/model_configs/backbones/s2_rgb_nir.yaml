@@ -1,7 +1,7 @@
 name: &NAME rs-ddpm-ms
 seed: 42
 image_size: &IMAGE_SIZE 128
-image_channels: &IMAGE_CHANNELS 3
+image_channels: &IMAGE_CHANNELS 4
 train_beton_file: &TRAIN_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-40-train.beton
 validation_beton_file: &VALIDATION_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-40-test.beton
 
@@ -10,7 +10,7 @@ sentinel_2_pipeline: &S2_PIPELINE
   - module: ffcv.fields.decoders.NDArrayDecoder
   - module: remote_sensing_core.transforms.ffcv.channel_selector.ChannelSelector
     kwargs:
-      channels: [ 3, 2, 1]
+      channels: [ 3, 2, 1, 7]
   - module: remote_sensing_core.transforms.ffcv.clipping.Clipping
     kwargs:
       clip_values: [0, 10000]
@@ -105,7 +105,7 @@ pl_module:
 # MODEL TRAINING
 pl_trainer:
   accelerator: gpu
-  max_epochs: 30
+  max_epochs: 20
   log_every_n_steps: 1
   precision: "16-mixed"
   # gradient_clip_algorithm: "norm"
@@ -115,7 +115,7 @@ pl_trainer:
 
 pl_wandb_logger:
   project: *NAME
-  name: "s2-rgb-backbone"
+  name: "s2-rgb-and-nir-backbone"
 
 pl_checkpoint_callback:
   monitor: "val/mse_loss"
