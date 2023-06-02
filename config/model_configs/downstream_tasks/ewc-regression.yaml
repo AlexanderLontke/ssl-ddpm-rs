@@ -70,7 +70,7 @@ pl_trainer:
   # gradient_clip_algorithm: "norm"
   enable_checkpointing: True
   # UNCOMMENT FOR DEBUGGING
-  fast_dev_run: True
+  # fast_dev_run: True
 
 pl_wandb_logger:
   project: *NAME

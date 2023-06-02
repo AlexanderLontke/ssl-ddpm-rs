@@ -71,7 +71,7 @@ feature_extractor:
   module: remote_sensing_ddpm.downstream_tasks.modules.feature_extractor.FeatureExtractor
   kwargs:
     data_key: *DATA_KEY
-    checkpoint_path: "rs-ddpm-ms/sta6sgv7/checkpoints/epoch=9-step=77640.ckpt"
+    checkpoint_path: "/netscratch2/alontke/master_thesis/code/ssl-ddpm-rs/rs-ddpm-ms/0iwo554s/checkpoints/epoch=19-step=155280.ckpt"
     map_location: *DEVICE
     t: 1
     p_theta_model_kwargs:

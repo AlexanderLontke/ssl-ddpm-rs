@@ -103,35 +103,27 @@ pl_module:
       season_s1: 0
       season_s2: 1
     learning_rate_scheduler_config:
-      learning_rate_scheduler_config:
-      module: torch.optim.lr_scheduler.StepLR
-      kwargs: 
-        step_size: 3
-        gamma: 0.6
+      module: torch.optim.lr_scheduler.LinearLR
       delay: 1
     training_metrics: *METRICS
     validation_metrics: *METRICS
     p_theta_model:
-      module: lit_diffusion.utils.adapter_p_theta_model.AdapterPThetaModel
+      module: remote_sensing_ddpm.p_theta_models.ddpm_cd_model.sr3_modules.unet.UNet
       kwargs:
-        p_theta_model_call_timestep_key: "time"
-        original_p_theta_model:
-          module: remote_sensing_ddpm.p_theta_models.ddpm_cd_model.sr3_modules.unet.UNet
-          kwargs:
-            in_channel: *IMAGE_CHANNELS
-            out_channel: *IMAGE_CHANNELS
-            norm_groups: 32
-            inner_channel: 128
-            channel_mults: [ 1, 2, 4, 8, 8 ]
-            attn_res: [ 16 ]
-            res_blocks: 2
-            dropout: 0.2
-            image_size: *IMAGE_SIZE
+        in_channel: *IMAGE_CHANNELS
+        out_channel: *IMAGE_CHANNELS
+        norm_groups: 32
+        inner_channel: 128
+        channel_mults: [ 1, 2, 4, 8, 8 ]
+        attn_res: [ 16 ]
+        res_blocks: 2
+        dropout: 0.2
+        image_size: *IMAGE_SIZE
 
 # MODEL TRAINING
 pl_trainer:
   accelerator: gpu
-  max_epochs: 10
+  max_epochs: 20
   log_every_n_steps: 1
   precision: "16-mixed"
   # gradient_clip_algorithm: "norm"
