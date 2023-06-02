@@ -55,7 +55,7 @@ class FeatureExtractor(nn.Module):
         # Add noise to sample...
         batch_size, *_ = x_0.shape
         t = torch.full(size=(batch_size,), fill_value=self.t, device=x_0.device)
-        x_noisy, _ = self.diffusion_pl_module.q_sample(x_0=x_0, t=t)
+        x_noisy, _ = self.diffusion_pl_module.q_sample(x_start=x_0, t=t)
 
         # ... and pass it through the model
         (
