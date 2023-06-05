@@ -16,6 +16,8 @@ from lit_diffusion.diffusion_base.constants import (
     LOGGING_VAL_PREFIX,
 )
 
+def _copy_model_parameters(model: nn.Module):
+    return [p.clone().detach().cpu() for p in model.parameters()]
 
 class LitDownstreamTask(pl.LightningModule):
     def __init__(
@@ -41,12 +43,7 @@ class LitDownstreamTask(pl.LightningModule):
         self.training_metrics = training_metrics
         self.validation_metrics = validation_metrics
         # Register feature extractor weights to assert that they remain unchanged at the end of training
-        self.register_buffer(
-            "original_fe_weights",
-            torch.Tensor(
-                copy.deepcopy(self.downstream_model.feature_extractor.parameters())
-            ),
-        )
+        self.original_fe_weights = _copy_model_parameters(model=self.downstream_model.feature_extractor)
 
     def _train_val_step(
         self, batch, metrics_dict: Optional[Dict[str, Callable]], logging_prefix: str
@@ -118,7 +115,9 @@ class LitDownstreamTask(pl.LightningModule):
         return return_dict
 
     def on_train_end(self) -> None:
+        n = len(self.original_fe_weights)
+        current_weights = _copy_model_parameters(model=self.downstream_model.feature_extractor)
+        assert n == len(current_weights)
         assert (
-            torch.Tensor(self.downstream_model.feature_extractor.parameters())
-            == self.original_fe_weights
+            all(torch.equal(self.original_fe_weights[i], current_weights[i]) for i in range(n))
         ), "Backbone weights have changed during training"

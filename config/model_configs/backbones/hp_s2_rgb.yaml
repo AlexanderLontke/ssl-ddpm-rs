@@ -1,16 +1,16 @@
-name: &NAME rs-ddpm-ms
+name: &NAME rs-ddpm-ms-hp
 seed: 42
 image_size: &IMAGE_SIZE 128
-image_channels: &IMAGE_CHANNELS 6
-train_beton_file: &TRAIN_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-40-train.beton
-validation_beton_file: &VALIDATION_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-40-test.beton
+image_channels: &IMAGE_CHANNELS 3
+train_beton_file: &TRAIN_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-8k-train.beton
+validation_beton_file: &VALIDATION_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-8k-validation.beton
 
 
 sentinel_2_pipeline: &S2_PIPELINE
   - module: ffcv.fields.decoders.NDArrayDecoder
   - module: remote_sensing_core.transforms.ffcv.channel_selector.ChannelSelector
     kwargs:
-      channels: [ 3, 2, 1, 7]
+      channels: [ 3, 2, 1]
   - module: remote_sensing_core.transforms.ffcv.clipping.Clipping
     kwargs:
       clip_values: [0, 10000]
@@ -27,19 +27,6 @@ sentinel_2_pipeline: &S2_PIPELINE
       target_dtype: "float32"
   - module: ffcv.transforms.ToTensor
 
-seasons_pipeline: &SEASONS_PIPELINE
-  - module: remote_sensing_core.transforms.ffcv.min_max_scaler.MinMaxScaler
-    kwargs:
-      minimum_value: 0
-      maximum_value: 1
-  - module: remote_sensing_core.transforms.ffcv.blow_up.BlowUp
-    kwargs:
-      new_shape: [1, *IMAGE_SIZE, *IMAGE_SIZE]
-  - module: remote_sensing_core.transforms.ffcv.convert.Convert
-    kwargs:
-      target_dtype: "float32"
-  - module: ffcv.transforms.ToTensor
-
 pipelines: &PIPELINES
   climate_zone: null
   elevation_differ: null
@@ -48,8 +35,8 @@ pipelines: &PIPELINES
   glo_30_dem: null
   multiclass_numer: null
   multiclass_one_h: null
-  season_s1: *SEASONS_PIPELINE
-  season_s2: *SEASONS_PIPELINE
+  season_s1: null
+  season_s2: null
   sentinel_1: null
   sentinel_2: *S2_PIPELINE
   field_names: null
@@ -75,7 +62,7 @@ validation_torch_data_loader:
     num_workers: 4
     order:
       module: ffcv.loader.OrderOption
-      args: [ 1 ] # 1 is Sequential
+      args: [ 1 ]
     pipelines: *PIPELINES
 
 # METRICS TO TRACK
@@ -84,6 +71,7 @@ metrics: &METRICS
     module: torchmetrics.MeanSquaredError
   explained_variance:
     module: torchmetrics.ExplainedVariance
+
 
 # MODEL INSTANTIATION
 pl_module:
@@ -94,17 +82,14 @@ pl_module:
     beta_schedule_steps: 1000
     beta_schedule_linear_start: 0.0001
     beta_schedule_linear_end: 0.02
-    learning_rate: 0.00001
-    data_key: 2
-    stack_inputs_keys:
-      - "season_s1"
-      - "season_s2"
-    auxiliary_p_theta_model_input:
-      season_s1: 0
-      season_s2: 1
+    learning_rate: 0.0001
     learning_rate_scheduler_config:
-      module: torch.optim.lr_scheduler.LinearLR
+      module: torch.optim.lr_scheduler.StepLR
+      kwargs: 
+        step_size: 3
+        gamma: 0.6
       delay: 1
+    data_key: 0
     training_metrics: *METRICS
     validation_metrics: *METRICS
     p_theta_model:
@@ -133,7 +118,7 @@ pl_trainer:
 
 pl_wandb_logger:
   project: *NAME
-  name: "s2-and-seasons-backbone"
+  name: "s2-rgb-backbone-lr-0.0001-drop-0.2-step-lr-timid"
 
 pl_checkpoint_callback:
   monitor: "val/mse_loss"

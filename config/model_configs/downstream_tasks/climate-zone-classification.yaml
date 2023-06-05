@@ -47,28 +47,24 @@ metrics: &METRICS
       metric:
         module: torchmetrics.Accuracy
         kwargs: *CW_METRICS_KWARGS
-      labels: *EWC_LABELS
   classwise_recall:
     module: torchmetrics.ClasswiseWrapper
     kwargs:
       metric:
         module: torchmetrics.Recall
         kwargs: *CW_METRICS_KWARGS
-      labels: *EWC_LABELS
   classwise_precision:
     module: torchmetrics.ClasswiseWrapper
     kwargs:
       metric:
         module: torchmetrics.Precision
         kwargs: *CW_METRICS_KWARGS
-      labels: *EWC_LABELS
   classwise_f1:
     module: torchmetrics.ClasswiseWrapper
     kwargs:
       metric:
         module: torchmetrics.F1Score
         kwargs: *CW_METRICS_KWARGS
-      labels: *EWC_LABELS
 
 # MODEL INSTANTIATION
 pl_module:
@@ -99,7 +95,7 @@ pl_trainer:
   # gradient_clip_algorithm: "norm"
   enable_checkpointing: True
   # UNCOMMENT FOR DEBUGGING
-  fast_dev_run: True
+  # fast_dev_run: True
 
 pl_wandb_logger:
   project: *NAME
