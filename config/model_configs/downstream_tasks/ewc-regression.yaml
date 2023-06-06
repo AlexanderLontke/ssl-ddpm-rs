@@ -3,7 +3,6 @@ seed: 42
 target_key: &TARGET_KEY "multiclass_numer"
 device: &DEVICE cuda
 image_size: &IMAGE_SIZE 128
-image_channels: &IMAGE_CHANNELS 3
 num_labels: &NUM_LABELS 11
 ewc_labels: &EWC_LABELS ["Tree cover", "Shrubland", "Grassland", "Cropland", "Built-up", "Bare", "Snow and Ice", "Permanenet water bodies", "Herbaceous wetland", "Mangroves", "Moss and lichen" ]
 
@@ -25,22 +24,6 @@ metrics: &METRICS
     module: torchmetrics.MeanSquaredError
   mean_absolute_error:
     module: torchmetrics.MeanAbsoluteError
-  classwise_mse:
-    module: torchmetrics.ClasswiseWrapper
-    kwargs:
-      metric:
-        module: torchmetrics.MeanSquaredError
-        kwargs: 
-          average: null
-      labels: *EWC_LABELS
-  classwise_mae:
-    module: torchmetrics.ClasswiseWrapper
-    kwargs:
-      metric:
-        module: torchmetrics.MeanAbsoluteError
-        kwargs: 
-          average: null
-      labels: *EWC_LABELS
 
 # MODEL INSTANTIATION
 pl_module:

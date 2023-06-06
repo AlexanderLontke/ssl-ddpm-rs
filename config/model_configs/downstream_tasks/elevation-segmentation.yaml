@@ -4,7 +4,6 @@ device: &DEVICE cuda
 target_key: &TARGET_KEY "glo_30_dem"
 output_dim: &OUTPUT_DIM 1
 image_size: &IMAGE_SIZE 128
-image_channels: &IMAGE_CHANNELS 3
 
 label_pipeline:
   *TARGET_KEY:
@@ -12,6 +11,9 @@ label_pipeline:
     - module: remote_sensing_core.transforms.ffcv.channel_selector.ChannelSelector
       kwargs:
         channels: [ 0 ]
+    - module: remote_sensing_core.transforms.ffcv.expand_dimension.ExpandDimension
+      kwargs:
+        axis: 1
     - module: ffcv.transforms.ToTensor
 
 downstream_task_specific_feature_extractor_kwargs:
@@ -31,7 +33,7 @@ pl_module:
   kwargs:
     learning_rate: 0.0001
     loss:
-      module: torch.nn.CrossEntropyLoss
+      module: torch.nn.MSELoss
     target_key: *TARGET_KEY
     training_metrics: *METRICS
     validation_metrics: *METRICS
@@ -61,6 +63,6 @@ pl_wandb_logger:
   project: *NAME
 
 pl_checkpoint_callback:
-  monitor: "train/CrossEntropyLoss"
+  monitor: "train/MSELoss"
   save_top_k: 3
   every_n_epochs: 5

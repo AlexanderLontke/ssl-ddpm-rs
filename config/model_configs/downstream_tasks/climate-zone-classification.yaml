@@ -4,7 +4,6 @@ device: &DEVICE cuda
 target_key: &TARGET_KEY "climate_zone"
 num_labels: &NUM_LABELS 30
 image_size: &IMAGE_SIZE 128
-image_channels: &IMAGE_CHANNELS 3
 
 label_pipeline:
   *TARGET_KEY:

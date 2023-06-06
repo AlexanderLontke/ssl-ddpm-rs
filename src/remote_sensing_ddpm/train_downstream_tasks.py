@@ -19,10 +19,10 @@ PIPELINES_CONFIG_KEY = "pipelines"
 def safe_join_dicts(dict_a: Dict, dict_b: Dict) -> Dict:
     for x in dict_b.keys():
         if x in dict_a.keys():
-            assert dict_a[x] == dict_b[x]
+            assert dict_a[x] == dict_b[x], f"Difference at key {x} with values {dict_a[x]} != {dict_b[x]}"
     for x in dict_a.keys():
         if x in dict_b.keys():
-            assert dict_a[x] == dict_b[x]
+            assert dict_a[x] == dict_b[x], f"Difference at key {x} with values {dict_a[x]} != {dict_b[x]}"
     return {**dict_a, **dict_b}
 
 
