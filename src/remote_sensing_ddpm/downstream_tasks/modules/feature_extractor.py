@@ -34,6 +34,7 @@ class FeatureExtractor(nn.Module):
             checkpoint_path=checkpoint_path,
             p_theta_model=diffusion_pl_module.p_theta_model,
             map_location=map_location,
+            auxiliary_p_theta_model_input=diffusion_pl_module.auxiliary_p_theta_model_input,
         )
 
         self.feature_section = FeatureSection(feature_section)
@@ -48,7 +49,8 @@ class FeatureExtractor(nn.Module):
         x_0 = batch[self.data_key]
 
         # Determine any further required inputs from the data set
-        model_kwargs = self.diffusion_pl_module.get_p_theta_model_kwargs_from_batch(
+        x_0, model_kwargs = self.diffusion_pl_module.format_p_theta_model_input(
+            x_0=x_0,
             batch=batch
         )
 
