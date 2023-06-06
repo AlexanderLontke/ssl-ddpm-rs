@@ -4,7 +4,6 @@ target_key: &TARGET_KEY "elevation_differ"
 device: &DEVICE cuda
 num_outputs: &NUM_OUTPUTS 1
 image_size: &IMAGE_SIZE 128
-image_channels: &IMAGE_CHANNELS 3
 
 label_pipeline:
   *TARGET_KEY:

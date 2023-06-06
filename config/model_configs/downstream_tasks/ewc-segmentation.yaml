@@ -4,7 +4,6 @@ device: &DEVICE cuda
 target_key: &TARGET_KEY "esa_worldcover"
 output_channels: &OUTPUT_CHANNELS 11
 image_size: &IMAGE_SIZE 128
-image_channels: &IMAGE_CHANNELS 3
 ewc_labels: &EWC_LABELS ["Tree cover", "Shrubland", "Grassland", "Cropland", "Built-up", "Bare", "Snow and Ice", "Permanenet water bodies", "Herbaceous wetland", "Mangroves", "Moss and lichen" ]
 
 label_pipeline:
