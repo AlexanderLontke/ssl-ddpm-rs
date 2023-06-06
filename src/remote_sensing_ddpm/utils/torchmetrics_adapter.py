@@ -15,6 +15,7 @@ class TorchmetricsAdapter(Metric):
         super().__init__()
         self.torchmetrics_module = torchmetrics_module.to(torch.device(device))
         self.apply_argmax = apply_argmax
+        self.__class__.__name__ = self.torchmetrics_module.__class__.__name__
 
     def _format_input(self, inputs: torch.Tensor, targets: torch.Tensor):
         inputs = inputs.to(self.torchmetrics_module.device)
