@@ -33,3 +33,17 @@ class TorchmetricsAdapter(Metric):
 
     def compute(self) -> Any:
         return self.torchmetrics_module.compute()
+
+
+if __name__ == '__main__':
+    import torch
+    from torchmetrics.classification import MulticlassAccuracy
+    from torchmetrics import ClasswiseWrapper
+    metric = ClasswiseWrapper(TorchmetricsAdapter(
+        torchmetrics_module=MulticlassAccuracy(num_classes=3, average=None),
+        apply_argmax=False,
+        device="cpu",
+    ))
+    preds = torch.randn(10, 3).softmax(dim=-1)
+    target = torch.randint(3, (10,))
+    print(metric(preds, target))
