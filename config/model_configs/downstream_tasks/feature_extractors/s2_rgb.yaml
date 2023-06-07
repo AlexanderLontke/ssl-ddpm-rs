@@ -2,8 +2,8 @@ device: &DEVICE cuda
 data_key: &DATA_KEY "sentinel_2"
 image_size: &IMAGE_SIZE 128
 image_channels: &IMAGE_CHANNELS 3
-train_beton_file: &TRAIN_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-20-train.beton
-validation_beton_file: &VALIDATION_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-20-validation.beton
+train_beton_file: &TRAIN_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-train.beton
+validation_beton_file: &VALIDATION_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-validation.beton
 
 # DATALOADER CONFIGS
 sentinel_2_pipeline: &S2_PIPELINE
