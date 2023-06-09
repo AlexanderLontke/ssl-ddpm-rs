@@ -29,6 +29,9 @@ sentinel_2_pipeline: &S2_PIPELINE
 
 glo_30_dem_pipeline: &G30D_PIPELINE
   - module: ffcv.fields.decoders.NDArrayDecoder
+  - module: remote_sensing_core.transforms.ffcv.channel_selector.ChannelSelector
+    kwargs:
+      channels: [ 0 ]
   - module: remote_sensing_core.transforms.ffcv.clipping.Clipping
     kwargs:
       clip_values: [-200, 3000]
@@ -107,7 +110,7 @@ pl_module:
     stack_inputs_keys:
       - "glo_30_dem"
     auxiliary_p_theta_model_input:
-      sentinel_1: "glo_30_dem"
+      glo_30_dem: "glo_30_dem"
     data_key: "sentinel_2"
     learning_rate_scheduler_config:
       module: torch.optim.lr_scheduler.LinearLR
@@ -140,7 +143,7 @@ pl_trainer:
 
 pl_wandb_logger:
   project: *NAME
-  name: "s2-and-s1-backbone"
+  name: "s2-and-glo-30-dem-backbone"
 
 pl_checkpoint_callback:
   monitor: "val/mse_loss"

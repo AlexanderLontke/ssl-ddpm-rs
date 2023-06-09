@@ -133,7 +133,7 @@ pl_trainer:
 
 pl_wandb_logger:
   project: *NAME
-  name: "s2-and-seasons-backbone"
+  name: "s2-and-climate-zone-backbone"
 
 pl_checkpoint_callback:
   monitor: "val/mse_loss"
