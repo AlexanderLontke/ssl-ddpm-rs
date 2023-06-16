@@ -77,8 +77,9 @@ pipelines: &PIPELINES
   field_names: null
 
 # DATA SET CONFIG
+tuple_mapping: &TUPLE_MAPPING ["era_5", "sentinel_2"]
 train_torch_data_loader:
-  module: ffcv.loader.Loader
+  module: remote_sensing_ddpm.utils.ffcv_loader_wrapper.FFCVLoaderWrapper
   kwargs:
     fname: *TRAIN_BETON_FILE
     batch_size: 24
@@ -87,10 +88,11 @@ train_torch_data_loader:
       module: ffcv.loader.OrderOption
       args: [ 3 ] # 3 is Quasi random
     pipelines: *PIPELINES
+    mapping: *TUPLE_MAPPING
 
 
 validation_torch_data_loader:
-  module: ffcv.loader.Loader
+  module: remote_sensing_ddpm.utils.ffcv_loader_wrapper.FFCVLoaderWrapper
   kwargs:
     fname: *VALIDATION_BETON_FILE
     batch_size: 24
@@ -99,6 +101,7 @@ validation_torch_data_loader:
       module: ffcv.loader.OrderOption
       args: [ 1 ]
     pipelines: *PIPELINES
+    mapping: *TUPLE_MAPPING
 
 # METRICS TO TRACK
 metrics: &METRICS
@@ -118,7 +121,11 @@ pl_module:
     beta_schedule_linear_start: 0.0001
     beta_schedule_linear_end: 0.02
     learning_rate: 0.00001
-    data_key: 0
+    data_key: "sentinel_2"
+    stack_inputs_keys:
+      - "era_5"
+    auxiliary_p_theta_model_input:
+      era_5: "era_5"
     learning_rate_scheduler_config:
       module: torch.optim.lr_scheduler.LinearLR
       delay: 1
