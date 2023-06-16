@@ -1,0 +1,166 @@
+name: &NAME rs-ddpm-ms
+seed: 42
+image_size: &IMAGE_SIZE 128
+image_channels: &IMAGE_CHANNELS 13
+train_beton_file: &TRAIN_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-40-train.beton
+validation_beton_file: &VALIDATION_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-40-test.beton
+
+
+sentinel_2_pipeline: &S2_PIPELINE
+  - module: ffcv.fields.decoders.NDArrayDecoder
+  - module: remote_sensing_core.transforms.ffcv.channel_selector.ChannelSelector
+    kwargs:
+      channels: [ 3, 2, 1, 7]
+  - module: remote_sensing_core.transforms.ffcv.clipping.Clipping
+    kwargs:
+      clip_values: [0, 10000]
+  - module: remote_sensing_core.transforms.ffcv.min_max_scaler.MinMaxScaler
+    kwargs:
+      minimum_value: 0
+      maximum_value: 10000
+  - module: remote_sensing_core.transforms.ffcv.padding.Padding
+    kwargs:
+      padding: 4
+      padding_value: 0
+  - module: remote_sensing_core.transforms.ffcv.convert.Convert
+    kwargs:
+      target_dtype: "float32"
+  - module: ffcv.transforms.ToTensor
+
+era5_pipeline: &ERA_5_PIPELINE
+  - module: ffcv.fields.decoders.NDArrayDecoder
+  - module: remote_sensing_core.transforms.ffcv.channel_wise_min_max_scaler.ChannelWiseMinMaxScaler
+    kwargs:
+      minimum_value: 
+        - 700  # atmpressure_level
+        - 250  # temperature_s2
+        - 250  # temperature_s1
+        - -20  # wind-u_s2
+        - -20  # wind-u_s1
+        - -20  # wind-v_s2
+        - -20  # wind-v_s1
+        - 0  # relhumidity_s2
+        - 0  # relhumidity_s1
+      maximum_value:
+        - 1000  # atmpressure_level
+        - 310  # temperature_s2
+        - 310  # temperature_s1
+        - 25  # wind-u_s2
+        - 25  # wind-u_s1
+        - 20  # wind-v_s2
+        - 20  # wind-v_s1
+        - 110  # relhumidity_s2
+        - 110  # relhumidity_s1
+      interval_min: [-1, -1, -1, -1, -1, -1, -1, -1, -1]
+      interval_max: [1, 1, 1, 1, 1, 1, 1, 1, 1]
+      two_dims: True
+  - module: remote_sensing_core.transforms.ffcv.blow_up.BlowUp
+    kwargs:
+      new_shape: [9, *IMAGE_SIZE, *IMAGE_SIZE]
+  - module: remote_sensing_core.transforms.ffcv.convert.Convert
+    kwargs:
+      target_dtype: "float32"
+  - module: ffcv.transforms.ToTensor
+
+pipelines: &PIPELINES
+  climate_zone: null
+  elevation_differ: null
+  era_5: *ERA_5_PIPELINE
+  esa_worldcover: null
+  glo_30_dem: null
+  multiclass_numer: null
+  multiclass_one_h: null
+  season_s1: null
+  season_s2: null
+  sentinel_1: null
+  sentinel_2: *S2_PIPELINE
+  field_names: null
+
+# DATA SET CONFIG
+train_torch_data_loader:
+  module: ffcv.loader.Loader
+  kwargs:
+    fname: *TRAIN_BETON_FILE
+    batch_size: 24
+    num_workers: 4
+    order:
+      module: ffcv.loader.OrderOption
+      args: [ 3 ] # 3 is Quasi random
+    pipelines: *PIPELINES
+
+
+validation_torch_data_loader:
+  module: ffcv.loader.Loader
+  kwargs:
+    fname: *VALIDATION_BETON_FILE
+    batch_size: 24
+    num_workers: 4
+    order:
+      module: ffcv.loader.OrderOption
+      args: [ 1 ]
+    pipelines: *PIPELINES
+
+# METRICS TO TRACK
+metrics: &METRICS
+  mean_squared_error:
+    module: torchmetrics.MeanSquaredError
+  explained_variance:
+    module: torchmetrics.ExplainedVariance
+
+
+# MODEL INSTANTIATION
+pl_module:
+  module: lit_diffusion.ddpm.lit_ddpm.LitDDPM
+  kwargs:
+    diffusion_target: eps
+    schedule_type: linear
+    beta_schedule_steps: 1000
+    beta_schedule_linear_start: 0.0001
+    beta_schedule_linear_end: 0.02
+    learning_rate: 0.00001
+    data_key: 0
+    learning_rate_scheduler_config:
+      module: torch.optim.lr_scheduler.LinearLR
+      delay: 1
+    training_metrics: *METRICS
+    validation_metrics: *METRICS
+    p_theta_model:
+      module: remote_sensing_ddpm.p_theta_models.ddpm_cd_model.sr3_modules.unet.UNet
+      kwargs:
+        in_channel: *IMAGE_CHANNELS
+        out_channel: *IMAGE_CHANNELS
+        norm_groups: 32
+        inner_channel: 128
+        channel_mults: [ 1, 2, 4, 8, 8 ]
+        attn_res: [ 16 ]
+        res_blocks: 2
+        dropout: 0.2
+        image_size: *IMAGE_SIZE
+
+# MODEL TRAINING
+pl_trainer:
+  accelerator: gpu
+  max_epochs: 20
+  log_every_n_steps: 1
+  precision: "16-mixed"
+  # gradient_clip_algorithm: "norm"
+  enable_checkpointing: True
+  # UNCOMMENT FOR DEBUGGING
+  # fast_dev_run: True
+
+pl_wandb_logger:
+  project: *NAME
+  name: "s2-and-era5-backbone"
+
+pl_checkpoint_callback:
+  monitor: "val/mse_loss"
+  save_top_k: 3
+  every_n_epochs: 5
+
+sampling:
+  shape: [*IMAGE_CHANNELS, *IMAGE_SIZE, *IMAGE_SIZE]
+  strict_ckpt_loading: False
+  device: cuda
+  batch_size: 16
+  safe_intermediaries_every_n_steps: 100
+  clip_denoised: False

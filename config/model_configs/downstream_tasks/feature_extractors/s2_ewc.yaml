@@ -1,0 +1,125 @@
+device: &DEVICE cuda
+data_key: &DATA_KEY "sentinel_2"
+image_size: &IMAGE_SIZE 128
+image_channels: &IMAGE_CHANNELS 5
+train_beton_file: &TRAIN_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-train.beton
+validation_beton_file: &VALIDATION_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-validation.beton
+
+# DATALOADER CONFIGS
+sentinel_2_pipeline: &S2_PIPELINE
+  - module: ffcv.fields.decoders.NDArrayDecoder
+  - module: remote_sensing_core.transforms.ffcv.channel_selector.ChannelSelector
+    kwargs:
+      channels: [ 3, 2, 1, 7]
+  - module: remote_sensing_core.transforms.ffcv.clipping.Clipping
+    kwargs:
+      clip_values: [0, 10000]
+  - module: remote_sensing_core.transforms.ffcv.min_max_scaler.MinMaxScaler
+    kwargs:
+      minimum_value: 0
+      maximum_value: 10000
+  - module: remote_sensing_core.transforms.ffcv.padding.Padding
+    kwargs:
+      padding: 4
+      padding_value: 0
+  - module: remote_sensing_core.transforms.ffcv.convert.Convert
+    kwargs:
+      target_dtype: "float32"
+  - module: ffcv.transforms.ToTensor
+
+ewc_pipeline: &EWC_PIPELINE
+  - module: ffcv.fields.decoders.NDArrayDecoder
+  - module: remote_sensing_core.transforms.ffcv.min_max_scaler.MinMaxScaler
+    kwargs:
+      minimum_value: -10
+      maximum_value: 100
+  - module: remote_sensing_core.transforms.ffcv.expand_dimension.ExpandDimension
+    kwargs:
+      axis: 1
+  - module: remote_sensing_core.transforms.ffcv.padding.Padding
+    kwargs:
+      padding: 4
+      padding_value: -1
+  - module: remote_sensing_core.transforms.ffcv.convert.Convert
+    kwargs:
+      target_dtype: "float32"
+  - module: ffcv.transforms.ToTensor
+
+pipelines: &PIPELINES
+  climate_zone: null
+  elevation_differ: null
+  era_5: null
+  esa_worldcover: *EWC_PIPELINE
+  glo_30_dem: null
+  multiclass_numer: null
+  multiclass_one_h: null
+  season_s1: null
+  season_s2: null
+  sentinel_1: null
+  sentinel_2: *S2_PIPELINE
+  field_names: null
+
+# DATA SET CONFIG
+train_torch_data_loader:
+  module: remote_sensing_ddpm.utils.ffcv_loader_wrapper.FFCVLoaderWrapper
+  kwargs:
+    fname: *TRAIN_BETON_FILE
+    batch_size: 24
+    num_workers: 4
+    order:
+      module: ffcv.loader.OrderOption
+      args: [ 3 ] # 3 is Quasi random
+    pipelines: *PIPELINES
+
+
+validation_torch_data_loader:
+  module: remote_sensing_ddpm.utils.ffcv_loader_wrapper.FFCVLoaderWrapper
+  kwargs:
+    fname: *VALIDATION_BETON_FILE
+    batch_size: 24
+    num_workers: 4
+    order:
+      module: ffcv.loader.OrderOption
+      args: [ 1 ]
+    pipelines: *PIPELINES
+
+
+# FEATURE EXTRACTOR CONFIG
+feature_extractor:
+  module: remote_sensing_ddpm.downstream_tasks.modules.feature_extractor.FeatureExtractor
+  kwargs:
+    data_key: *DATA_KEY
+    checkpoint_path: "/netscratch2/alontke/master_thesis/code/ssl-ddpm-rs/rs-ddpm-ms/oblnw92r/checkpoints/epoch=19-step=155280.ckpt"
+    map_location: *DEVICE
+    t: 1
+    p_theta_model_kwargs:
+      feat_need: True
+    diffusion_pl_module:
+      module: lit_diffusion.ddpm.lit_ddpm.LitDDPM
+      kwargs:
+        diffusion_target: eps
+        schedule_type: linear
+        beta_schedule_steps: 1000
+        beta_schedule_linear_start: 0.0001
+        beta_schedule_linear_end: 0.02
+        learning_rate: 0.00001
+        data_key: *DATA_KEY
+        stack_inputs_keys:
+          - "esa_worldcover"
+        auxiliary_p_theta_model_input:
+          esa_worldcover: "esa_worldcover"
+        learning_rate_scheduler_config:
+          module: torch.optim.lr_scheduler.LinearLR
+          delay: 1
+        p_theta_model:
+          module: remote_sensing_ddpm.p_theta_models.ddpm_cd_model.sr3_modules.unet.UNet
+          kwargs:
+            in_channel: *IMAGE_CHANNELS
+            out_channel: *IMAGE_CHANNELS
+            norm_groups: 32
+            inner_channel: 128
+            channel_mults: [ 1, 2, 4, 8, 8 ]
+            attn_res: [ 16 ]
+            res_blocks: 2
+            dropout: 0.2
+            image_size: *IMAGE_SIZE
