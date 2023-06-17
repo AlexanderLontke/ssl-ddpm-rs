@@ -1,5 +1,6 @@
 name: &NAME rs-ddpm-ms
 seed: 42
+batch_size: &BATCH_SIZE 12
 image_size: &IMAGE_SIZE 128
 image_channels: &IMAGE_CHANNELS 6
 train_beton_file: &TRAIN_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-40-train.beton
@@ -65,7 +66,7 @@ train_torch_data_loader:
   module: remote_sensing_ddpm.utils.ffcv_loader_wrapper.FFCVLoaderWrapper
   kwargs:
     fname: *TRAIN_BETON_FILE
-    batch_size: 24
+    batch_size: *BATCH_SIZE
     num_workers: 4
     order:
       module: ffcv.loader.OrderOption
@@ -78,7 +79,7 @@ validation_torch_data_loader:
   module: remote_sensing_ddpm.utils.ffcv_loader_wrapper.FFCVLoaderWrapper
   kwargs:
     fname: *VALIDATION_BETON_FILE
-    batch_size: 24
+    batch_size: *BATCH_SIZE
     num_workers: 4
     order:
       module: ffcv.loader.OrderOption
@@ -141,7 +142,7 @@ pl_trainer:
 
 pl_wandb_logger:
   project: *NAME
-  name: "s2-and-s1-backbone"
+  name: "s2-and-s1-signal-prediction-backbone"
 
 pl_checkpoint_callback:
   monitor: "val/mse_loss"
