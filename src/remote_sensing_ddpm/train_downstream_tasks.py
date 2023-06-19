@@ -90,19 +90,19 @@ def train(
     main(config=complete_config)
 
 
-def read_yaml_config_file_or_dir(config_file_path: Path) -> List[Any]:
-    read_configs = []
+def read_yaml_config_file_or_dir(config_file_path: Path) -> Dict[str, Any]:
+    read_configs = {}
     # handle path-is-file case
     if config_file_path.is_file():
-        with config_file_path.open("r") as b_config_file:
-            read_configs.append(yaml.safe_load(b_config_file))
+        with config_file_path.open("r") as config_file:
+            read_configs[config_file_path.name] = yaml.safe_load(config_file)
     # handle path-is-directory case
     elif config_file_path.is_dir():
         # Read in all yaml files in directory
         config_file_paths = config_file_path.glob("*.yaml")
         for config_file_path in config_file_paths:
             with config_file_path.open("r") as config_file:
-                read_configs.append(yaml.safe_load(config_file))
+                read_configs[config_file_path.name] = yaml.safe_load(config_file)
     else:
         raise ValueError(f"Backbone config path ({config_file_path}) was neither a file nor a directory")
     return read_configs
@@ -150,14 +150,14 @@ if __name__ == "__main__":
     # Get number of repetitions from
     repetitions = args.training_repetitions
 
-    # Create run name based on config files name
-    wandb_run_name = "-".join(
-        [p.name.split(".")[0] for p in (b_config_file_path, dh_config_file_path)]
-    )
-
     # Run the train function
-    for b_config in backbone_configs:
-        for dh_config in downstream_head_configs:
+    for b_name, b_config in backbone_configs.items():
+        for dh_name, dh_config in downstream_head_configs.items():
+            # Create run name based on config files name
+            wandb_run_name = "-".join(
+                [pn.split(".")[0] for pn in (b_name, dh_name)]
+            )
+            print(f"Starting run {wandb_run_name}")
             for i in range(repetitions):
                 train(
                     backbone_config=b_config,
