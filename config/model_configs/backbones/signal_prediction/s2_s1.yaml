@@ -145,7 +145,7 @@ pl_wandb_logger:
   name: "s2-and-s1-signal-prediction-backbone"
 
 pl_checkpoint_callback:
-  monitor: "val/mse_loss"
+  monitor: "val/loss"
   save_top_k: 3
   every_n_epochs: 5
 
