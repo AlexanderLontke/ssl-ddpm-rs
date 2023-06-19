@@ -19,11 +19,11 @@ downstream_task_specific_feature_extractor_kwargs:
 # METRICS
 metrics_args: &METRICS_KWARGS
   task: "multilabel"
-  num_classes: *NUM_LABELS
+  num_labels: *NUM_LABELS
   threshold: 0.5
 classwise_metrics_kwargs: &CW_METRICS_KWARGS
   task: "multilabel"
-  num_classes: *NUM_LABELS
+  num_labels: *NUM_LABELS
   threshold: 0.5
   average: null
 

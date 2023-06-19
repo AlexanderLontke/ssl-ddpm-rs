@@ -129,7 +129,7 @@ if __name__ == "__main__":
         required=False,
     )
     parser.add_argument(
-        "r",
+        "-r",
         "--training-repetitions",
         type=int,
         help="Number of times training should be repeated",
@@ -157,7 +157,7 @@ if __name__ == "__main__":
 
     # Run the train function
     for b_config in backbone_configs:
-        for dh_config in dh_config_file_path:
+        for dh_config in downstream_head_configs:
             for i in range(repetitions):
                 train(
                     backbone_config=b_config,
