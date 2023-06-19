@@ -1,4 +1,6 @@
-from typing import Dict, Optional
+import yaml
+from pathlib import Path
+from typing import Any, Dict, Optional, List
 
 # Lit Diffusion training loop and constants
 from lit_diffusion.train import main
@@ -88,10 +90,26 @@ def train(
     main(config=complete_config)
 
 
+def read_yaml_config_file_or_dir(config_file_path: Path) -> List[Any]:
+    read_configs = []
+    # handle path-is-file case
+    if config_file_path.is_file():
+        with config_file_path.open("r") as b_config_file:
+            read_configs.append(yaml.safe_load(b_config_file))
+    # handle path-is-directory case
+    elif config_file_path.is_dir():
+        # Read in all yaml files in directory
+        config_file_paths = config_file_path.glob("*.yaml")
+        for config_file_path in config_file_paths:
+            with config_file_path.open("r") as config_file:
+                read_configs.append(yaml.safe_load(config_file))
+    else:
+        raise ValueError(f"Backbone config path ({config_file_path}) was neither a file nor a directory")
+    return read_configs
+
+
 if __name__ == "__main__":
     import argparse
-    import yaml
-    from pathlib import Path
 
     # Add run arguments
     parser = argparse.ArgumentParser()
@@ -123,13 +141,11 @@ if __name__ == "__main__":
 
     # Load backbone config file
     b_config_file_path = args.backbone_config
-    with b_config_file_path.open("r") as b_config_file:
-        b_config = yaml.safe_load(b_config_file)
+    backbone_configs = read_yaml_config_file_or_dir(b_config_file_path)
 
     # Load downstream task config file
     dh_config_file_path = args.downstream_head_config
-    with dh_config_file_path.open("r") as dh_config_file:
-        dh_config = yaml.safe_load(dh_config_file)
+    downstream_head_configs = read_yaml_config_file_or_dir(dh_config_file_path)
 
     # Get number of repetitions from
     repetitions = args.training_repetitions
@@ -139,11 +155,13 @@ if __name__ == "__main__":
         [p.name.split(".")[0] for p in (b_config_file_path, dh_config_file_path)]
     )
 
-    # Run main function
-    for i in range(repetitions):
-        train(
-            backbone_config=b_config,
-            downstream_head_config=dh_config,
-            run_name=wandb_run_name,
-            repetition=i,
-        )
+    # Run the train function
+    for b_config in backbone_configs:
+        for dh_config in dh_config_file_path:
+            for i in range(repetitions):
+                train(
+                    backbone_config=b_config,
+                    downstream_head_config=dh_config,
+                    run_name=wandb_run_name,
+                    repetition=i,
+                )
