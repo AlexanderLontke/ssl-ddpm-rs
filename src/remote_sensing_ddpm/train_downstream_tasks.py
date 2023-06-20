@@ -1,4 +1,6 @@
 import yaml
+import copy
+import wandb
 from pathlib import Path
 from typing import Any, Dict, Optional, List
 
@@ -39,6 +41,8 @@ def train(
     run_name: Optional[str] = None,
     repetition: Optional[int] = None,
 ):
+    backbone_config = copy.deepcopy(backbone_config)
+    downstream_head_config = copy.deepcopy(downstream_head_config)
     # Alter seed if part of multiple repetitions
     if repetition:
         downstream_head_config[SEED_CONFIG_KEY] += repetition
@@ -88,6 +92,7 @@ def train(
 
     # run standard pytorch lightning training loop
     main(config=complete_config)
+    wandb.finish()
 
 
 def read_yaml_config_file_or_dir(config_file_path: Path) -> Dict[str, Any]:
