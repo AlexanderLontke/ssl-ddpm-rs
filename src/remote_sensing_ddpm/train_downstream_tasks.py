@@ -12,7 +12,7 @@ from lit_diffusion.constants import (
     VALIDATION_TORCH_DATA_LOADER_CONFIG_KEY,
     PL_MODULE_CONFIG_KEY,
     PL_WANDB_LOGGER_CONFIG_KEY,
-    SEED_CONFIG_KEY
+    SEED_CONFIG_KEY,
 )
 
 FE_CONFIG_KEY = "feature_extractor"
@@ -56,20 +56,31 @@ def train(
     # Add label-pipeline from downstream config
     label_pipeline_config: Dict = downstream_head_config[LABEL_PIPELINE_CONFIG_KEY]
     backbone_config[PIPELINES_CONFIG_KEY].update(label_pipeline_config)
+    label_field = list(label_pipeline_config.keys())[0]
 
     # Get index to key mapping based on all FFCV pipelines that are not none
     mapping = []
     for k, v in backbone_config[PIPELINES_CONFIG_KEY].items():
         if v:
             mapping.append(k)
+            # Check that the same field is not requested as both label and model input
+            if k == label_field:
+                print(f"Run ({run_name}) is being skipped since label field {label_field} is present in pipeline")
+                return
+
     # Sort mapping (alphabetically) so that it matches with the return order of the FFCV dataset
     mapping = sorted(mapping)
 
     # Update new key word argument for both dataloaders
-    for dataloader_key in (
-        TRAIN_TORCH_DATA_LOADER_CONFIG_KEY,
-        VALIDATION_TORCH_DATA_LOADER_CONFIG_KEY,
-    ):
+    dataloader_keys = (
+        [TRAIN_TORCH_DATA_LOADER_CONFIG_KEY]
+        if VALIDATION_TORCH_DATA_LOADER_CONFIG_KEY not in backbone_config.keys()
+        else [
+            TRAIN_TORCH_DATA_LOADER_CONFIG_KEY,
+            VALIDATION_TORCH_DATA_LOADER_CONFIG_KEY,
+        ]
+    )
+    for dataloader_key in dataloader_keys:
         # 1. Update Pipelines
         backbone_config[dataloader_key][PYTHON_KWARGS_CONFIG_KEY].update(
             {PIPELINES_CONFIG_KEY: backbone_config[PIPELINES_CONFIG_KEY]}
@@ -109,8 +120,14 @@ def read_yaml_config_file_or_dir(config_file_path: Path) -> Dict[str, Any]:
             with config_file_path.open("r") as config_file:
                 read_configs[config_file_path.name] = yaml.safe_load(config_file)
     else:
-        raise ValueError(f"Backbone config path ({config_file_path}) was neither a file nor a directory")
+        raise ValueError(
+            f"Backbone config path ({config_file_path}) was neither a file nor a directory"
+        )
     return read_configs
+
+
+def create_wandb_run_name(backbone_name: str, downstream_head_name: str) -> str:
+    return "-".join([pn.split(".")[0] for pn in (backbone_name, downstream_head_name)])
 
 
 if __name__ == "__main__":
@@ -123,7 +140,7 @@ if __name__ == "__main__":
         "--backbone-config",
         type=Path,
         help="Path to feature extractor config yaml",
-        required=False,
+        required=True,
     )
 
     parser.add_argument(
@@ -131,7 +148,7 @@ if __name__ == "__main__":
         "--downstream-head-config",
         type=Path,
         help="Path to downstream head config yaml",
-        required=False,
+        required=True,
     )
     parser.add_argument(
         "-r",
@@ -139,6 +156,7 @@ if __name__ == "__main__":
         type=int,
         help="Number of times training should be repeated",
         default=1,
+        required=False,
     )
 
     # Parse run arguments
@@ -159,9 +177,11 @@ if __name__ == "__main__":
     for b_name, b_config in backbone_configs.items():
         for dh_name, dh_config in downstream_head_configs.items():
             # Create run name based on config files name
-            wandb_run_name = "-".join(
-                [pn.split(".")[0] for pn in (b_name, dh_name)]
+            wandb_run_name = create_wandb_run_name(
+                backbone_name=b_name,
+                downstream_head_name=dh_name,
             )
+
             print(f"Starting run {wandb_run_name}")
             for i in range(repetitions):
                 train(
