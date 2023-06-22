@@ -11,7 +11,6 @@ class DownstreamTaskModel(nn.Module):
         # Setup feature extractor
         self.feature_extractor = feature_extractor
         if freeze_fe:
-            self.feature_extractor.eval()
             self.feature_extractor.requires_grad_(requires_grad=False)
 
         # Setup trainable layers
