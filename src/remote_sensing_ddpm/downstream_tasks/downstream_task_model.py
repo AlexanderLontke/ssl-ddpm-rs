@@ -4,13 +4,15 @@ from torch import nn
 
 class DownstreamTaskModel(nn.Module):
     def __init__(
-        self, feature_extractor: nn.Module, downstream_layer: nn.Module, *args, **kwargs
+        self, feature_extractor: nn.Module, downstream_layer: nn.Module, freeze_fe: bool = True, *args, **kwargs
     ):
         super().__init__(*args, **kwargs)
 
         # Setup feature extractor
         self.feature_extractor = feature_extractor
-        self.feature_extractor.eval()
+        if freeze_fe:
+            self.feature_extractor.eval()
+            self.feature_extractor.requires_grad_(requires_grad=False)
 
         # Setup trainable layers
         self.downstream_layer = downstream_layer
