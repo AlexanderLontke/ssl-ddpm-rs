@@ -1,0 +1,90 @@
+device: &DEVICE cuda
+image_size: &IMAGE_SIZE 128
+image_channels: &IMAGE_CHANNELS 4
+train_beton_file: &TRAIN_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-train.beton
+validation_beton_file: &VALIDATION_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-validation.beton
+
+sentinel_2_pipeline: &S2_PIPELINE
+  - module: ffcv.fields.decoders.NDArrayDecoder
+  - module: remote_sensing_core.transforms.ffcv.channel_selector.ChannelSelector
+    kwargs:
+      channels: [ 3, 2, 1, 7]
+  - module: remote_sensing_core.transforms.ffcv.clipping.Clipping
+    kwargs:
+      clip_values: [0, 10000]
+  - module: remote_sensing_core.transforms.ffcv.min_max_scaler.MinMaxScaler
+    kwargs:
+      minimum_value: 0
+      maximum_value: 10000
+  - module: remote_sensing_core.transforms.ffcv.padding.Padding
+    kwargs:
+      padding: 4
+      padding_value: 0
+  - module: remote_sensing_core.transforms.ffcv.convert.Convert
+    kwargs:
+      target_dtype: "float32"
+  - module: ffcv.transforms.ToTensor
+
+sentinel_1_pipeline: &S1_PIPELINE
+  - module: ffcv.fields.decoders.NDArrayDecoder
+  - module: remote_sensing_core.transforms.ffcv.clipping.Clipping
+    kwargs:
+      clip_values: [-25, 0]
+  - module: remote_sensing_core.transforms.ffcv.min_max_scaler.MinMaxScaler
+    kwargs:
+      minimum_value: -25
+      maximum_value: 0
+  - module: remote_sensing_core.transforms.ffcv.padding.Padding
+    kwargs:
+      padding: 4
+      padding_value: 0
+  - module: remote_sensing_core.transforms.ffcv.convert.Convert
+    kwargs:
+      target_dtype: "float32"
+  - module: ffcv.transforms.ToTensor
+
+pipelines: &PIPELINES
+  climate_zone: null
+  elevation_differ: null
+  era_5: null
+  esa_worldcover: null
+  glo_30_dem: null
+  multiclass_numer: null
+  multiclass_one_h: null
+  season_s1: null
+  season_s2: null
+  sentinel_1: null
+  sentinel_2: *S2_PIPELINE
+  field_names: null
+
+# DATA SET CONFIG
+train_torch_data_loader:
+  module: ffcv.loader.Loader
+  kwargs:
+    fname: *TRAIN_BETON_FILE
+    batch_size: 24
+    num_workers: 4
+    order:
+      module: ffcv.loader.OrderOption
+      args: [ 3 ] # 3 is Quasi random
+    pipelines: *PIPELINES
+
+
+validation_torch_data_loader:
+  module: ffcv.loader.Loader
+  kwargs:
+    fname: *VALIDATION_BETON_FILE
+    batch_size: 24
+    num_workers: 4
+    order:
+      module: ffcv.loader.OrderOption
+      args: [ 1 ]
+    pipelines: *PIPELINES
+
+# FEATURE EXTRACTOR CONFIG
+feature_extractor:
+  module: torch.nn.Conv2D
+  kwargs:
+    in_channels: *IMAGE_CHANNELS
+    out_channels: 128
+    kernel_size: 3
