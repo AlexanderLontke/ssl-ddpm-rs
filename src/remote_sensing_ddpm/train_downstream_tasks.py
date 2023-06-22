@@ -55,18 +55,19 @@ def train(
 
     # Add label-pipeline from downstream config
     label_pipeline_config: Dict = downstream_head_config[LABEL_PIPELINE_CONFIG_KEY]
-    backbone_config[PIPELINES_CONFIG_KEY].update(label_pipeline_config)
     label_field = list(label_pipeline_config.keys())[0]
+    for k, v in backbone_config[PIPELINES_CONFIG_KEY].items():
+        # Check that the same field is not requested as both label and model input
+        if v and k == label_field:
+            print(f"Run ({run_name}) is being skipped since label field {label_field} is present in pipeline")
+            return
+    backbone_config[PIPELINES_CONFIG_KEY].update(label_pipeline_config)
 
     # Get index to key mapping based on all FFCV pipelines that are not none
     mapping = []
     for k, v in backbone_config[PIPELINES_CONFIG_KEY].items():
         if v:
             mapping.append(k)
-            # Check that the same field is not requested as both label and model input
-            if k == label_field:
-                print(f"Run ({run_name}) is being skipped since label field {label_field} is present in pipeline")
-                return
 
     # Sort mapping (alphabetically) so that it matches with the return order of the FFCV dataset
     mapping = sorted(mapping)
