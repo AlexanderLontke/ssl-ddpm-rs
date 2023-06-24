@@ -114,10 +114,24 @@ class LitDownstreamTask(pl.LightningModule):
         return_dict["optimizer"] = opt
         return return_dict
 
-    def on_train_end(self) -> None:
+    def on_fit_end(self) -> None:
         n = len(self.original_fe_weights)
         current_weights = _copy_model_parameters(model=self.downstream_model.feature_extractor)
         assert n == len(current_weights)
         assert (
             all(torch.equal(self.original_fe_weights[i], current_weights[i]) for i in range(n))
         ), "Backbone weights have changed during training"
+
+    # def on_validation_start(self) -> None:
+    #     self.pre_validation_weights = _copy_model_parameters(model=self.downstream_model.downstream_layer)
+    #     return super().on_validation_epoch_start()
+    
+    # def on_validation_end(self) -> None:
+    #     n = len(self.pre_validation_weights)
+    #     current_weights = _copy_model_parameters(model=self.downstream_model.downstream_layer)
+    #     assert n == len(current_weights)
+    #     for i in range(n):
+    #         print(torch.equal(self.pre_validation_weights[i], current_weights[i]))
+    #     assert (
+    #         all(torch.equal(self.pre_validation_weights[i], current_weights[i]) for i in range(n))
+    #     ), "Backbone weights have changed during validation epoch"

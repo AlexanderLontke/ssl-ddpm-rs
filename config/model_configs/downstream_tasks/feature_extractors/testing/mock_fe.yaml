@@ -1,4 +1,5 @@
 device: &DEVICE cuda
+data_key: &DATA_KEY sentinel_2
 image_size: &IMAGE_SIZE 128
 image_channels: &IMAGE_CHANNELS 4
 train_beton_file: &TRAIN_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-train.beton
@@ -25,23 +26,6 @@ sentinel_2_pipeline: &S2_PIPELINE
       target_dtype: "float32"
   - module: ffcv.transforms.ToTensor
 
-sentinel_1_pipeline: &S1_PIPELINE
-  - module: ffcv.fields.decoders.NDArrayDecoder
-  - module: remote_sensing_core.transforms.ffcv.clipping.Clipping
-    kwargs:
-      clip_values: [-25, 0]
-  - module: remote_sensing_core.transforms.ffcv.min_max_scaler.MinMaxScaler
-    kwargs:
-      minimum_value: -25
-      maximum_value: 0
-  - module: remote_sensing_core.transforms.ffcv.padding.Padding
-    kwargs:
-      padding: 4
-      padding_value: 0
-  - module: remote_sensing_core.transforms.ffcv.convert.Convert
-    kwargs:
-      target_dtype: "float32"
-  - module: ffcv.transforms.ToTensor
 
 pipelines: &PIPELINES
   climate_zone: null
@@ -59,19 +43,19 @@ pipelines: &PIPELINES
 
 # DATA SET CONFIG
 train_torch_data_loader:
-  module: ffcv.loader.Loader
+  module: remote_sensing_ddpm.utils.ffcv_loader_wrapper.FFCVLoaderWrapper
   kwargs:
     fname: *TRAIN_BETON_FILE
     batch_size: 24
     num_workers: 4
     order:
       module: ffcv.loader.OrderOption
-      args: [ 3 ] # 3 is Quasi random
+      args: [ 1 ] # 3 is Quasi random
     pipelines: *PIPELINES
 
 
 validation_torch_data_loader:
-  module: ffcv.loader.Loader
+  module: remote_sensing_ddpm.utils.ffcv_loader_wrapper.FFCVLoaderWrapper
   kwargs:
     fname: *VALIDATION_BETON_FILE
     batch_size: 24
@@ -83,8 +67,10 @@ validation_torch_data_loader:
 
 # FEATURE EXTRACTOR CONFIG
 feature_extractor:
-  module: torch.nn.Conv2D
+  module: remote_sensing_ddpm.downstream_tasks.modules.mock_feature_extractor.MockFeatureExtractor
   kwargs:
+    data_key: *DATA_KEY
     in_channels: *IMAGE_CHANNELS
     out_channels: 128
     kernel_size: 3
+    padding: 1
