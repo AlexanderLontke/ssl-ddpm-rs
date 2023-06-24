@@ -20,7 +20,7 @@ label_pipeline:
 
 downstream_task_specific_feature_extractor_kwargs:
   feature_section: "decoder"
-  feature_levels: [ 1 ]
+  feature_levels: [ 14, 11, 8, 5, 2]  # [ 12, 9, 6, 3, 0]
   vectorize_output: False
 
 # MODEL INSTANTIATION
@@ -141,28 +141,28 @@ pl_module:
       module: remote_sensing_ddpm.downstream_tasks.downstream_task_model.DownstreamTaskModel
       kwargs:
         downstream_layer:
-          module: remote_sensing_ddpm.downstream_tasks.modules.single_convolution_segmentation_head.SingleConvolutionSegmentationHead
+          module: remote_sensing_ddpm.downstream_tasks.models.non_linear_segmentation_head.NonLinearSegmentationHead
           kwargs:
-            input_size: *IMAGE_SIZE
-            output_size: 120
-            feature_map_channels: 128
-            output_map_channels: *OUTPUT_CHANNELS
+            output_classes: *OUTPUT_CHANNELS
 
 # MODEL TRAINING
 pl_trainer:
   accelerator: gpu
-  max_epochs: 3
+  max_epochs: 10
   log_every_n_steps: 1
   precision: "16-mixed"
   # gradient_clip_algorithm: "norm"
   enable_checkpointing: True
   # UNCOMMENT FOR DEBUGGING
   # fast_dev_run: True
+  # limit_train_batches: 100
+  # num_sanity_val_steps: 0
+  # limit_val_batches: 100
 
 pl_wandb_logger:
   project: *NAME
 
 pl_checkpoint_callback:
-  monitor: "train/CrossEntropyLoss"
+  monitor: "val/CrossEntropyLoss"
   save_top_k: 3
   every_n_epochs: 5
