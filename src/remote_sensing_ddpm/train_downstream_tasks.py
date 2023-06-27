@@ -168,7 +168,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-l",
         "--label-fractions",
-        type=bool,
+        type=str,
         help="Flag showing whether or not to run label fraction Experiments",
         default=False,
         required=False,
@@ -198,12 +198,16 @@ if __name__ == "__main__":
             )
 
             # Run Label Fraction experiments if desired
-            if args.label_fractions:
+            if args.label_fractions.lower() == "true":
                 for fraction, fraction_dataset_path in LABEL_FRACTION_PATHS.items():
+                    lf_run_name = wandb_run_name + f"-lf-{fraction}"
+                    print(f"Starting run {lf_run_name}")
+                    lf_b_config = copy.deepcopy(b_config)
+                    lf_b_config[TRAIN_TORCH_DATA_LOADER_CONFIG_KEY][PYTHON_KWARGS_CONFIG_KEY]["fname"] = fraction_dataset_path
                     train(
-                        backbone_config=b_config,
+                        backbone_config=lf_b_config,
                         downstream_head_config=dh_config,
-                        run_name=wandb_run_name + f"-lf-{fraction}",
+                        run_name=lf_run_name,
                     )
 
             print(f"Starting run {wandb_run_name}")
