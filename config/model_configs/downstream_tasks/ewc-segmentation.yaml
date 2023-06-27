@@ -141,12 +141,9 @@ pl_module:
       module: remote_sensing_ddpm.downstream_tasks.downstream_task_model.DownstreamTaskModel
       kwargs:
         downstream_layer:
-          module: remote_sensing_ddpm.downstream_tasks.modules.single_convolution_segmentation_head.SingleConvolutionSegmentationHead
+          module: remote_sensing_ddpm.downstream_tasks.models.non_linear_segmentation_head.NonLinearSegmentationHead
           kwargs:
-            input_size: *IMAGE_SIZE
-            output_size: 120
-            feature_map_channels: 128
-            output_map_channels: *OUTPUT_CHANNELS
+            output_classes: *OUTPUT_CHANNELS
 
 # MODEL TRAINING
 pl_trainer:

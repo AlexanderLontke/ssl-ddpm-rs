@@ -19,7 +19,13 @@ downstream_task_specific_feature_extractor_kwargs:
   vectorize_output: True
 
 # METRICS
-metrics: &METRICS
+train_metrics: &TRAIN_METRICS
+  mean_squared_error:
+    module: torchmetrics.MeanSquaredError
+  mean_absolute_error:
+    module: torchmetrics.MeanAbsoluteError
+
+validation_metrics: &VALIDATION_METRICS
   mean_squared_error:
     module: torchmetrics.MeanSquaredError
   mean_absolute_error:
@@ -33,8 +39,8 @@ pl_module:
     loss:
       module: torch.nn.MSELoss
     target_key: *TARGET_KEY
-    training_metrics: *METRICS
-    validation_metrics: *METRICS
+    training_metrics: *TRAIN_METRICS
+    validation_metrics: *VALIDATION_METRICS
     downstream_model:
       module: remote_sensing_ddpm.downstream_tasks.downstream_task_model.DownstreamTaskModel
       kwargs:

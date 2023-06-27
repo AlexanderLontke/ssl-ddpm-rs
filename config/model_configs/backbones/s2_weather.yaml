@@ -67,7 +67,13 @@ validation_torch_data_loader:
     pipelines: *PIPELINES
 
 # METRICS TO TRACK
-metrics: &METRICS
+train_metrics: &TRAIN_METRICS
+  mean_squared_error:
+    module: torchmetrics.MeanSquaredError
+  explained_variance:
+    module: torchmetrics.ExplainedVariance
+
+validation_metrics: &VALIDATION_METRICS
   mean_squared_error:
     module: torchmetrics.MeanSquaredError
   explained_variance:
@@ -99,8 +105,8 @@ pl_module:
         res_blocks: 2
         dropout: 0.2
         image_size: *IMAGE_SIZE
-    training_metrics: *METRICS
-    validation_metrics: *METRICS
+    training_metrics: *TRAIN_METRICS
+    validation_metrics: *VALIDATION_METRICS
 
 # MODEL TRAINING
 pl_trainer:

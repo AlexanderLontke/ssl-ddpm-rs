@@ -27,7 +27,49 @@ classwise_metrics_kwargs: &CW_METRICS_KWARGS
   threshold: 0.5
   average: null
 
-metrics: &METRICS
+train_metrics: &TRAIN_METRICS
+  accuracy:
+    module: torchmetrics.Accuracy
+    kwargs: *METRICS_KWARGS
+  recall:
+    module: torchmetrics.Recall
+    kwargs: *METRICS_KWARGS
+  precision:
+    module: torchmetrics.Precision
+    kwargs: *METRICS_KWARGS
+  f1:
+    module: torchmetrics.F1Score
+    kwargs: *METRICS_KWARGS
+  classwise_accuracy:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.Accuracy
+        kwargs: *CW_METRICS_KWARGS
+      labels: *EWC_LABELS
+  classwise_recall:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.Recall
+        kwargs: *CW_METRICS_KWARGS
+      labels: *EWC_LABELS
+  classwise_precision:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.Precision
+        kwargs: *CW_METRICS_KWARGS
+      labels: *EWC_LABELS
+  classwise_f1:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.F1Score
+        kwargs: *CW_METRICS_KWARGS
+      labels: *EWC_LABELS
+
+validation_metrics: &VALIDATION_METRICS
   accuracy:
     module: torchmetrics.Accuracy
     kwargs: *METRICS_KWARGS
@@ -77,8 +119,8 @@ pl_module:
     loss:
       module: torch.nn.CrossEntropyLoss
     target_key: *TARGET_KEY
-    training_metrics: *METRICS
-    validation_metrics: *METRICS
+    training_metrics: *TRAIN_METRICS
+    validation_metrics: *VALIDATION_METRICS
     downstream_model:
       module: remote_sensing_ddpm.downstream_tasks.downstream_task_model.DownstreamTaskModel
       kwargs:

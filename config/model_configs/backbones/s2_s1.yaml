@@ -87,7 +87,13 @@ validation_torch_data_loader:
     mapping: *TUPLE_MAPPING
 
 # METRICS TO TRACK
-metrics: &METRICS
+train_metrics: &TRAIN_METRICS
+  mean_squared_error:
+    module: torchmetrics.MeanSquaredError
+  explained_variance:
+    module: torchmetrics.ExplainedVariance
+
+validation_metrics: &VALIDATION_METRICS
   mean_squared_error:
     module: torchmetrics.MeanSquaredError
   explained_variance:
@@ -112,8 +118,8 @@ pl_module:
     learning_rate_scheduler_config:
       module: torch.optim.lr_scheduler.LinearLR
       delay: 1
-    training_metrics: *METRICS
-    validation_metrics: *METRICS
+    training_metrics: *TRAIN_METRICS
+    validation_metrics: *VALIDATION_METRICS
     p_theta_model:
       module: remote_sensing_ddpm.p_theta_models.ddpm_cd_model.sr3_modules.unet.UNet
       kwargs:
