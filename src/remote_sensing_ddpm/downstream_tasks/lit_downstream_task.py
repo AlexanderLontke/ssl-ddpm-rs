@@ -72,8 +72,8 @@ class LitDownstreamTask(pl.LightningModule):
                 ):
                     metric_function = metric_function.to(y_hat.device)
                 logging_kwargs = {
-                    "on_step": True,
-                    "on_epoch": True,
+                    # "on_step": True,
+                    # "on_epoch": True,
                     "batch_size": batch_size,
                 }
                 value = metric_function(y_hat, y)
