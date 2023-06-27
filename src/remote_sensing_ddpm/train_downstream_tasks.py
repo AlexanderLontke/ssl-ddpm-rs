@@ -20,6 +20,12 @@ ADD_FE_KWARGS_CONFIG_KEY = "downstream_task_specific_feature_extractor_kwargs"
 LABEL_PIPELINE_CONFIG_KEY = "label_pipeline"
 PIPELINES_CONFIG_KEY = "pipelines"
 
+LABEL_FRACTION_PATHS = {
+    0.01: "/ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-multilabel-train-1-percent.beton",
+    0.1: "/ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-multilabel-train-10-percent.beton",
+    0.5: "/ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-multilabel-train-50-percent.beton",
+}
+
 
 def safe_join_dicts(dict_a: Dict, dict_b: Dict) -> Dict:
     for x in dict_b.keys():
@@ -159,6 +165,14 @@ if __name__ == "__main__":
         default=1,
         required=False,
     )
+    parser.add_argument(
+        "-l",
+        "--label-fractions",
+        type=bool,
+        help="Flag showing whether or not to run label fraction Experiments",
+        default=False,
+        required=False,
+    )
 
     # Parse run arguments
     args = parser.parse_args()
@@ -182,6 +196,15 @@ if __name__ == "__main__":
                 backbone_name=b_name,
                 downstream_head_name=dh_name,
             )
+
+            # Run Label Fraction experiments if desired
+            if args.label_fractions:
+                for fraction, fraction_dataset_path in LABEL_FRACTION_PATHS.items():
+                    train(
+                        backbone_config=b_config,
+                        downstream_head_config=dh_config,
+                        run_name=wandb_run_name + f"-lf-{fraction}",
+                    )
 
             print(f"Starting run {wandb_run_name}")
             for i in range(repetitions):
