@@ -170,7 +170,7 @@ pl_checkpoint_callback:
   save_last: True
 
 custom_callbacks:
-  - module: lightning.pytorch.callbacks.early_stopping.EarlyStopping
+  - module: pytorch_lightning.callbacks.EarlyStopping
     kwargs:
       monitor: *MONITOR
       mode: "max"
