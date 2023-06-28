@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, Optional
 from enum import Enum
 
 import torch
@@ -18,7 +18,7 @@ class FeatureExtractor(nn.Module):
         self,
         data_key: str,
         diffusion_pl_module: pl.LightningModule,
-        checkpoint_path: str,
+        checkpoint_path: Optional[str],
         map_location: str,
         feature_section: Union[str, FeatureSection],
         feature_levels: List[int],
@@ -30,12 +30,15 @@ class FeatureExtractor(nn.Module):
     ):
         super().__init__(*args, **kwargs)
         self.data_key = data_key
-        self.diffusion_pl_module = diffusion_pl_module.load_from_checkpoint(
-            checkpoint_path=checkpoint_path,
-            p_theta_model=diffusion_pl_module.p_theta_model,
-            map_location=map_location,
-            auxiliary_p_theta_model_input=diffusion_pl_module.auxiliary_p_theta_model_input,
-        )
+        if checkpoint_path:
+            self.diffusion_pl_module = diffusion_pl_module.load_from_checkpoint(
+                checkpoint_path=checkpoint_path,
+                p_theta_model=diffusion_pl_module.p_theta_model,
+                map_location=map_location,
+                auxiliary_p_theta_model_input=diffusion_pl_module.auxiliary_p_theta_model_input,
+            )
+        else:
+            print("[WARN] No checkpoint path to feature extractor was provided")
 
         self.feature_section = FeatureSection(feature_section)
         self.feature_levels = feature_levels
