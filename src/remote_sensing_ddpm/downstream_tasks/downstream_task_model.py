@@ -10,6 +10,7 @@ class DownstreamTaskModel(nn.Module):
 
         # Setup feature extractor
         self.feature_extractor = feature_extractor
+        self.freeze_fe = freeze_fe
         if freeze_fe:
             self.feature_extractor.requires_grad_(requires_grad=False)
 
@@ -21,4 +22,6 @@ class DownstreamTaskModel(nn.Module):
         return self.downstream_layer(features)
 
     def get_parameters_to_optimize(self):
+        if self.freeze_fe:
+            return self.parameters()
         return self.downstream_layer.parameters()

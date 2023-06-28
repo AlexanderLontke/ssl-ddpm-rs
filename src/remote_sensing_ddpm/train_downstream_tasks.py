@@ -170,7 +170,7 @@ if __name__ == "__main__":
         "--label-fractions",
         type=str,
         help="Flag showing whether or not to run label fraction Experiments",
-        default=False,
+        default="",
         required=False,
     )
 

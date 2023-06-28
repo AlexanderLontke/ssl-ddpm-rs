@@ -38,7 +38,8 @@ class FeatureExtractor(nn.Module):
                 auxiliary_p_theta_model_input=diffusion_pl_module.auxiliary_p_theta_model_input,
             )
         else:
-            print("[WARN] No checkpoint path to feature extractor was provided")
+            self.diffusion_pl_module = diffusion_pl_module
+            print("[WARN] No checkpoint path to feature extractor was provided, using randomly initialized weights")
 
         self.feature_section = FeatureSection(feature_section)
         self.feature_levels = feature_levels
