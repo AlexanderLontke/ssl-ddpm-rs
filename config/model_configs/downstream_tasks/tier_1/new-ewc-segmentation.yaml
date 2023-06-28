@@ -1,6 +1,7 @@
 name: &NAME rs-ddpm-ms-segmentation
 seed: 42
 device: &DEVICE cuda
+monitor: &MONITOR "val/mIoU"
 target_key: &TARGET_KEY "esa_worldcover"
 output_channels: &OUTPUT_CHANNELS 11
 image_size: &IMAGE_SIZE 128
@@ -148,7 +149,7 @@ pl_module:
 # MODEL TRAINING
 pl_trainer:
   accelerator: gpu
-  max_epochs: 10
+  # max_epochs: 10
   log_every_n_steps: 1
   precision: "16-mixed"
   # gradient_clip_algorithm: "norm"
@@ -166,3 +167,10 @@ pl_checkpoint_callback:
   monitor: "val/CrossEntropyLoss"
   save_top_k: 3
   every_n_epochs: 5
+  save_last: True
+
+custom_callbacks:
+  - module: lightning.pytorch.callbacks.early_stopping.EarlyStopping
+    kwargs:
+      monitor: *MONITOR
+      mode: "max"

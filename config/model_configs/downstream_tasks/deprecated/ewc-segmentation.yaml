@@ -1,6 +1,7 @@
 name: &NAME rs-ddpm-ms-segmentation
 seed: 42
 device: &DEVICE cuda
+monitor: &MONITOR "val/mIoU"
 target_key: &TARGET_KEY "esa_worldcover"
 output_channels: &OUTPUT_CHANNELS 11
 image_size: &IMAGE_SIZE 128
@@ -160,6 +161,13 @@ pl_wandb_logger:
   project: *NAME
 
 pl_checkpoint_callback:
-  monitor: "train/CrossEntropyLoss"
+  monitor: *MONITOR
   save_top_k: 3
   every_n_epochs: 5
+  save_last: True
+
+custom_callbacks:
+  - module: lightning.pytorch.callbacks.early_stopping.EarlyStopping
+    kwargs:
+      monitor: *MONITOR
+      mode: "max"

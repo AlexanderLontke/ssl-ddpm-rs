@@ -1,24 +1,28 @@
-name: &NAME rs-ddpm-ms-regression
+name: &NAME rs-ddpm-ms-segmentation
 seed: 42
-target_key: &TARGET_KEY "multiclass_numer"
 device: &DEVICE cuda
+monitor: &MONITOR "val/mean_absolute_error"
+target_key: &TARGET_KEY "glo_30_dem"
+output_dim: &OUTPUT_DIM 1
 image_size: &IMAGE_SIZE 128
-num_labels: &NUM_LABELS 11
-ewc_labels: &EWC_LABELS ["Tree cover", "Shrubland", "Grassland", "Cropland", "Built-up", "Bare", "Snow and Ice", "Permanenet water bodies", "Herbaceous wetland", "Mangroves", "Moss and lichen" ]
 
 label_pipeline:
   *TARGET_KEY:
-    - module: remote_sensing_core.transforms.ffcv.convert.Convert
+    - module: ffcv.fields.decoders.NDArrayDecoder
+    - module: remote_sensing_core.transforms.ffcv.channel_selector.ChannelSelector
       kwargs:
-        target_dtype: "float32"
+        channels: 0
+    - module: remote_sensing_core.transforms.ffcv.expand_dimension.ExpandDimension
+      kwargs:
+        axis: 1
     - module: ffcv.transforms.ToTensor
 
 downstream_task_specific_feature_extractor_kwargs:
-  feature_section: "middle"
-  feature_levels: [0]
-  vectorize_output: True
+  feature_section: "decoder"
+  feature_levels: [ 1 ]
+  vectorize_output: False
 
-# METRICS
+# MODEL INSTANTIATION
 train_metrics: &TRAIN_METRICS
   mean_squared_error:
     module: torchmetrics.MeanSquaredError
@@ -31,7 +35,6 @@ validation_metrics: &VALIDATION_METRICS
   mean_absolute_error:
     module: torchmetrics.MeanAbsoluteError
 
-# MODEL INSTANTIATION
 pl_module:
   module: remote_sensing_ddpm.downstream_tasks.lit_downstream_task.LitDownstreamTask
   kwargs:
@@ -45,10 +48,12 @@ pl_module:
       module: remote_sensing_ddpm.downstream_tasks.downstream_task_model.DownstreamTaskModel
       kwargs:
         downstream_layer:
-          module: remote_sensing_ddpm.downstream_tasks.modules.non_linear_head.NonLinearHead
+          module: remote_sensing_ddpm.downstream_tasks.modules.single_convolution_segmentation_head.SingleConvolutionSegmentationHead
           kwargs:
-            input_size: 65536
-            output_size: *NUM_LABELS
+            input_size: *IMAGE_SIZE
+            output_size: 120
+            feature_map_channels: 128
+            output_map_channels: *OUTPUT_DIM
 
 # MODEL TRAINING
 pl_trainer:
@@ -68,4 +73,10 @@ pl_checkpoint_callback:
   monitor: "train/MSELoss"
   save_top_k: 3
   every_n_epochs: 5
+  save_last: True
 
+custom_callbacks:
+  - module: lightning.pytorch.callbacks.early_stopping.EarlyStopping
+    kwargs:
+      monitor: *MONITOR
+      mode: "min"

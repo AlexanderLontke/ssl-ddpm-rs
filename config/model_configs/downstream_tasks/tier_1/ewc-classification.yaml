@@ -1,6 +1,7 @@
 name: &NAME rs-ddpm-ms-classification
 seed: 42
 device: &DEVICE cuda
+monitor: &MONITOR "val/f1"
 target_key: &TARGET_KEY "multiclass_one_h"
 num_labels: &NUM_LABELS 11
 image_size: &IMAGE_SIZE 128
@@ -149,3 +150,10 @@ pl_checkpoint_callback:
   monitor: "train/CrossEntropyLoss"
   save_top_k: 3
   every_n_epochs: 5
+  save_last: True
+
+custom_callbacks:
+  - module: lightning.pytorch.callbacks.early_stopping.EarlyStopping
+    kwargs:
+      monitor: *MONITOR
+      mode: "max"
