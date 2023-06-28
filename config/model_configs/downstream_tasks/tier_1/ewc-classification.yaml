@@ -126,7 +126,7 @@ pl_module:
       module: remote_sensing_ddpm.downstream_tasks.downstream_task_model.DownstreamTaskModel
       kwargs:
         downstream_layer:
-          module: remote_sensing_ddpm.downstream_tasks.modules.non_linear_head.NonLinearHead
+          module: remote_sensing_ddpm.downstream_tasks.models.non_linear_head.NonLinearHead
           kwargs:
             input_size: 65536
             output_size: *NUM_LABELS
