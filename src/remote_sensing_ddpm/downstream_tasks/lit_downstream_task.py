@@ -115,12 +115,13 @@ class LitDownstreamTask(pl.LightningModule):
         return return_dict
 
     def on_fit_end(self) -> None:
-        n = len(self.original_fe_weights)
-        current_weights = _copy_model_parameters(model=self.downstream_model.feature_extractor)
-        assert n == len(current_weights)
-        assert (
-            all(torch.equal(self.original_fe_weights[i], current_weights[i]) for i in range(n))
-        ), "Backbone weights have changed during training"
+        if self.downstream_model.freeze_fe:
+            n = len(self.original_fe_weights)
+            current_weights = _copy_model_parameters(model=self.downstream_model.feature_extractor)
+            assert n == len(current_weights)
+            assert (
+                all(torch.equal(self.original_fe_weights[i], current_weights[i]) for i in range(n))
+            ), "Backbone weights have changed during training"
 
     # def on_validation_start(self) -> None:
     #     self.pre_validation_weights = _copy_model_parameters(model=self.downstream_model.downstream_layer)

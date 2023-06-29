@@ -47,7 +47,6 @@ class FeatureExtractor(nn.Module):
         self.t = t
         self.p_theta_model_kwargs = p_theta_model_kwargs
 
-    @torch.no_grad()
     def forward(self, batch):
         # Get data sample
         x_0 = batch[self.data_key]

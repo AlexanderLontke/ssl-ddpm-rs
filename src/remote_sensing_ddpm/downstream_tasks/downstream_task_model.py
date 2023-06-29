@@ -22,6 +22,6 @@ class DownstreamTaskModel(nn.Module):
         return self.downstream_layer(features)
 
     def get_parameters_to_optimize(self):
-        if self.freeze_fe:
+        if not self.freeze_fe:
             return self.parameters()
         return self.downstream_layer.parameters()
