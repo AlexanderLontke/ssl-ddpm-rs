@@ -40,19 +40,10 @@ def safe_join_dicts(dict_a: Dict, dict_b: Dict) -> Dict:
             ), f"Difference at key {x} with values {dict_a[x]} != {dict_b[x]}"
     return {**dict_a, **dict_b}
 
-
-def train(
+def fuse_backbone_and_downstream_head_config(
     backbone_config: Dict,
     downstream_head_config: Dict,
-    run_name: Optional[str] = None,
-    repetition: Optional[int] = None,
 ):
-    backbone_config = copy.deepcopy(backbone_config)
-    downstream_head_config = copy.deepcopy(downstream_head_config)
-    # Alter seed if part of multiple repetitions
-    if repetition:
-        downstream_head_config[SEED_CONFIG_KEY] += repetition
-
     # Join downstream task specific and regular key word arguments
     additional_kwargs = downstream_head_config.pop(ADD_FE_KWARGS_CONFIG_KEY)
     original_kwargs = backbone_config[FE_CONFIG_KEY][PYTHON_KWARGS_CONFIG_KEY]
@@ -65,8 +56,7 @@ def train(
     for k, v in backbone_config[PIPELINES_CONFIG_KEY].items():
         # Check that the same field is not requested as both label and model input
         if v and k == label_field:
-            print(f"Run ({run_name}) is being skipped since label field {label_field} is present in pipeline")
-            return
+            return None
     backbone_config[PIPELINES_CONFIG_KEY].update(label_pipeline_config)
 
     # Get index to key mapping based on all FFCV pipelines that are not none
@@ -102,7 +92,28 @@ def train(
     downstream_head_config[PL_MODULE_CONFIG_KEY][PYTHON_KWARGS_CONFIG_KEY][
         "downstream_model"
     ][PYTHON_KWARGS_CONFIG_KEY][FE_CONFIG_KEY] = feature_extractor_config
-    complete_config = safe_join_dicts(backbone_config, downstream_head_config)
+    return safe_join_dicts(backbone_config, downstream_head_config)
+
+def train(
+    backbone_config: Dict,
+    downstream_head_config: Dict,
+    run_name: Optional[str] = None,
+    repetition: Optional[int] = None,
+):
+    
+    backbone_config = copy.deepcopy(backbone_config)
+    downstream_head_config = copy.deepcopy(downstream_head_config)
+    # Alter seed if part of multiple repetitions
+    if repetition:
+        downstream_head_config[SEED_CONFIG_KEY] += repetition
+
+    complete_config = fuse_backbone_and_downstream_head_config(
+        backbone_config=backbone_config,
+        downstream_head_config=downstream_head_config,
+    )
+    if complete_config is None:
+        print(f"Run ({run_name}) is being skipped since label field {label_field} is present in pipeline")
+        return
 
     # Set wandb run name if it exists
     if run_name:
