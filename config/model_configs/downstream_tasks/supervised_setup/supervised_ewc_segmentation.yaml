@@ -27,7 +27,7 @@ downstream_task_specific_feature_extractor_kwargs:
 # MODEL INSTANTIATION
 train_metrics: &TRAIN_METRICS
   accuracy:
-    module: remote_sensing_ddpm.utils.torchmetrics_adapter.TorchmetricsAdapter
+    module: remote_sensing_ddpm.utils.torchmetrics_accuracy_adapter.AccuracyAdapter
     kwargs:
       apply_argmax: True
       device: *DEVICE
@@ -37,7 +37,7 @@ train_metrics: &TRAIN_METRICS
           task: "multiclass"
           num_classes: *OUTPUT_CHANNELS
   mIoU:
-    module: remote_sensing_ddpm.utils.torchmetrics_adapter.TorchmetricsAdapter
+    module: remote_sensing_ddpm.utils.torchmetrics_jaccard_index_adapter.JaccardIndexAdapter
     kwargs:
       apply_argmax: True
       device: *DEVICE
@@ -50,7 +50,7 @@ train_metrics: &TRAIN_METRICS
     module: torchmetrics.ClasswiseWrapper
     kwargs:
       metric:
-        module: remote_sensing_ddpm.utils.torchmetrics_adapter.TorchmetricsAdapter
+        module: remote_sensing_ddpm.utils.torchmetrics_accuracy_adapter.AccuracyAdapter
         kwargs:
           apply_argmax: True
           device: *DEVICE
@@ -65,7 +65,7 @@ train_metrics: &TRAIN_METRICS
     module: torchmetrics.ClasswiseWrapper
     kwargs:
       metric:
-        module: remote_sensing_ddpm.utils.torchmetrics_adapter.TorchmetricsAdapter
+        module: remote_sensing_ddpm.utils.torchmetrics_jaccard_index_adapter.JaccardIndexAdapter
         kwargs:
           apply_argmax: True
           device: *DEVICE
@@ -79,7 +79,7 @@ train_metrics: &TRAIN_METRICS
 
 validation_metrics: &VAL_METRICS
   accuracy:
-    module: remote_sensing_ddpm.utils.torchmetrics_adapter.TorchmetricsAdapter
+    module: remote_sensing_ddpm.utils.torchmetrics_accuracy_adapter.AccuracyAdapter
     kwargs:
       apply_argmax: True
       device: *DEVICE
@@ -89,7 +89,7 @@ validation_metrics: &VAL_METRICS
           task: "multiclass"
           num_classes: *OUTPUT_CHANNELS
   mIoU:
-    module: remote_sensing_ddpm.utils.torchmetrics_adapter.TorchmetricsAdapter
+    module: remote_sensing_ddpm.utils.torchmetrics_jaccard_index_adapter.JaccardIndexAdapter
     kwargs:
       apply_argmax: True
       device: *DEVICE
@@ -102,7 +102,7 @@ validation_metrics: &VAL_METRICS
     module: torchmetrics.ClasswiseWrapper
     kwargs:
       metric:
-        module: remote_sensing_ddpm.utils.torchmetrics_adapter.TorchmetricsAdapter
+        module: remote_sensing_ddpm.utils.torchmetrics_accuracy_adapter.AccuracyAdapter
         kwargs:
           apply_argmax: True
           device: *DEVICE
@@ -117,7 +117,7 @@ validation_metrics: &VAL_METRICS
     module: torchmetrics.ClasswiseWrapper
     kwargs:
       metric:
-        module: remote_sensing_ddpm.utils.torchmetrics_adapter.TorchmetricsAdapter
+        module: remote_sensing_ddpm.utils.torchmetrics_jaccard_index_adapter.JaccardIndexAdapter
         kwargs:
           apply_argmax: True
           device: *DEVICE
@@ -132,7 +132,7 @@ validation_metrics: &VAL_METRICS
 pl_module:
   module: remote_sensing_ddpm.downstream_tasks.lit_downstream_task.LitDownstreamTask
   kwargs:
-    learning_rate: 0.0001
+    learning_rate: 0.00001
     loss:
       module: torch.nn.CrossEntropyLoss
     target_key: *TARGET_KEY
@@ -150,7 +150,7 @@ pl_module:
 # MODEL TRAINING
 pl_trainer:
   accelerator: gpu
-  # max_epochs: 10
+  max_epochs: 20
   log_every_n_steps: 1
   precision: "16-mixed"
   # gradient_clip_algorithm: "norm"
@@ -170,8 +170,8 @@ pl_checkpoint_callback:
   every_n_epochs: 5
   save_last: True
 
-custom_callbacks:
-  - module: pytorch_lightning.callbacks.EarlyStopping
-    kwargs:
-      monitor: *MONITOR
-      mode: "max"
+# custom_callbacks:
+#   - module: pytorch_lightning.callbacks.EarlyStopping
+#     kwargs:
+#       monitor: *MONITOR
+#       mode: "max"
