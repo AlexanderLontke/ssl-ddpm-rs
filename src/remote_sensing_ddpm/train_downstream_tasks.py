@@ -112,7 +112,7 @@ def train(
         downstream_head_config=downstream_head_config,
     )
     if complete_config is None:
-        print(f"Run ({run_name}) is being skipped since label field {label_field} is present in pipeline")
+        print(f"Run ({run_name}) is being skipped since label field is present in pipeline")
         return
 
     # Set wandb run name if it exists
@@ -220,9 +220,9 @@ if __name__ == "__main__":
                         downstream_head_config=dh_config,
                         run_name=lf_run_name,
                     )
-
-            print(f"Starting run {wandb_run_name}")
+ 
             for i in range(repetitions):
+                print(f"Starting run {wandb_run_name}")
                 train(
                     backbone_config=b_config,
                     downstream_head_config=dh_config,

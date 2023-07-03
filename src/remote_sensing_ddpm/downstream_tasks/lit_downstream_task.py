@@ -7,6 +7,7 @@ from remote_sensing_ddpm.downstream_tasks.downstream_task_model import (
     DownstreamTaskModel,
 )
 from torch import nn
+from torchmetrics.metric import Metric
 
 import pytorch_lightning as pl
 
@@ -26,8 +27,8 @@ class LitDownstreamTask(pl.LightningModule):
         learning_rate: float,
         loss: nn.Module,
         target_key: str,
-        training_metrics: Optional[Dict[str, Callable]] = None,
-        validation_metrics: Optional[Dict[str, Callable]] = None,
+        training_metrics: Optional[Dict[str, Metric]] = None,
+        validation_metrics: Optional[Dict[str, Metric]] = None,
         *args,
         **kwargs
     ):
@@ -97,6 +98,10 @@ class LitDownstreamTask(pl.LightningModule):
             logging_prefix=LOGGING_TRAIN_PREFIX,
         )
 
+    def on_train_epoch_end(self) -> None:
+        for _, metric in self.training_metrics.items():
+            metric.reset()
+
     def validation_step(
         self, batch: Dict[str, torch.Tensor], *args: Any, **kwargs: Any
     ) -> STEP_OUTPUT:
@@ -105,6 +110,10 @@ class LitDownstreamTask(pl.LightningModule):
             metrics_dict=self.validation_metrics,
             logging_prefix=LOGGING_VAL_PREFIX,
         )
+    
+    def on_validation_epoch_end(self) -> None:
+        for _, metric in self.validation_metrics.items():
+            metric.reset()
 
     def configure_optimizers(self) -> Any:
         return_dict = {}
