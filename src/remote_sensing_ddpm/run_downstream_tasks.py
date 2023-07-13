@@ -1,11 +1,21 @@
+import os
+
 import yaml
 import copy
 import wandb
 from pathlib import Path
 from typing import Any, Dict, Optional, List
 
+# Pandas
+import pandas as pd
+
+# Lightning
+import pytorch_lightning as pl
+from pytorch_lightning.loggers.wandb import WandbLogger
+
 # Lit Diffusion training loop and constants
 from lit_diffusion.train import main
+from lit_diffusion.util import instantiate_python_class_from_string_config
 from lit_diffusion.constants import (
     PYTHON_KWARGS_CONFIG_KEY,
     TRAIN_TORCH_DATA_LOADER_CONFIG_KEY,
@@ -13,20 +23,36 @@ from lit_diffusion.constants import (
     PL_MODULE_CONFIG_KEY,
     PL_WANDB_LOGGER_CONFIG_KEY,
     SEED_CONFIG_KEY,
+    DEVICE_CONFIG_KEY,
 )
 
+# ARGPARSE OPTIONS
+MODE_OPTION_TRAIN = "train"
+MODE_OPTION_TEST = "test"
+
+# LOGGING KEYS
+EPOCH_KEY = "epoch"
+LAST_CKPT_NAME = "last.ckpt"
+
+# CONFIG KEYS
 FE_CONFIG_KEY = "feature_extractor"
 ADD_FE_KWARGS_CONFIG_KEY = "downstream_task_specific_feature_extractor_kwargs"
 LABEL_PIPELINE_CONFIG_KEY = "label_pipeline"
 PIPELINES_CONFIG_KEY = "pipelines"
+MONITOR_KEY = "monitor"
+MONITOR_MODE_KEY = "monitor_mode"
+PROJECT_KEY = "project"
 
+# Project specific values which should be dynamic instead of constants but corners were cut here
 LABEL_FRACTION_PATHS = {
     0.01: "/ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-multilabel-train-1-percent.beton",
     0.1: "/ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-multilabel-train-10-percent.beton",
     0.5: "/ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-multilabel-train-50-percent.beton",
 }
+AVAILABLE_CHECKPOINT_EPOCHS = [4, 9, 14, 19]
 
 
+# UTIL METHODS
 def safe_join_dicts(dict_a: Dict, dict_b: Dict) -> Dict:
     for x in dict_b.keys():
         if x in dict_a.keys():
@@ -39,6 +65,7 @@ def safe_join_dicts(dict_a: Dict, dict_b: Dict) -> Dict:
                 dict_a[x] == dict_b[x]
             ), f"Difference at key {x} with values {dict_a[x]} != {dict_b[x]}"
     return {**dict_a, **dict_b}
+
 
 def fuse_backbone_and_downstream_head_config(
     backbone_config: Dict,
@@ -94,35 +121,6 @@ def fuse_backbone_and_downstream_head_config(
     ][PYTHON_KWARGS_CONFIG_KEY][FE_CONFIG_KEY] = feature_extractor_config
     return safe_join_dicts(backbone_config, downstream_head_config)
 
-def train(
-    backbone_config: Dict,
-    downstream_head_config: Dict,
-    run_name: Optional[str] = None,
-    repetition: Optional[int] = None,
-):
-    
-    backbone_config = copy.deepcopy(backbone_config)
-    downstream_head_config = copy.deepcopy(downstream_head_config)
-    # Alter seed if part of multiple repetitions
-    if repetition:
-        downstream_head_config[SEED_CONFIG_KEY] += repetition
-
-    complete_config = fuse_backbone_and_downstream_head_config(
-        backbone_config=backbone_config,
-        downstream_head_config=downstream_head_config,
-    )
-    if complete_config is None:
-        print(f"Run ({run_name}) is being skipped since label field is present in pipeline")
-        return
-
-    # Set wandb run name if it exists
-    if run_name:
-        complete_config[PL_WANDB_LOGGER_CONFIG_KEY]["name"] = run_name
-
-    # run standard pytorch lightning training loop
-    main(config=complete_config)
-    wandb.finish()
-
 
 def read_yaml_config_file_or_dir(config_file_path: Path) -> Dict[str, Any]:
     read_configs = {}
@@ -146,6 +144,90 @@ def read_yaml_config_file_or_dir(config_file_path: Path) -> Dict[str, Any]:
 
 def create_wandb_run_name(backbone_name: str, downstream_head_name: str) -> str:
     return "-".join([pn.split(".")[0] for pn in (backbone_name, downstream_head_name)])
+
+
+# Loop Methods
+def train(
+    complete_config: Dict,
+    run_name: Optional[str] = None,
+    repetition: Optional[int] = None,
+):
+    # Alter seed if part of multiple repetitions
+    if repetition:
+        complete_config[SEED_CONFIG_KEY] += repetition
+    if complete_config is None:
+        print(
+            f"Run ({run_name}) is being skipped since label field is present in pipeline"
+        )
+        return
+
+    # Set wandb run name if it exists
+    if run_name:
+        complete_config[PL_WANDB_LOGGER_CONFIG_KEY]["name"] = run_name
+
+    # run standard pytorch lightning training loop
+    main(config=complete_config)
+    wandb.finish()
+
+
+def get_best_checkpoints(wandb_run_name: str) -> List[Path]:
+    # This is only necessary because the mode of the checkpoint callback was misconfigured
+    api = wandb.Api()
+    run_filter = {"$and": [{"display_name": {"$eq": wandb_run_name}}, {"state": {"$eq": "finished"}}]}
+    monitor = complete_config[MONITOR_KEY]
+    monitor_mode = complete_config[MONITOR_MODE_KEY]
+    runs = [run for run in api.runs(filters=run_filter)]
+    keys_of_interest = [EPOCH_KEY, monitor]
+    single_run_complete_history = []
+
+    best_checkpoint_paths = []
+    # Get all data
+    for run in runs:
+        for x in run.scan_history(keys=keys_of_interest, page_size=10000):
+            single_run_complete_history.append(x)
+        history_df = pd.DataFrame(single_run_complete_history)
+        best_epoch = getattr(history_df[monitor], f"idx{monitor_mode}")()
+        checkpoint_path = Path(f"{complete_config[PROJECT_KEY]}/{run.id}/checkpoints/")
+        if best_epoch == AVAILABLE_CHECKPOINT_EPOCHS[-1]:
+            file_name = LAST_CKPT_NAME
+        else:
+            file_name = [file_name for file_name in os.listdir(checkpoint_path) if file_name.startswith(f"epoch={int(best_epoch)}")][0]
+        checkpoint_path = checkpoint_path / file_name
+        best_checkpoint_paths.append(checkpoint_path)
+    return best_checkpoint_paths
+
+
+def run_test(complete_config: Dict, test_beton_file: Path, wandb_run_name: str):
+    # Fetch best checkpoints
+    best_checkpoints = get_best_checkpoints(wandb_run_name)
+    wandb_logger = WandbLogger(
+        **complete_config[PL_WANDB_LOGGER_CONFIG_KEY], config=complete_config
+    )
+    for checkpoint_path in best_checkpoints:
+        pl_module = instantiate_python_class_from_string_config(
+            class_config=complete_config
+        )
+        pl_module = pl_module.load_from_checkpoint(
+            checkpoint_path=checkpoint_path,
+            map_location=complete_config[DEVICE_CONFIG_KEY],
+            downstream_model=None,
+            learning_rate=None,
+            loss=None,
+            target_key=None,
+        )
+        # Create test dataloader config
+        test_dataloader_config = copy.deepcopy(
+            complete_config[VALIDATION_TORCH_DATA_LOADER_CONFIG_KEY]
+        )
+        test_dataloader_config[PYTHON_KWARGS_CONFIG_KEY]["fname"] = test_beton_file
+        test_dataloader = instantiate_python_class_from_string_config(
+            class_config=test_dataloader_config
+        )
+        trainer = pl.Trainer(
+            model=pl_module,
+            logger=wandb_logger,
+        )
+        trainer.test(dataloaders=test_dataloader)
 
 
 if __name__ == "__main__":
@@ -185,6 +267,23 @@ if __name__ == "__main__":
         required=False,
     )
 
+    parser.add_argument(
+        "-m",
+        "--mode",
+        type=str,
+        help="Mode determining whether to train or test downstream models",
+        default=MODE_OPTION_TRAIN,
+        required=False,
+    )
+
+    parser.add_argument(
+        "-t",
+        "--test-beton-file",
+        type=str,
+        help="Beton file containing test dataset in FFCV format",
+        required=False,
+    )
+
     # Parse run arguments
     args = parser.parse_args()
 
@@ -199,6 +298,9 @@ if __name__ == "__main__":
     # Get number of repetitions from
     repetitions = args.training_repetitions
 
+    # Get mode
+    mode = args.mode
+
     # Run the train function
     for b_name, b_config in backbone_configs.items():
         for dh_name, dh_config in downstream_head_configs.items():
@@ -208,24 +310,43 @@ if __name__ == "__main__":
                 downstream_head_name=dh_name,
             )
 
-            # Run Label Fraction experiments if desired
-            if args.label_fractions.lower() == "true":
-                for fraction, fraction_dataset_path in LABEL_FRACTION_PATHS.items():
-                    lf_run_name = wandb_run_name + f"-lf-{fraction}"
-                    print(f"Starting run {lf_run_name}")
-                    lf_b_config = copy.deepcopy(b_config)
-                    lf_b_config[TRAIN_TORCH_DATA_LOADER_CONFIG_KEY][PYTHON_KWARGS_CONFIG_KEY]["fname"] = fraction_dataset_path
+            # fuse configs
+            backbone_config = copy.deepcopy(b_config)
+            downstream_head_config = copy.deepcopy(dh_config)
+            complete_config = fuse_backbone_and_downstream_head_config(
+                backbone_config=backbone_config,
+                downstream_head_config=downstream_head_config,
+            )
+
+            if mode.lower() == MODE_OPTION_TRAIN:
+                # Run Label Fraction experiments if desired
+                if args.label_fractions.lower() == "true":
+                    for fraction, fraction_dataset_path in LABEL_FRACTION_PATHS.items():
+                        lf_run_name = wandb_run_name + f"-lf-{fraction}"
+                        print(f"Starting run {lf_run_name}")
+                        lf_config = copy.deepcopy(complete_config)
+                        lf_config[TRAIN_TORCH_DATA_LOADER_CONFIG_KEY][
+                            PYTHON_KWARGS_CONFIG_KEY
+                        ]["fname"] = fraction_dataset_path
+                        train(
+                            complete_config=lf_config,
+                            run_name=lf_run_name,
+                        )
+
+                for i in range(repetitions):
+                    print(f"Starting run {wandb_run_name}")
                     train(
-                        backbone_config=lf_b_config,
-                        downstream_head_config=dh_config,
-                        run_name=lf_run_name,
+                        complete_config=complete_config,
+                        run_name=wandb_run_name,
+                        repetition=i,
                     )
- 
-            for i in range(repetitions):
-                print(f"Starting run {wandb_run_name}")
-                train(
-                    backbone_config=b_config,
-                    downstream_head_config=dh_config,
-                    run_name=wandb_run_name,
-                    repetition=i,
+            elif mode.lower() == MODE_OPTION_TEST:
+                test_beton_file = args.test_beton_file
+                assert test_beton_file, "In testing mode a test beton file needs to be given use -t"
+                run_test(
+                    complete_config=complete_config,
+                    test_beton_file=test_beton_file,
+                    wandb_run_name=wandb_run_name,
                 )
+            else:
+                raise NotImplementedError(f"mode option: {mode} not implemented")
