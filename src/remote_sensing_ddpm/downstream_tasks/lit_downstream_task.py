@@ -115,6 +115,15 @@ class LitDownstreamTask(pl.LightningModule):
         for _, metric in self.validation_metrics.items():
             metric.reset()
 
+    def test_step(
+        self, batch: Dict[str, torch.Tensor], *args: Any, **kwargs: Any
+    ) -> STEP_OUTPUT:
+        return self._train_val_step(
+            batch=batch,
+            metrics_dict=self.validation_metrics,
+            logging_prefix="test/",
+        )
+
     def configure_optimizers(self) -> Any:
         return_dict = {}
         lr = self.learning_rate
