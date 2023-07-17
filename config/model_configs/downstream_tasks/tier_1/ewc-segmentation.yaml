@@ -2,6 +2,7 @@ name: &NAME rs-ddpm-ms-segmentation-egypt
 seed: 42
 device: &DEVICE cuda
 monitor: &MONITOR "val/mIoU"
+monitor_mode: &MONITOR_MODE "max"
 target_key: &TARGET_KEY "esa_worldcover"
 output_channels: &OUTPUT_CHANNELS 11
 image_size: &IMAGE_SIZE 128
@@ -165,12 +166,12 @@ pl_wandb_logger:
 
 pl_checkpoint_callback:
   monitor: *MONITOR
+  mode: *MONITOR_MODE
   save_top_k: 3
-  every_n_epochs: 5
   save_last: True
 
 # custom_callbacks:
 #   - module: pytorch_lightning.callbacks.EarlyStopping
 #     kwargs:
 #       monitor: *MONITOR
-#       mode: "max"
+#       mode: *MONITOR_MODE

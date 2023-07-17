@@ -1,6 +1,7 @@
 name: &NAME rs-ddpm-ms-regression-egypt
 seed: 42
 monitor: &MONITOR "val/mean_squared_error"
+monitor_mode: &MONITOR_MODE "min"
 target_key: &TARGET_KEY "multiclass_numer"
 device: &DEVICE cuda
 image_size: &IMAGE_SIZE 128
@@ -67,8 +68,8 @@ pl_wandb_logger:
 
 pl_checkpoint_callback:
   monitor: *MONITOR
+  mode: *MONITOR_MODE
   save_top_k: 3
-  every_n_epochs: 5
   save_last: True
 
 # custom_callbacks:
