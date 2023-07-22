@@ -1,0 +1,236 @@
+name: &NAME rs-ddpm-ms
+seed: 42
+batch_size: &BATCH_SIZE 16
+image_size: &IMAGE_SIZE 128
+context_dim: &CONTEXT_DIM 256
+image_channels: &IMAGE_CHANNELS 6
+train_beton_file: &TRAIN_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-40-train.beton
+validation_beton_file: &VALIDATION_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-40-test.beton
+
+# Modality pipelines
+climate_zone_pipeline: &CZ_PIPELINE
+  - module: remote_sensing_core.transforms.ffcv.min_max_scaler.MinMaxScaler
+    kwargs:
+      minimum_value: 0
+      maximum_value: 30
+  - module: remote_sensing_core.transforms.ffcv.convert.Convert
+    kwargs:
+      target_dtype: "float32"
+  - module: ffcv.transforms.ToTensor
+
+era5_pipeline: &ERA_5_PIPELINE
+  - module: ffcv.fields.decoders.NDArrayDecoder
+  - module: remote_sensing_core.transforms.ffcv.channel_wise_min_max_scaler.ChannelWiseMinMaxScaler
+    kwargs:
+      minimum_value:
+        - 700  # atmpressure_level
+        - 250  # temperature_s2
+        - 250  # temperature_s1
+        - -20  # wind-u_s2
+        - -20  # wind-u_s1
+        - -20  # wind-v_s2
+        - -20  # wind-v_s1
+        - 0  # relhumidity_s2
+        - 0  # relhumidity_s1
+      maximum_value:
+        - 1000  # atmpressure_level
+        - 310  # temperature_s2
+        - 310  # temperature_s1
+        - 25  # wind-u_s2
+        - 25  # wind-u_s1
+        - 20  # wind-v_s2
+        - 20  # wind-v_s1
+        - 110  # relhumidity_s2
+        - 110  # relhumidity_s1
+      interval_min: [-1, -1, -1, -1, -1, -1, -1, -1, -1]
+      interval_max: [1, 1, 1, 1, 1, 1, 1, 1, 1]
+      two_dims: True
+  - module: remote_sensing_core.transforms.ffcv.convert.Convert
+    kwargs:
+      target_dtype: "float32"
+  - module: ffcv.transforms.ToTensor
+
+seasons_pipeline: &SEASONS_PIPELINE
+  - module: remote_sensing_core.transforms.ffcv.min_max_scaler.MinMaxScaler
+    kwargs:
+      minimum_value: 0
+      maximum_value: 1
+  - module: remote_sensing_core.transforms.ffcv.convert.Convert
+    kwargs:
+      target_dtype: "float32"
+  - module: ffcv.transforms.ToTensor
+
+sentinel_2_pipeline: &S2_PIPELINE
+  - module: ffcv.fields.decoders.NDArrayDecoder
+  - module: remote_sensing_core.transforms.ffcv.channel_selector.ChannelSelector
+    kwargs:
+      channels: [ 3, 2, 1, 7]
+  - module: remote_sensing_core.transforms.ffcv.clipping.Clipping
+    kwargs:
+      clip_values: [0, 10000]
+  - module: remote_sensing_core.transforms.ffcv.min_max_scaler.MinMaxScaler
+    kwargs:
+      minimum_value: 0
+      maximum_value: 10000
+  - module: remote_sensing_core.transforms.ffcv.padding.Padding
+    kwargs:
+      padding: 4
+      padding_value: 0
+  - module: remote_sensing_core.transforms.ffcv.convert.Convert
+    kwargs:
+      target_dtype: "float32"
+  - module: ffcv.transforms.ToTensor
+
+sentinel_1_pipeline: &S1_PIPELINE
+  - module: ffcv.fields.decoders.NDArrayDecoder
+  - module: remote_sensing_core.transforms.ffcv.clipping.Clipping
+    kwargs:
+      clip_values: [-25, 0]
+  - module: remote_sensing_core.transforms.ffcv.min_max_scaler.MinMaxScaler
+    kwargs:
+      minimum_value: -25
+      maximum_value: 0
+  - module: remote_sensing_core.transforms.ffcv.padding.Padding
+    kwargs:
+      padding: 4
+      padding_value: 0
+  - module: remote_sensing_core.transforms.ffcv.convert.Convert
+    kwargs:
+      target_dtype: "float32"
+  - module: ffcv.transforms.ToTensor
+
+pipelines: &PIPELINES
+  climate_zone: *CZ_PIPELINE
+  elevation_differ: null
+  era_5: *ERA_5_PIPELINE
+  esa_worldcover: null
+  glo_30_dem: null
+  multiclass_numer: null
+  multiclass_one_h: null
+  season_s1: *SEASONS_PIPELINE
+  season_s2: *SEASONS_PIPELINE
+  sentinel_1: *S1_PIPELINE
+  sentinel_2: *S2_PIPELINE
+  field_names: null
+
+# DATA SET CONFIG
+tuple_mapping: &TUPLE_MAPPING ["climate_zone", "era_5", "season_s1", "season_s2", "sentinel_1", "sentinel_2"]
+train_torch_data_loader:
+  module: remote_sensing_ddpm.utils.ffcv_loader_wrapper.FFCVLoaderWrapper
+  kwargs:
+    fname: *TRAIN_BETON_FILE
+    batch_size: *BATCH_SIZE
+    num_workers: 4
+    order:
+      module: ffcv.loader.OrderOption
+      args: [ 3 ] # 3 is Quasi random
+    pipelines: *PIPELINES
+    mapping: *TUPLE_MAPPING
+
+
+validation_torch_data_loader:
+  module: remote_sensing_ddpm.utils.ffcv_loader_wrapper.FFCVLoaderWrapper
+  kwargs:
+    fname: *VALIDATION_BETON_FILE
+    batch_size: *BATCH_SIZE
+    num_workers: 4
+    order:
+      module: ffcv.loader.OrderOption
+      args: [ 1 ]
+    pipelines: *PIPELINES
+    mapping: *TUPLE_MAPPING
+
+# METRICS TO TRACK
+train_metrics: &TRAIN_METRICS
+  mean_squared_error:
+    module: torchmetrics.MeanSquaredError
+  explained_variance:
+    module: torchmetrics.ExplainedVariance
+
+validation_metrics: &VALIDATION_METRICS
+  mean_squared_error:
+    module: torchmetrics.MeanSquaredError
+  explained_variance:
+    module: torchmetrics.ExplainedVariance
+
+
+# MODEL INSTANTIATION
+pl_module:
+  module: lit_diffusion.ddpm.lit_ddpm.LitDDPM
+  kwargs:
+    diffusion_target: eps
+    schedule_type: linear
+    beta_schedule_steps: 1000
+    beta_schedule_linear_start: 0.0001
+    beta_schedule_linear_end: 0.02
+    learning_rate: 0.00001
+    stack_inputs_keys:
+      - "sentinel_1"
+    auxiliary_p_theta_model_input:
+      climate_zone: "climate_zone"
+      era_5: "era_5"
+      season_s1: "season_s1"
+      season_s2: "season_s2"
+      sentinel_1: "sentinel_1"
+    data_key: "sentinel_2"
+    learning_rate_scheduler_config:
+      module: torch.optim.lr_scheduler.LinearLR
+      delay: 1
+    training_metrics: *TRAIN_METRICS
+    validation_metrics: *VALIDATION_METRICS
+    p_theta_model:
+      module: lit_diffusion.adapters.context_adapter_p_theta_model.ContextAdapterPThetaModel
+      kwargs:
+        context_keys: ["climate_zone", "era_5", "season_s1", "season_s2"]
+        context_embedder:
+          module: remote_sensing_ddpm.custom_embedders.mlp_embedder.MLPEmbedder
+          kwargs:
+            input_size: 12
+            embedding_size: *CONTEXT_DIM
+            dropout_p: 0.2
+            depth: 3
+        original_p_theta_model:
+          module: remote_sensing_ddpm.u_net_model.architecture.u_net.UNetModel
+          kwargs:
+            # Hyperparameters according to hps used by Dhariwal and Nichol 2021 on ImageNet 128
+            in_channel: *IMAGE_CHANNELS
+            out_channel: *IMAGE_CHANNELS
+            model_channels: 256
+            num_res_blocks: 2
+            attention_resolutions: [ 32, 16, 8 ]
+            dropout: 0.0
+            channel_mult: [ 1, 1, 2, 3, 4 ]
+            use_checkpoint: False
+            num_heads: 4
+            use_spatial_transformer: True
+            transformer_depth: 1
+            # Only needed when providing prompt
+            context_dim: *CONTEXT_DIM
+
+# MODEL TRAINING
+pl_trainer:
+  accelerator: gpu
+  max_epochs: 20
+  log_every_n_steps: 1
+  precision: "16-mixed"
+  # gradient_clip_algorithm: "norm"
+  enable_checkpointing: True
+  # UNCOMMENT FOR DEBUGGING
+  # fast_dev_run: True
+
+pl_wandb_logger:
+  project: *NAME
+  name: "s2-and-s1-backbone"
+
+pl_checkpoint_callback:
+  monitor: "val/mse_loss"
+  save_top_k: 3
+  every_n_epochs: 5
+
+sampling:
+  shape: [*IMAGE_CHANNELS, *IMAGE_SIZE, *IMAGE_SIZE]
+  strict_ckpt_loading: False
+  device: cuda
+  batch_size: 16
+  safe_intermediaries_every_n_steps: 100
+  clip_denoised: False
