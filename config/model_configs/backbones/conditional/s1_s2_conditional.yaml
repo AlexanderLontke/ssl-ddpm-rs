@@ -163,7 +163,7 @@ pl_module:
     beta_schedule_steps: 1000
     beta_schedule_linear_start: 0.0001
     beta_schedule_linear_end: 0.02
-    learning_rate: 0.00001
+    learning_rate: 0.0001
     stack_inputs_keys:
       - "sentinel_1"
     auxiliary_p_theta_model_input:
@@ -182,6 +182,7 @@ pl_module:
       module: lit_diffusion.adapters.context_adapter_p_theta_model.ContextAdapterPThetaModel
       kwargs:
         context_keys: ["climate_zone", "era_5", "season_s1", "season_s2"]
+        p_theta_model_call_context_key: "context"
         context_embedder:
           module: remote_sensing_ddpm.custom_embedders.mlp_embedder.MLPEmbedder
           kwargs:
@@ -190,13 +191,14 @@ pl_module:
             dropout_p: 0.2
             depth: 3
         original_p_theta_model:
-          module: remote_sensing_ddpm.u_net_model.architecture.u_net.UNetModel
+          module: remote_sensing_ddpm.p_theta_models.openaimodel.architecture.u_net.UNetModel
           kwargs:
             # Hyperparameters according to hps used by Dhariwal and Nichol 2021 on ImageNet 128
-            in_channel: *IMAGE_CHANNELS
-            out_channel: *IMAGE_CHANNELS
+            in_channels: *IMAGE_CHANNELS
+            out_channels: *IMAGE_CHANNELS
             model_channels: 256
             num_res_blocks: 2
+            # use_fp16: True
             attention_resolutions: [ 32, 16, 8 ]
             dropout: 0.0
             channel_mult: [ 1, 1, 2, 3, 4 ]
@@ -212,20 +214,21 @@ pl_trainer:
   accelerator: gpu
   max_epochs: 20
   log_every_n_steps: 1
-  precision: "16-mixed"
+  # precision: "16-mixed"
   # gradient_clip_algorithm: "norm"
   enable_checkpointing: True
   # UNCOMMENT FOR DEBUGGING
   # fast_dev_run: True
 
 pl_wandb_logger:
+  name: "conditional-ddpm"
   project: *NAME
-  name: "s2-and-s1-backbone"
 
 pl_checkpoint_callback:
-  monitor: "val/mse_loss"
-  save_top_k: 3
-  every_n_epochs: 5
+  monitor: "val/loss"
+  mode: "min"
+  save_top_k: 5
+
 
 sampling:
   shape: [*IMAGE_CHANNELS, *IMAGE_SIZE, *IMAGE_SIZE]
