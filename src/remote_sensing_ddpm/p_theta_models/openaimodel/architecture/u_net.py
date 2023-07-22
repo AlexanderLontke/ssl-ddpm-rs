@@ -324,13 +324,14 @@ class UNetModel(nn.Module):
                 # nn.LogSoftmax(dim=1)  # change to cross_entropy and produce non-normalized logits
             )
 
-    def forward(self, x, timesteps=None, context=None, y=None, **kwargs):
+    def forward(self, x, timesteps=None, context=None, y=None, feat_need: bool=False, **kwargs):
         """
         Apply the model to an input batch.
         :param x: an [N x C x ...] Tensor of inputs.
         :param timesteps: a 1-D batch of timesteps.
         :param context: conditioning plugged in via crossattn
         :param y: an [N] Tensor of labels, if class-conditional.
+        :param feat_need: boolean indicating whether to return the models output or feature maps
         :return: an [N x C x ...] Tensor of outputs.
         """
         assert (y is not None) == (
@@ -342,6 +343,10 @@ class UNetModel(nn.Module):
         )
         emb = self.time_embed(t_emb)
 
+        encoder_feature_maps = []
+        bottleneck_feature_maps = []
+        decoder_feature_maps = []
+
         if self.num_classes is not None:
             assert y.shape == (x.shape[0],)
             emb = emb + self.label_emb(y)
@@ -349,12 +354,23 @@ class UNetModel(nn.Module):
         h = x.type(self.dtype)
         for module in self.input_blocks:
             h = module(h, emb, context)
+            if isinstance(module, ResBlock) and feat_need:
+                encoder_feature_maps.append(h)
             hs.append(h)
+        if feat_need:
+            bottleneck_feature_maps.append(h)
         h = self.middle_block(h, emb, context)
+        if feat_need is not None:
+            bottleneck_feature_maps.append(h)
         for module in self.output_blocks:
             h = th.cat([h, hs.pop()], dim=1)
             h = module(h, emb, context)
+            if isinstance(module, ResBlock) and feat_need:
+                decoder_feature_maps.append(h)
         h = h.type(x.dtype)
+
+        if feat_need:
+            return encoder_feature_maps, bottleneck_feature_maps, decoder_feature_maps
         if self.predict_codebook_ids:
             return self.id_predictor(h)
         else:
