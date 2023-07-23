@@ -7,11 +7,11 @@ from remote_sensing_ddpm.downstream_tasks.modules.up_sampling_block import UpSam
 
 
 class DynamicSegmentationHead(nn.Module):
-    def __init__(self, u_net_channels: List[int], *args, **kwargs):
+    def __init__(self,output_channels: int,  u_net_channels: List[int], *args, **kwargs):
         super().__init__(*args, **kwargs)
         assert len(u_net_channels) > 0
         self.modules = []
-        for i in range(len(u_net_channels)-2):
+        for i in range(len(u_net_channels)-1):
             self.modules.append(
                 UpSamplingBlock(
                     in_channels=u_net_channels[i] * (1 + int(i != 0)),
@@ -21,7 +21,7 @@ class DynamicSegmentationHead(nn.Module):
                 )
             )
         self.output_projection = nn.Conv2d(
-            in_channels=u_net_channels[-2]*2, out_channels=u_net_channels[-1], padding=0, kernel_size=9,
+            in_channels=u_net_channels[-1]*2, out_channels=output_channels, padding=0, kernel_size=9,
         )
 
     def forward(self, all_decoder_levels: torch.Tensor, ):
