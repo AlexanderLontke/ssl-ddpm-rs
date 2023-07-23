@@ -354,7 +354,7 @@ class UNetModel(nn.Module):
         h = x.type(self.dtype)
         for module in self.input_blocks:
             h = module(h, emb, context)
-            if isinstance(module, ResBlock) and feat_need:
+            if feat_need:
                 encoder_feature_maps.append(h)
             hs.append(h)
         if feat_need:
@@ -365,7 +365,7 @@ class UNetModel(nn.Module):
         for module in self.output_blocks:
             h = th.cat([h, hs.pop()], dim=1)
             h = module(h, emb, context)
-            if isinstance(module, ResBlock) and feat_need:
+            if feat_need:
                 decoder_feature_maps.append(h)
         h = h.type(x.dtype)
 
