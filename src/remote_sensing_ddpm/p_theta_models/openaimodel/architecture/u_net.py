@@ -370,7 +370,7 @@ class UNetModel(nn.Module):
         h = h.type(x.dtype)
 
         if feat_need:
-            return encoder_feature_maps, bottleneck_feature_maps, decoder_feature_maps
+            return encoder_feature_maps, bottleneck_feature_maps, list(reversed(decoder_feature_maps))
         if self.predict_codebook_ids:
             return self.id_predictor(h)
         else:
