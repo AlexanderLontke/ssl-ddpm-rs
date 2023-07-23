@@ -11,7 +11,7 @@ class DynamicSegmentationHead(nn.Module):
         super().__init__(*args, **kwargs)
         assert len(u_net_channels) > 0
         self.modules = []
-        for i in range(len(u_net_channels)-1):
+        for i in range(len(u_net_channels)-2):
             self.modules.append(
                 UpSamplingBlock(
                     in_channels=u_net_channels[i] * (1 + int(i != 0)),
