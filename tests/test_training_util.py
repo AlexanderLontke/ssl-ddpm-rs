@@ -1,5 +1,5 @@
 import copy
-from remote_sensing_ddpm.train_downstream_tasks import safe_join_dicts
+from remote_sensing_ddpm.run_downstream_tasks import safe_join_dicts
 
 
 def test_safe_join_dicts():
