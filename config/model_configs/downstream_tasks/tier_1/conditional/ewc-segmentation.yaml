@@ -1,0 +1,178 @@
+name: &NAME rs-ddpm-ms-segmentation-conditional
+seed: 42
+device: &DEVICE cuda
+monitor: &MONITOR "val/mIoU"
+monitor_mode: &MONITOR_MODE "max"
+target_key: &TARGET_KEY "esa_worldcover"
+output_channels: &OUTPUT_CHANNELS 11
+image_size: &IMAGE_SIZE 128
+ewc_labels: &EWC_LABELS ["Tree cover", "Shrubland", "Grassland", "Cropland", "Built-up", "Bare", "Snow and Ice", "Permanenet water bodies", "Herbaceous wetland", "Mangroves", "Moss and lichen" ]
+
+label_pipeline:
+  *TARGET_KEY:
+    - module: ffcv.fields.decoders.NDArrayDecoder
+    - module: remote_sensing_core.transforms.ffcv.esa_world_cover_transform.EsaWorldCoverTransform
+      kwargs:
+        divisor: 10.0
+        subtractor: 1.0
+    - module: remote_sensing_core.transforms.ffcv.convert.Convert
+      kwargs:
+        target_dtype: "int64"
+    - module: ffcv.transforms.ToTensor
+
+downstream_task_specific_feature_extractor_kwargs:
+  feature_section: "decoder"
+  feature_levels: [ 13, 10, 7, 4, 1 ]  # [ 12, 9, 6, 3, 0]
+  vectorize_output: False
+
+# MODEL INSTANTIATION
+train_metrics: &TRAIN_METRICS
+  accuracy:
+    module: remote_sensing_ddpm.utils.torchmetrics_accuracy_adapter.AccuracyAdapter
+    kwargs:
+      apply_argmax: True
+      device: *DEVICE
+      torchmetrics_module: 
+        module: torchmetrics.Accuracy
+        kwargs:
+          task: "multiclass"
+          num_classes: *OUTPUT_CHANNELS
+  mIoU:
+    module: remote_sensing_ddpm.utils.torchmetrics_jaccard_index_adapter.JaccardIndexAdapter
+    kwargs:
+      apply_argmax: True
+      device: *DEVICE
+      torchmetrics_module: 
+        module: torchmetrics.JaccardIndex
+        kwargs:
+          task: "multiclass"
+          num_classes: *OUTPUT_CHANNELS
+  classwise_accuracy:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: remote_sensing_ddpm.utils.torchmetrics_accuracy_adapter.AccuracyAdapter
+        kwargs:
+          apply_argmax: True
+          device: *DEVICE
+          torchmetrics_module: 
+            module: torchmetrics.Accuracy
+            kwargs:
+              task: "multiclass"
+              num_classes: *OUTPUT_CHANNELS
+              average: null
+      labels: *EWC_LABELS
+  classwise_mIoU:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: remote_sensing_ddpm.utils.torchmetrics_jaccard_index_adapter.JaccardIndexAdapter
+        kwargs:
+          apply_argmax: True
+          device: *DEVICE
+          torchmetrics_module: 
+            module: torchmetrics.JaccardIndex
+            kwargs:
+              task: "multiclass"
+              num_classes: *OUTPUT_CHANNELS
+              average: null
+      labels: *EWC_LABELS
+
+validation_metrics: &VAL_METRICS
+  accuracy:
+    module: remote_sensing_ddpm.utils.torchmetrics_accuracy_adapter.AccuracyAdapter
+    kwargs:
+      apply_argmax: True
+      device: *DEVICE
+      torchmetrics_module: 
+        module: torchmetrics.Accuracy
+        kwargs:
+          task: "multiclass"
+          num_classes: *OUTPUT_CHANNELS
+  mIoU:
+    module: remote_sensing_ddpm.utils.torchmetrics_jaccard_index_adapter.JaccardIndexAdapter
+    kwargs:
+      apply_argmax: True
+      device: *DEVICE
+      torchmetrics_module: 
+        module: torchmetrics.JaccardIndex
+        kwargs:
+          task: "multiclass"
+          num_classes: *OUTPUT_CHANNELS
+  classwise_accuracy:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: remote_sensing_ddpm.utils.torchmetrics_accuracy_adapter.AccuracyAdapter
+        kwargs:
+          apply_argmax: True
+          device: *DEVICE
+          torchmetrics_module: 
+            module: torchmetrics.Accuracy
+            kwargs:
+              task: "multiclass"
+              num_classes: *OUTPUT_CHANNELS
+              average: null
+      labels: *EWC_LABELS
+  classwise_mIoU:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: remote_sensing_ddpm.utils.torchmetrics_jaccard_index_adapter.JaccardIndexAdapter
+        kwargs:
+          apply_argmax: True
+          device: *DEVICE
+          torchmetrics_module: 
+            module: torchmetrics.JaccardIndex
+            kwargs:
+              task: "multiclass"
+              num_classes: *OUTPUT_CHANNELS
+              average: null
+      labels: *EWC_LABELS
+
+pl_module:
+  module: remote_sensing_ddpm.downstream_tasks.lit_downstream_task.LitDownstreamTask
+  kwargs:
+    learning_rate: 0.0001
+    loss:
+      module: torch.nn.CrossEntropyLoss
+    target_key: *TARGET_KEY
+    training_metrics: *TRAIN_METRICS
+    validation_metrics: *VAL_METRICS
+    downstream_model:
+      module: remote_sensing_ddpm.downstream_tasks.downstream_task_model.DownstreamTaskModel
+      kwargs:
+        downstream_layer:
+          module: remote_sensing_ddpm.downstream_tasks.models.dynamic_segmentation_head.DynamicSegmentationHead
+          kwargs:
+            output_channels: *OUTPUT_CHANNELS
+            u_net_channels: [1024, 768, 512, 256, 256]
+
+# MODEL TRAINING
+pl_trainer:
+  accelerator: gpu
+  max_epochs: 20
+  log_every_n_steps: 1
+  # precision: "16-mixed"
+  # gradient_clip_algorithm: "norm"
+  enable_checkpointing: True
+  # UNCOMMENT FOR DEBUGGING
+  # fast_dev_run: True
+  # limit_train_batches: 100
+  # num_sanity_val_steps: 0
+  # limit_val_batches: 100
+
+pl_wandb_logger:
+  project: *NAME
+
+pl_checkpoint_callback:
+  monitor: *MONITOR
+  mode: *MONITOR_MODE
+  save_top_k: 3
+  save_last: True
+
+# custom_callbacks:
+#   - module: pytorch_lightning.callbacks.EarlyStopping
+#     kwargs:
+#       monitor: *MONITOR
+#       mode: *MONITOR_MODE
