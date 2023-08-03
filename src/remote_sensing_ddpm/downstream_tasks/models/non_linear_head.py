@@ -4,7 +4,7 @@ from torch import nn
 
 
 class NonLinearHead(nn.Module):
-    def __init__(self, input_size: int, output_size: int, *args, **kwargs):
+    def __init__(self, input_size: int, output_size: int, with_sigmoid: bool = True, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         # Calculate layer sizes
@@ -19,7 +19,7 @@ class NonLinearHead(nn.Module):
             nn.Linear(in_features=output_layer1, out_features=output_layer2),
             nn.ReLU(),
             nn.Linear(in_features=output_layer2, out_features=output_size),
-            nn.Sigmoid(),
+            nn.Sigmoid() if with_sigmoid else nn.Identity(),
         )
 
     def forward(self, batch):
