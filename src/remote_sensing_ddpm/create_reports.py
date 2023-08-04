@@ -1,3 +1,4 @@
+from typing import List
 from pathlib import Path
 
 # Matplotlib
@@ -25,12 +26,15 @@ def clean_string_outputs(string: str) -> str:
     return (
         string.replace("test/", "")
         .replace("jaccardindexadapter_", "mIoU ")
-        .replace("-ewc-segmentation-eval", "")
+        .replace("-ewc-segmentation", "")
+        .replace("-ewc-classification", "")
+        .replace("-ewc-regression", "")
+        .replace("-eval", "")
     )
 
 
 def make_string_latex_compatible(string: str) -> str:
-    return string.replace("_", "\_")
+    return string.replace("_", "\\_")
 
 
 def safe_string(string, output_file_path: Path):
@@ -38,19 +42,37 @@ def safe_string(string, output_file_path: Path):
         output_file.write(string)
 
 
+def save_plot(output_file_path: Path):
+    plt.savefig(output_file_path, bbox_inches="tight", dpi=300)
+    plt.clf()
+
+
 EXPERIMENTS_DICT = {
     "segmentation": {
         "wandb_project_id": "ssl-diffusion/rs-ddpm-ms-segmentation-egypt-eval",
         "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-segmentation.yaml",
+        "class_metrics": [
+            "test/jaccardindexadapter_Herbaceous wetland",
+            "test/jaccardindexadapter_Bare",
+            "test/jaccardindexadapter_Tree cover",
+            # 'test/jaccardindexadapter_Moss and lichen',
+            "test/jaccardindexadapter_Shrubland",
+            "test/jaccardindexadapter_Cropland",
+            "test/jaccardindexadapter_Built-up",
+            # 'test/jaccardindexadapter_Snow and Ice',
+            "test/jaccardindexadapter_Grassland",
+            "test/jaccardindexadapter_Permanenet water bodies",
+            # 'test/jaccardindexadapter_Mangroves'
+        ],
     },
-    "classification": {
-        "wandb_project_id": "ssl-diffusion/rs-ddpm-ms-classification-france-eval",
-        "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-classification.yaml",
-    },
-    "regression": {
-        "wandb_project_id": "ssl-diffusion/rs-ddpm-ms-regression-egypt-eval",
-        "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-regression.yaml",
-    },
+    # "classification": {
+    #     "wandb_project_id": "ssl-diffusion/rs-ddpm-ms-classification-france-eval",
+    #     "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-classification.yaml",
+    # },
+    # "regression": {
+    #     "wandb_project_id": "ssl-diffusion/rs-ddpm-ms-regression-egypt-eval",
+    #     "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-regression.yaml",
+    # },
 }
 
 
@@ -59,6 +81,7 @@ def create_report(
     wandb_project_id: str,
     downstream_head_config_path: str,
     feature_extractor_files: str,
+    class_metrics: List[str],
 ):
     base_output_dir_path = Path(base_output_dir_path)
     # Get file names
@@ -92,20 +115,6 @@ def create_report(
             {"state": {"$eq": "finished"}},
         ]
     }
-
-    class_metrics = [
-        "test/jaccardindexadapter_Herbaceous wetland",
-        "test/jaccardindexadapter_Bare",
-        "test/jaccardindexadapter_Tree cover",
-        # 'test/jaccardindexadapter_Moss and lichen',
-        "test/jaccardindexadapter_Shrubland",
-        "test/jaccardindexadapter_Cropland",
-        "test/jaccardindexadapter_Built-up",
-        # 'test/jaccardindexadapter_Snow and Ice',
-        "test/jaccardindexadapter_Grassland",
-        "test/jaccardindexadapter_Permanenet water bodies",
-        # 'test/jaccardindexadapter_Mangroves'
-    ]
 
     # Create table showing class-wise overview of metrics
     metrics_table = get_metrics_table(
@@ -141,7 +150,7 @@ def create_report(
         metrics_name=UNIFORM_AVERAGE_NAME,
         xlabel_transform=clean_string_outputs,
     )
-    plt.savefig(main_metric_figure_output_file_path, bbox_inches="tight")
+    save_plot(main_metric_figure_output_file_path)
 
     # Create label fraction overview
     # Get Data
@@ -166,15 +175,16 @@ def create_report(
         experiment_names=EXPERIMENT_NAMES,
         label_fractions=[0.01, 0.1, 0.5],
         name_suffix="-eval",
+        label_transform=clean_string_outputs,
     )
-    plt.savefig(label_fraction_figure_output_file_path, bbox_inches="tight")
+    save_plot(label_fraction_figure_output_file_path)
 
 
 if __name__ == "__main__":
     set_matplotlib_style()
 
     for name, config in EXPERIMENTS_DICT.items():
-        base_output_dir_path = Path(f"./{name}")
+        base_output_dir_path = Path(f"./reports/{name}")
         base_output_dir_path.mkdir(exist_ok=True, parents=True)
         create_report(
             base_output_dir_path=base_output_dir_path,

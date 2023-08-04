@@ -197,9 +197,11 @@ def get_best_checkpoints(wandb_run_name: str) -> List[Path]:
 
 
 def run_test(complete_config: Dict, test_beton_file: Path, wandb_run_name: str):
+    complete_config = complete_config.copy()
     # Fetch best checkpoints
     best_checkpoints = get_best_checkpoints(wandb_run_name)
-    complete_config[PL_WANDB_LOGGER_CONFIG_KEY]["name"] = wandb_run_name + "-eval"
+    eval_suffix = "-eval"
+    complete_config[PL_WANDB_LOGGER_CONFIG_KEY]["name"] = wandb_run_name + eval_suffix if not wandb_run_name.endswith(eval_suffix) else wandb_run_name
     
     for checkpoint_path in best_checkpoints:
         wandb_logger = WandbLogger(
