@@ -9,6 +9,9 @@ from typing import Any, Dict, Optional, List
 # Pandas
 import pandas as pd
 
+# PyTorch
+import torch
+
 # Lightning
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.wandb import WandbLogger
@@ -167,44 +170,102 @@ def train(
     wandb.finish()
 
 
-def get_best_checkpoints(wandb_run_name: str, wandb_sub_project_name: str) -> List[Path]:
+def get_best_epoch_through_wandb(
+    wandb_run,
+    checkpoint_path: Path,
+    keys_of_interest: List[str],
+    monitor: str,
+    monitor_mode: str,
+) -> Path:
+    single_run_complete_history = []
+    for x in wandb_run.scan_history(keys=keys_of_interest, page_size=10000):
+        single_run_complete_history.append(x)
+    history_df = pd.DataFrame(single_run_complete_history)
+    history_df = history_df.loc[AVAILABLE_CHECKPOINT_EPOCHS, :]
+    best_epoch = getattr(history_df[monitor], f"idx{monitor_mode}")()
+    if best_epoch == AVAILABLE_CHECKPOINT_EPOCHS[-1]:
+        file_name = LAST_CKPT_NAME
+    else:
+        file_name = [
+            file_name
+            for file_name in os.listdir(checkpoint_path)
+            if file_name.startswith(f"epoch={int(best_epoch)}")
+        ][0]
+    return checkpoint_path / file_name
+
+
+def get_best_epoch_through_checkpoint(checkpoint_path: Path) -> Path:
+    checkpoint_callback_states = torch.load(checkpoint_path / LAST_CKPT_NAME)[
+        "callbacks"
+    ]
+    checkpoint_callback_keys = [
+        k for k in checkpoint_callback_states.keys() if k.startswith("ModelCheckpoint")
+    ]
+    assert len(checkpoint_callback_keys) == 1
+    checkpoint_callback_key = checkpoint_callback_keys[0]
+    checkpoint_callback_state = checkpoint_callback_states[checkpoint_callback_key]
+    return Path(checkpoint_callback_state["best_model_path"])
+
+
+def get_best_checkpoints(
+    wandb_run_name: str, wandb_sub_project_name: str, through_callback: bool = False
+) -> List[Path]:
     # This is only necessary because the mode of the checkpoint callback was misconfigured
     api = wandb.Api()
-    run_filter = {"$and": [{"display_name": {"$eq": wandb_run_name}}, {"state": {"$eq": "finished"}}]}
+    run_filter = {
+        "$and": [
+            {"display_name": {"$eq": wandb_run_name}},
+            {"state": {"$eq": "finished"}},
+        ]
+    }
     monitor = complete_config[MONITOR_KEY]
     monitor_mode = complete_config[MONITOR_MODE_KEY]
-    runs = [run for run in api.runs(f"{WANDB_PROJECT_NAME}/{wandb_sub_project_name}", filters=run_filter)]
+    runs = [
+        run
+        for run in api.runs(
+            f"{WANDB_PROJECT_NAME}/{wandb_sub_project_name}", filters=run_filter
+        )
+    ]
     keys_of_interest = [EPOCH_KEY, monitor]
 
     best_checkpoint_paths = []
     # Get all data
     for run in runs:
-        single_run_complete_history = []
-        for x in run.scan_history(keys=keys_of_interest, page_size=10000):
-            single_run_complete_history.append(x)
-        history_df = pd.DataFrame(single_run_complete_history)
-        history_df = history_df.loc[AVAILABLE_CHECKPOINT_EPOCHS, :]
-        best_epoch = getattr(history_df[monitor], f"idx{monitor_mode}")()
         checkpoint_path = Path(f"{wandb_sub_project_name}/{run.id}/checkpoints/")
-        if best_epoch == AVAILABLE_CHECKPOINT_EPOCHS[-1]:
-            file_name = LAST_CKPT_NAME
+        if through_callback:
+            checkpoint_path = get_best_epoch_through_checkpoint(
+                checkpoint_path=checkpoint_path
+            )
         else:
-            file_name = [file_name for file_name in os.listdir(checkpoint_path) if file_name.startswith(f"epoch={int(best_epoch)}")][0]
-        checkpoint_path = checkpoint_path / file_name
+            checkpoint_path = get_best_epoch_through_wandb(
+                wandb_run=run,
+                checkpoint_path=checkpoint_path,
+                keys_of_interest=keys_of_interest,
+                monitor=monitor,
+                monitor_mode=monitor_mode,
+            )
         best_checkpoint_paths.append(checkpoint_path)
     return best_checkpoint_paths
 
 
-def run_test(complete_config: Dict, test_beton_file: Path, wandb_run_name: str):
+def run_test(complete_config: Dict, test_beton_file: Path, wandb_run_name: str, through_callback: bool):
     complete_config = complete_config.copy()
     # Fetch best checkpoints
     wandb_sub_project_name = complete_config[PROJECT_KEY]
-    best_checkpoints = get_best_checkpoints(wandb_run_name, wandb_sub_project_name)
+    best_checkpoints = get_best_checkpoints(wandb_run_name, wandb_sub_project_name, through_callback=through_callback)
     eval_suffix = "-eval"
     wandb_project_name = complete_config[PL_WANDB_LOGGER_CONFIG_KEY]["project"]
-    complete_config[PL_WANDB_LOGGER_CONFIG_KEY]["project"] = wandb_project_name + eval_suffix if not wandb_project_name.endswith(eval_suffix) else wandb_project_name
-    complete_config[PL_WANDB_LOGGER_CONFIG_KEY]["name"] = wandb_run_name + eval_suffix if not wandb_run_name.endswith(eval_suffix) else wandb_run_name
-    
+    complete_config[PL_WANDB_LOGGER_CONFIG_KEY]["project"] = (
+        wandb_project_name + eval_suffix
+        if not wandb_project_name.endswith(eval_suffix)
+        else wandb_project_name
+    )
+    complete_config[PL_WANDB_LOGGER_CONFIG_KEY]["name"] = (
+        wandb_run_name + eval_suffix
+        if not wandb_run_name.endswith(eval_suffix)
+        else wandb_run_name
+    )
+
     for checkpoint_path in best_checkpoints:
         complete_config = complete_config.copy()
         wandb_logger = WandbLogger(
@@ -217,7 +278,7 @@ def run_test(complete_config: Dict, test_beton_file: Path, wandb_run_name: str):
             checkpoint_path=checkpoint_path,
             map_location=complete_config[DEVICE_CONFIG_KEY],
             downstream_model=pl_module.downstream_model,
-            learning_rate=pl_module.learning_rate, 
+            learning_rate=pl_module.learning_rate,
             loss=pl_module.loss,
             target_key=pl_module.target_key,
             validation_metrics=pl_module.validation_metrics,
@@ -234,7 +295,7 @@ def run_test(complete_config: Dict, test_beton_file: Path, wandb_run_name: str):
             logger=wandb_logger,
             **complete_config[PL_TRAINER_CONFIG_KEY],
         )
-        trainer.test(model=pl_module,dataloaders=test_dataloader)
+        trainer.test(model=pl_module, dataloaders=test_dataloader)
         wandb.finish()
 
 
@@ -292,6 +353,14 @@ if __name__ == "__main__":
         required=False,
     )
 
+    parser.add_argument(
+        "--through-callback",
+        type=str,
+        default="True",
+        help="determines how the best checkpoint is selected",
+        required=False,
+    )
+
     # Parse run arguments
     args = parser.parse_args()
 
@@ -308,6 +377,9 @@ if __name__ == "__main__":
 
     # Get mode
     mode = args.mode
+
+    # Get best checkpoint method
+    through_callback = args.through_callback.lower() in ["true"]
 
     # Run the train function
     for b_name, b_config in backbone_configs.items():
@@ -331,7 +403,7 @@ if __name__ == "__main__":
                     f"Run ({wandb_run_name}) is being skipped since label field is present in pipeline"
                 )
                 continue
-            
+
             # Run Label Fraction experiments if desired
             if args.label_fractions.lower() == "true":
                 for fraction, fraction_dataset_path in LABEL_FRACTION_PATHS.items():
@@ -349,14 +421,19 @@ if __name__ == "__main__":
                         )
                     elif mode.lower() == MODE_OPTION_TEST:
                         test_beton_file = args.test_beton_file
-                        assert test_beton_file, "In testing mode a test beton file needs to be given use -t"
+                        assert (
+                            test_beton_file
+                        ), "In testing mode a test beton file needs to be given use -t"
                         run_test(
                             complete_config=complete_config,
                             test_beton_file=test_beton_file,
                             wandb_run_name=lf_run_name,
+                            through_callback=through_callback
                         )
                     else:
-                        raise NotImplementedError(f"mode option: {mode} not implemented")
+                        raise NotImplementedError(
+                            f"mode option: {mode} not implemented"
+                        )
 
             if mode.lower() == MODE_OPTION_TRAIN:
                 for i in range(repetitions):
@@ -368,11 +445,14 @@ if __name__ == "__main__":
                     )
             elif mode.lower() == MODE_OPTION_TEST:
                 test_beton_file = args.test_beton_file
-                assert test_beton_file, "In testing mode a test beton file needs to be given use -t"
+                assert (
+                    test_beton_file
+                ), "In testing mode a test beton file needs to be given use -t"
                 run_test(
                     complete_config=complete_config,
                     test_beton_file=test_beton_file,
                     wandb_run_name=wandb_run_name,
+                    through_callback=through_callback,
                 )
             else:
                 raise NotImplementedError(f"mode option: {mode} not implemented")
