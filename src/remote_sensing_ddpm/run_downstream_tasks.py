@@ -249,7 +249,6 @@ def get_best_checkpoints(
 
 
 def run_test(complete_config: Dict, test_beton_file: Path, wandb_run_name: str, through_callback: bool):
-    complete_config = complete_config.copy()
     # Fetch best checkpoints
     wandb_sub_project_name = complete_config[PROJECT_KEY]
     best_checkpoints = get_best_checkpoints(wandb_run_name, wandb_sub_project_name, through_callback=through_callback)
@@ -265,9 +264,10 @@ def run_test(complete_config: Dict, test_beton_file: Path, wandb_run_name: str, 
         if not wandb_run_name.endswith(eval_suffix)
         else wandb_run_name
     )
-
+    original_config = copy.deepcopy(complete_config)
     for checkpoint_path in best_checkpoints:
-        complete_config = complete_config.copy()
+        print("Running eval for", checkpoint_path)
+        complete_config = copy.deepcopy(original_config)
         wandb_logger = WandbLogger(
             **complete_config[PL_WANDB_LOGGER_CONFIG_KEY], config=complete_config
         )
