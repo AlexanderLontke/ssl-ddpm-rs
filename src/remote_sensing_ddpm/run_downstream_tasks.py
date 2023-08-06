@@ -167,13 +167,12 @@ def train(
     wandb.finish()
 
 
-def get_best_checkpoints(wandb_run_name: str) -> List[Path]:
+def get_best_checkpoints(wandb_run_name: str, wandb_sub_project_name: str) -> List[Path]:
     # This is only necessary because the mode of the checkpoint callback was misconfigured
     api = wandb.Api()
     run_filter = {"$and": [{"display_name": {"$eq": wandb_run_name}}, {"state": {"$eq": "finished"}}]}
     monitor = complete_config[MONITOR_KEY]
     monitor_mode = complete_config[MONITOR_MODE_KEY]
-    wandb_sub_project_name = complete_config[PROJECT_KEY]
     runs = [run for run in api.runs(f"{WANDB_PROJECT_NAME}/{wandb_sub_project_name}", filters=run_filter)]
     keys_of_interest = [EPOCH_KEY, monitor]
 
@@ -199,11 +198,15 @@ def get_best_checkpoints(wandb_run_name: str) -> List[Path]:
 def run_test(complete_config: Dict, test_beton_file: Path, wandb_run_name: str):
     complete_config = complete_config.copy()
     # Fetch best checkpoints
-    best_checkpoints = get_best_checkpoints(wandb_run_name)
+    wandb_sub_project_name = complete_config[PROJECT_KEY]
+    best_checkpoints = get_best_checkpoints(wandb_run_name, wandb_sub_project_name)
     eval_suffix = "-eval"
+    wandb_project_name = complete_config[PL_WANDB_LOGGER_CONFIG_KEY]["project"]
+    complete_config[PL_WANDB_LOGGER_CONFIG_KEY]["project"] = wandb_project_name + eval_suffix if not wandb_project_name.endswith(eval_suffix) else wandb_project_name
     complete_config[PL_WANDB_LOGGER_CONFIG_KEY]["name"] = wandb_run_name + eval_suffix if not wandb_run_name.endswith(eval_suffix) else wandb_run_name
     
     for checkpoint_path in best_checkpoints:
+        complete_config = complete_config.copy()
         wandb_logger = WandbLogger(
             **complete_config[PL_WANDB_LOGGER_CONFIG_KEY], config=complete_config
         )
