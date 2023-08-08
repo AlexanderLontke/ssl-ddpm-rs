@@ -99,15 +99,15 @@ sentinel_1_pipeline: &S1_PIPELINE
   - module: ffcv.transforms.ToTensor
 
 pipelines: &PIPELINES
-  climate_zone: *CZ_PIPELINE
+  climate_zone: null
   elevation_differ: null
-  era_5: *ERA_5_PIPELINE
+  era_5: null
   esa_worldcover: null
   glo_30_dem: null
   multiclass_numer: null
   multiclass_one_h: null
-  season_s1: *SEASONS_PIPELINE
-  season_s2: *SEASONS_PIPELINE
+  season_s1: null
+  season_s2: null
   sentinel_1: *S1_PIPELINE
   sentinel_2: *S2_PIPELINE
   field_names: null
@@ -142,7 +142,7 @@ feature_extractor:
   module: remote_sensing_ddpm.downstream_tasks.modules.feature_extractor.FeatureExtractor
   kwargs:
     data_key: *DATA_KEY
-    checkpoint_path: "/netscratch2/alontke/master_thesis/code/ssl-ddpm-rs/rs-ddpm-ms/rtx8x85x/checkpoints/epoch=8-step=104814.ckpt"
+    checkpoint_path: "/netscratch2/alontke/master_thesis/code/ssl-ddpm-rs/rs-ddpm-ms/rtx8x85x/checkpoints/epoch=19-step=232920.ckpt"
     map_location: *DEVICE
     t: 1
     p_theta_model_kwargs:
@@ -169,33 +169,21 @@ feature_extractor:
           module: torch.optim.lr_scheduler.LinearLR
           delay: 1
         p_theta_model:
-          module: lit_diffusion.adapters.context_adapter_p_theta_model.ContextAdapterPThetaModel
+          module: remote_sensing_ddpm.p_theta_models.openaimodel.architecture.u_net.UNetModel
           kwargs:
-            context_keys: [ "climate_zone", "era_5", "season_s1", "season_s2" ]
-            p_theta_model_call_context_key: "context"
-            context_embedder:
-              module: remote_sensing_ddpm.custom_embedders.mlp_embedder.MLPEmbedder
-              kwargs:
-                input_size: 12
-                embedding_size: *CONTEXT_DIM
-                dropout_p: 0.2
-                depth: 3
-            original_p_theta_model:
-              module: remote_sensing_ddpm.p_theta_models.openaimodel.architecture.u_net.UNetModel
-              kwargs:
-                # Hyperparameters according to hps used by Dhariwal and Nichol 2021 on ImageNet 128
-                in_channels: *IMAGE_CHANNELS
-                out_channels: *IMAGE_CHANNELS
-                model_channels: 256
-                num_res_blocks: 2
-                # use_fp16: True
-                attention_resolutions: [ 32, 16, 8 ]
-                dropout: 0.0
-                channel_mult: [ 1, 1, 2, 3, 4 ]
-                use_checkpoint: False
-                num_heads: 4
-                resblock_updown: True
-                use_spatial_transformer: True
-                transformer_depth: 1
-                # Only needed when providing prompt
-                context_dim: *CONTEXT_DIM
+            # Hyperparameters according to hps used by Dhariwal and Nichol 2021 on ImageNet 128
+            in_channels: *IMAGE_CHANNELS
+            out_channels: *IMAGE_CHANNELS
+            model_channels: 256
+            num_res_blocks: 2
+            # use_fp16: True
+            attention_resolutions: [ 32, 16, 8 ]
+            dropout: 0.0
+            channel_mult: [ 1, 1, 2, 3, 4 ]
+            use_checkpoint: False
+            num_heads: 4
+            resblock_updown: True
+            use_spatial_transformer: False
+            # transformer_depth: 1
+            # Only needed when providing prompt
+            # context_dim: *CONTEXT_DIM
