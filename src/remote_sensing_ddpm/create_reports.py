@@ -1,8 +1,10 @@
-from typing import List
+from typing import Dict, List, Optional, Callable, Literal
+from functools import partial
 from pathlib import Path
 
 # Matplotlib
 import matplotlib.pyplot as plt
+import pandas as pd
 
 # Remote Sensing DDPM
 from remote_sensing_ddpm.run_downstream_tasks import (
@@ -18,14 +20,31 @@ from from_wandb_to_paper.figures.metric_errorbar import (
     visualize_single_metrics_table_metric,
 )
 from from_wandb_to_paper.figures.label_fractions import get_label_fraction_figure
+from from_wandb_to_paper.util.data_aggregation import calculate_class_weighted_mean
 
+CLASS_WEIGHTED_AVERAGE_NAME = "Class-Weighted Average"
 UNIFORM_AVERAGE_NAME = "Uniform Average"
+
+TEST_SET_CLASS_FRACTIONS = {
+    "Tree cover": 0.34617318327725566,
+    "Shrubland": 0.021386858490930888,
+    "Grassland": 0.28912866921916697,
+    "Cropland": 0.16718876899872376,
+    "Built-up": 0.033917314460300885,
+    "Bare": 0.002088409328228333,
+    "Snow and Ice": 0.0,
+    "Permanenet water bodies": 0.1288239161542329,
+    "Herbaceous wetland": 0.010790114862513052,
+    "Mangroves": 0.0,
+    "Moss and lichen": 0.0005027652086475615,
+}
 
 
 def clean_string_outputs(string: str) -> str:
     return (
         string.replace("test/", "")
         .replace("jaccardindexadapter_", "mIoU ")
+        .replace("multilabelf1score", "F1")
         .replace("-ewc-segmentation", "")
         .replace("-ewc-classification", "")
         .replace("-ewc-regression", "")
@@ -47,6 +66,10 @@ def save_plot(output_file_path: Path):
     plt.clf()
 
 
+def uniform_mean(metrics_table: pd.DataFrame) -> pd.Series:
+    return metrics_table.mean()
+
+
 EXPERIMENTS_DICT = {
     "segmentation": {
         "wandb_project_id": "ssl-diffusion/rs-ddpm-ms-segmentation-egypt-eval",
@@ -64,15 +87,66 @@ EXPERIMENTS_DICT = {
             "test/jaccardindexadapter_Permanenet water bodies",
             # 'test/jaccardindexadapter_Mangroves'
         ],
+        "highlight_mode": "max",
+        "averages": {
+            UNIFORM_AVERAGE_NAME: uniform_mean,
+            CLASS_WEIGHTED_AVERAGE_NAME: partial(
+                calculate_class_weighted_mean, class_fractions=TEST_SET_CLASS_FRACTIONS
+            ),
+        },
     },
-    # "classification": {
-    #     "wandb_project_id": "ssl-diffusion/rs-ddpm-ms-classification-france-eval",
-    #     "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-classification.yaml",
-    # },
-    # "regression": {
-    #     "wandb_project_id": "ssl-diffusion/rs-ddpm-ms-regression-egypt-eval",
-    #     "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-regression.yaml",
-    # },
+    "segmentation_w_supervised": {
+        "wandb_project_id": "ssl-diffusion/rs-ddpm-ms-segmentation-egypt-eval",
+        "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-segmentation.yaml",
+        "class_metrics": [
+            "test/jaccardindexadapter_Herbaceous wetland",
+            "test/jaccardindexadapter_Bare",
+            "test/jaccardindexadapter_Tree cover",
+            # 'test/jaccardindexadapter_Moss and lichen',
+            "test/jaccardindexadapter_Shrubland",
+            "test/jaccardindexadapter_Cropland",
+            "test/jaccardindexadapter_Built-up",
+            # 'test/jaccardindexadapter_Snow and Ice',
+            "test/jaccardindexadapter_Grassland",
+            "test/jaccardindexadapter_Permanenet water bodies",
+            # 'test/jaccardindexadapter_Mangroves'
+        ],
+        "highlight_mode": "max",
+        "averages": {
+            UNIFORM_AVERAGE_NAME: uniform_mean,
+            CLASS_WEIGHTED_AVERAGE_NAME: partial(
+                calculate_class_weighted_mean, class_fractions=TEST_SET_CLASS_FRACTIONS
+            ),
+        },
+        "additional_experiment_names": ["supervised_s1_s2-supervised_ewc_segmentation"],
+    },
+    "classification": {
+        "wandb_project_id": "ssl-diffusion/rs-ddpm-ms-classification-france-eval",
+        "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-classification.yaml",
+        "class_metrics": [
+            "test/multilabelf1score_Herbaceous wetland",
+            "test/multilabelf1score_Bare",
+            "test/multilabelf1score_Tree cover",
+            # 'test/multilabelf1score_Moss and lichen',
+            "test/multilabelf1score_Shrubland",
+            "test/multilabelf1score_Cropland",
+            "test/multilabelf1score_Built-up",
+            # 'test/multilabelf1score_Snow and Ice',
+            "test/multilabelf1score_Grassland",
+            "test/multilabelf1score_Permanenet water bodies",
+            # 'test/multilabelf1score_Mangroves'
+        ],
+        "highlight_mode": "max",
+    },
+    "regression": {
+        "wandb_project_id": "ssl-diffusion/rs-ddpm-ms-regression-egypt-eval",
+        "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-regression.yaml",
+        "class_metrics": [
+            "test/mean_squared_error",
+            "test/mean_absolute_error",
+        ],
+        "highlight_mode": "min",
+    },
 }
 
 
@@ -82,7 +156,12 @@ def create_report(
     downstream_head_config_path: str,
     feature_extractor_files: str,
     class_metrics: List[str],
+    highlight_mode: Literal["min", "max"],
+    averages: Optional[Dict[str, Callable[[pd.DataFrame], pd.Series]]] = None,
+    additional_experiment_names: Optional[List[str]] = None,
 ):
+    if averages is None:
+        averages = {}
     base_output_dir_path = Path(base_output_dir_path)
     # Get file names
     feature_extractor_files = Path(feature_extractor_files)
@@ -95,7 +174,9 @@ def create_report(
             downstream_head_name=downstream_head_config_path.name,
         )
         for backbone_path in FEATURE_EXTRACTOR_NAMES
-    ]  # + ["supervised_s1_s2-supervised_ewc_segmentation"]
+    ]
+    if additional_experiment_names is not None:
+        EXPERIMENT_NAMES += additional_experiment_names
     LABEL_FRACTION_EXPERIMENT_NAMES = [
         name + f"-lf-{fraction}"
         for name in EXPERIMENT_NAMES
@@ -126,7 +207,11 @@ def create_report(
         value_multiplier=100,
         verbose=True,
     )
-    metrics_table.loc[UNIFORM_AVERAGE_NAME] = metrics_table.mean()
+    average_results = {}
+    for average_name, average_function in averages.items():
+        average_results[average_name] = average_function(metrics_table)
+    for average_name, average_result in average_results.items():
+        metrics_table.loc[average_name] = average_result
 
     # Store as Latex string
     latex_metrics_table_output_file_path = (
@@ -135,22 +220,27 @@ def create_report(
     safe_string(
         make_string_latex_compatible(
             clean_string_outputs(
-                metrics_table_to_latex(metrics_table, clines="all;data")
+                metrics_table_to_latex(
+                    metrics_table,
+                    clines="all;data",
+                    mode=highlight_mode,
+                )
             )
         ),
         output_file_path=latex_metrics_table_output_file_path,
     )
 
     # Visualize average of the main metric
-    main_metric_figure_output_file_path = (
-        base_output_dir_path / f"{UNIFORM_AVERAGE_NAME}_metric_figure.png"
-    )
-    visualize_single_metrics_table_metric(
-        metrics_table,
-        metrics_name=UNIFORM_AVERAGE_NAME,
-        xlabel_transform=clean_string_outputs,
-    )
-    save_plot(main_metric_figure_output_file_path)
+    for average in averages.keys():
+        main_metric_figure_output_file_path = (
+            base_output_dir_path / f"{average}_metric_figure.png"
+        )
+        visualize_single_metrics_table_metric(
+            metrics_table,
+            metrics_name=average,
+            xlabel_transform=clean_string_outputs,
+        )
+        save_plot(main_metric_figure_output_file_path)
 
     # Create label fraction overview
     # Get Data
@@ -162,29 +252,35 @@ def create_report(
         value_index=0,
         value_multiplier=100,
     )
-    lf_metrics_table.loc[UNIFORM_AVERAGE_NAME] = lf_metrics_table.mean()
+    for average_name, average_function in averages.items():
+        average_results[average_name] = average_function(lf_metrics_table)
+    for average_name, average_result in average_results.items():
+        lf_metrics_table.loc[average_name] = average_result
 
     # Create figure
-    label_fraction_figure_output_file_path = (
-        base_output_dir_path
-        / f"label_fraction_{UNIFORM_AVERAGE_NAME}_metric_figure.png"
-    )
-    get_label_fraction_figure(
-        lf_metrics_table=lf_metrics_table,
-        metric_key=UNIFORM_AVERAGE_NAME,
-        experiment_names=EXPERIMENT_NAMES,
-        label_fractions=[0.01, 0.1, 0.5],
-        name_suffix="-eval",
-        label_transform=clean_string_outputs,
-    )
-    save_plot(label_fraction_figure_output_file_path)
+    for average in averages.keys():
+        label_fraction_figure_output_file_path = (
+            base_output_dir_path / f"label_fraction_{average}_metric_figure.png"
+        )
+        get_label_fraction_figure(
+            lf_metrics_table=lf_metrics_table,
+            metric_key=average,
+            experiment_names=EXPERIMENT_NAMES,
+            label_fractions=[0.01, 0.1, 0.5],
+            name_suffix="-eval",
+            label_transform=clean_string_outputs,
+            all_label_values=metrics_table,
+        )
+        save_plot(label_fraction_figure_output_file_path)
 
 
 if __name__ == "__main__":
     set_matplotlib_style()
 
     for name, config in EXPERIMENTS_DICT.items():
-        base_output_dir_path = Path(f"./reports/{name}")
+        base_output_dir_path = Path(
+            f"../../../latex/master_thesis_latex/resources/reports/{name}"
+        )
         base_output_dir_path.mkdir(exist_ok=True, parents=True)
         create_report(
             base_output_dir_path=base_output_dir_path,
