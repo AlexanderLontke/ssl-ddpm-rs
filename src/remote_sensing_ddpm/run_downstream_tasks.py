@@ -157,6 +157,7 @@ def train(
     run_name: Optional[str] = None,
     repetition: Optional[int] = None,
 ):
+    complete_config = copy.deepcopy(complete_config)
     # Alter seed if part of multiple repetitions
     if repetition:
         complete_config[SEED_CONFIG_KEY] += repetition
