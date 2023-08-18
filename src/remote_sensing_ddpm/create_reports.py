@@ -94,6 +94,7 @@ EXPERIMENTS_DICT = {
                 calculate_class_weighted_mean, class_fractions=TEST_SET_CLASS_FRACTIONS
             ),
         },
+        "feature_extractor_files": "../../config/model_configs/downstream_tasks/feature_extractors",
     },
     "segmentation_w_supervised": {
         "wandb_project_id": "ssl-diffusion/rs-ddpm-ms-segmentation-egypt-eval",
@@ -119,6 +120,33 @@ EXPERIMENTS_DICT = {
             ),
         },
         "additional_experiment_names": ["supervised_s1_s2-supervised_ewc_segmentation"],
+        "feature_extractor_files": "../../config/model_configs/downstream_tasks/feature_extractors",
+    },
+    "conditional_models": {
+        "wandb_project_id": "ssl-diffusion/rs-ddpm-ms-segmentation-conditional-eval",
+        "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-segmentation.yaml",
+        "class_metrics": [
+            "test/jaccardindexadapter_Herbaceous wetland",
+            "test/jaccardindexadapter_Bare",
+            "test/jaccardindexadapter_Tree cover",
+            # 'test/jaccardindexadapter_Moss and lichen',
+            "test/jaccardindexadapter_Shrubland",
+            "test/jaccardindexadapter_Cropland",
+            "test/jaccardindexadapter_Built-up",
+            # 'test/jaccardindexadapter_Snow and Ice',
+            "test/jaccardindexadapter_Grassland",
+            "test/jaccardindexadapter_Permanenet water bodies",
+            # 'test/jaccardindexadapter_Mangroves'
+        ],
+        "highlight_mode": "max",
+        "averages": {
+            UNIFORM_AVERAGE_NAME: uniform_mean,
+            CLASS_WEIGHTED_AVERAGE_NAME: partial(
+                calculate_class_weighted_mean, class_fractions=TEST_SET_CLASS_FRACTIONS
+            ),
+        },
+        "additional_experiment_names": ["supervised_s1_s2_conditional-ewc-segmentation", "s1_s2_conditional_last-ewc-segmentation", "s1_s2_unconditional_last-ewc-segmentation"],
+        "feature_extractor_files": None,
     },
     "classification": {
         "wandb_project_id": "ssl-diffusion/rs-ddpm-ms-classification-france-eval",
@@ -137,6 +165,7 @@ EXPERIMENTS_DICT = {
             # 'test/multilabelf1score_Mangroves'
         ],
         "highlight_mode": "max",
+        "feature_extractor_files": "../../config/model_configs/downstream_tasks/feature_extractors",
     },
     "regression": {
         "wandb_project_id": "ssl-diffusion/rs-ddpm-ms-regression-egypt-eval",
@@ -146,6 +175,7 @@ EXPERIMENTS_DICT = {
             "test/mean_absolute_error",
         ],
         "highlight_mode": "min",
+        "feature_extractor_files": "../../config/model_configs/downstream_tasks/feature_extractors",
     },
 }
 
@@ -154,7 +184,7 @@ def create_report(
     base_output_dir_path,
     wandb_project_id: str,
     downstream_head_config_path: str,
-    feature_extractor_files: str,
+    feature_extractor_files: Optional[str],
     class_metrics: List[str],
     highlight_mode: Literal["min", "max"],
     averages: Optional[Dict[str, Callable[[pd.DataFrame], pd.Series]]] = None,
@@ -164,8 +194,12 @@ def create_report(
         averages = {}
     base_output_dir_path = Path(base_output_dir_path)
     # Get file names
-    feature_extractor_files = Path(feature_extractor_files)
-    FEATURE_EXTRACTOR_NAMES = list(feature_extractor_files.glob("*.yaml"))
+    if feature_extractor_files is not None:
+        feature_extractor_files = Path(feature_extractor_files)
+        feature_extractor_names = list(feature_extractor_files.glob("*.yaml"))
+    else:
+        feature_extractor_names = []
+        assert additional_experiment_names is not None, "Feature extractor files were none but no additional experiment names were provided"
     downstream_head_config_path = Path(downstream_head_config_path)
 
     EXPERIMENT_NAMES = [
@@ -173,7 +207,7 @@ def create_report(
             backbone_name=backbone_path.name,
             downstream_head_name=downstream_head_config_path.name,
         )
-        for backbone_path in FEATURE_EXTRACTOR_NAMES
+        for backbone_path in feature_extractor_names
     ]
     if additional_experiment_names is not None:
         EXPERIMENT_NAMES += additional_experiment_names
@@ -284,6 +318,5 @@ if __name__ == "__main__":
         base_output_dir_path.mkdir(exist_ok=True, parents=True)
         create_report(
             base_output_dir_path=base_output_dir_path,
-            feature_extractor_files="../../config/model_configs/downstream_tasks/feature_extractors",
             **config,
         )
