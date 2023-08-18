@@ -7,58 +7,6 @@ train_beton_file: &TRAIN_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-de
 validation_beton_file: &VALIDATION_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-multilabel-validation.beton
 
 # Modality pipelines
-climate_zone_pipeline: &CZ_PIPELINE
-  - module: remote_sensing_core.transforms.ffcv.min_max_scaler.MinMaxScaler
-    kwargs:
-      minimum_value: 0
-      maximum_value: 30
-  - module: remote_sensing_core.transforms.ffcv.convert.Convert
-    kwargs:
-      target_dtype: "float32"
-  - module: ffcv.transforms.ToTensor
-
-era5_pipeline: &ERA_5_PIPELINE
-  - module: ffcv.fields.decoders.NDArrayDecoder
-  - module: remote_sensing_core.transforms.ffcv.channel_wise_min_max_scaler.ChannelWiseMinMaxScaler
-    kwargs:
-      minimum_value:
-        - 700  # atmpressure_level
-        - 250  # temperature_s2
-        - 250  # temperature_s1
-        - -20  # wind-u_s2
-        - -20  # wind-u_s1
-        - -20  # wind-v_s2
-        - -20  # wind-v_s1
-        - 0  # relhumidity_s2
-        - 0  # relhumidity_s1
-      maximum_value:
-        - 1000  # atmpressure_level
-        - 310  # temperature_s2
-        - 310  # temperature_s1
-        - 25  # wind-u_s2
-        - 25  # wind-u_s1
-        - 20  # wind-v_s2
-        - 20  # wind-v_s1
-        - 110  # relhumidity_s2
-        - 110  # relhumidity_s1
-      interval_min: [-1, -1, -1, -1, -1, -1, -1, -1, -1]
-      interval_max: [1, 1, 1, 1, 1, 1, 1, 1, 1]
-      two_dims: True
-  - module: remote_sensing_core.transforms.ffcv.convert.Convert
-    kwargs:
-      target_dtype: "float32"
-  - module: ffcv.transforms.ToTensor
-
-seasons_pipeline: &SEASONS_PIPELINE
-  - module: remote_sensing_core.transforms.ffcv.min_max_scaler.MinMaxScaler
-    kwargs:
-      minimum_value: 0
-      maximum_value: 1
-  - module: remote_sensing_core.transforms.ffcv.convert.Convert
-    kwargs:
-      target_dtype: "float32"
-  - module: ffcv.transforms.ToTensor
-
 sentinel_2_pipeline: &S2_PIPELINE
   - module: ffcv.fields.decoders.NDArrayDecoder
   - module: remote_sensing_core.transforms.ffcv.channel_selector.ChannelSelector
@@ -142,7 +90,7 @@ feature_extractor:
   module: remote_sensing_ddpm.downstream_tasks.modules.feature_extractor.FeatureExtractor
   kwargs:
     data_key: *DATA_KEY
-    checkpoint_path: "/netscratch2/alontke/master_thesis/code/ssl-ddpm-rs/rs-ddpm-ms/rtx8x85x/checkpoints/epoch=19-step=232920.ckpt"
+    checkpoint_path: "/netscratch2/alontke/master_thesis/code/ssl-ddpm-rs/rs-ddpm-ms/mwnlxn18/checkpoints/epoch=19-step=232920.ckpt"
     map_location: *DEVICE
     t: 1
     p_theta_model_kwargs:
@@ -159,10 +107,6 @@ feature_extractor:
         stack_inputs_keys:
           - "sentinel_1"
         auxiliary_p_theta_model_input:
-          climate_zone: "climate_zone"
-          era_5: "era_5"
-          season_s1: "season_s1"
-          season_s2: "season_s2"
           sentinel_1: "sentinel_1"
         data_key: "sentinel_2"
         learning_rate_scheduler_config:
