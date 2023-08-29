@@ -1,6 +1,6 @@
 import os
 import glob
-from typing import Optional
+from typing import Optional, List
 
 from tqdm import tqdm
 
@@ -9,22 +9,13 @@ import torch.utils.data as data
 
 from remote_sensing_ddpm.datasets.dfc2020.util import load_sample
 from remote_sensing_ddpm.datasets.dfc2020.constants import (
-    S2_BANDS_HR,
-    S2_BANDS_LR,
-    S2_BANDS_MR,
     DFC2020_CLASSES,
 )
 
 
 # calculate number of input channels
-def get_ninputs(use_s1, use_s2hr, use_s2mr, use_s2lr):
-    n_inputs = 0
-    if use_s2hr:
-        n_inputs += len(S2_BANDS_HR)
-    if use_s2mr:
-        n_inputs += len(S2_BANDS_MR)
-    if use_s2lr:
-        n_inputs += len(S2_BANDS_LR)
+def get_ninputs(use_s1, s2_bands):
+    n_inputs = len(s2_bands)
     if use_s1:
         n_inputs += 2
     return n_inputs
@@ -53,11 +44,9 @@ class DFC2020(data.Dataset):
     def __init__(
         self,
         path,
+        s2_bands: List[int],
         subset="val",
         no_savanna=False,
-        use_s2hr=False,
-        use_s2mr=False,
-        use_s2lr=False,
         use_s1=False,
         s1_augmentations: Optional[nn.Module] = None,
         s2_augmentations: Optional[nn.Module] = None,
@@ -69,15 +58,8 @@ class DFC2020(data.Dataset):
         super(DFC2020, self).__init__()
 
         # make sure parameters are okay
-        if not (use_s2hr or use_s2mr or use_s2lr or use_s1):
-            raise ValueError(
-                "No input specified, set at least one of "
-                + "use_[s2hr, s2mr, s2lr, s1] to True!"
-            )
-        self.use_s2hr = use_s2hr
-        self.use_s2mr = use_s2mr
-        self.use_s2lr = use_s2lr
         self.use_s1 = use_s1
+        self.s2_bands = s2_bands
         assert subset in ["val", "test"]
         self.no_savanna = no_savanna
 
@@ -87,12 +69,7 @@ class DFC2020(data.Dataset):
         self.batch_augmentation = batch_augmentation
 
         # provide number of input channels
-        self.n_inputs = get_ninputs(use_s1, use_s2hr, use_s2mr, use_s2lr)
-
-        # provide index of channel(s) suitable for previewing the input
-        self.display_channels, self.brightness_factor = get_display_channels(
-            use_s2hr, use_s2mr, use_s2lr
-        )
+        self.n_inputs = get_ninputs(use_s1, s2_bands)
 
         # provide number of classes
         if no_savanna:
@@ -136,9 +113,7 @@ class DFC2020(data.Dataset):
         sample = load_sample(
             sample,
             self.use_s1,
-            self.use_s2hr,
-            self.use_s2mr,
-            self.use_s2lr,
+            self.s2_bands,
             no_savanna=self.no_savanna,
             igbp=False,
             s1_augmentations=self.s1_augmentations,

@@ -14,14 +14,8 @@ from remote_sensing_ddpm.datasets.dfc2020.constants import (
 
 
 # util function for reading s2 data
-def load_s2(path, use_hr, use_mr, use_lr, s2_augmentations: Optional[nn.Module] = None):
-    bands_selected = []
-    if use_hr:
-        bands_selected = bands_selected + S2_BANDS_HR
-    if use_mr:
-        bands_selected = bands_selected + S2_BANDS_MR
-    if use_lr:
-        bands_selected = bands_selected + S2_BANDS_LR
+def load_s2(path, s2_bands, s2_augmentations: Optional[nn.Module] = None):
+    bands_selected = s2_bands
     bands_selected = sorted(bands_selected)
     with rasterio.open(path) as data:
         s2 = data.read(bands_selected)
@@ -77,9 +71,7 @@ def load_lc(path, no_savanna=False, igbp=True):
 def load_sample(
     sample,
     use_s1,
-    use_s2hr,
-    use_s2mr,
-    use_s2lr,
+    s2_bands,
     no_savanna=False,
     igbp=True,
     unlabeled=False,
@@ -87,15 +79,13 @@ def load_sample(
     s2_augmentations=None,
 ):
 
-    use_s2 = use_s2hr or use_s2mr or use_s2lr
+    use_s2 = (len(s2_bands) > 0)
 
     # load s2 data
     if use_s2:
         img = load_s2(
             sample["s2"],
-            use_s2hr,
-            use_s2mr,
-            use_s2lr,
+            s2_bands,
             s2_augmentations=s2_augmentations,
         )
     else:
