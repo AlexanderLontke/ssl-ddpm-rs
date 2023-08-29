@@ -1,0 +1,153 @@
+import os
+import glob
+from typing import Optional
+
+from tqdm import tqdm
+
+from torch import nn
+import torch.utils.data as data
+
+from remote_sensing_ddpm.datasets.dfc2020.util import load_sample
+from remote_sensing_ddpm.datasets.dfc2020.constants import (
+    S2_BANDS_HR,
+    S2_BANDS_LR,
+    S2_BANDS_MR,
+    DFC2020_CLASSES,
+)
+
+
+# calculate number of input channels
+def get_ninputs(use_s1, use_s2hr, use_s2mr, use_s2lr):
+    n_inputs = 0
+    if use_s2hr:
+        n_inputs += len(S2_BANDS_HR)
+    if use_s2mr:
+        n_inputs += len(S2_BANDS_MR)
+    if use_s2lr:
+        n_inputs += len(S2_BANDS_LR)
+    if use_s1:
+        n_inputs += 2
+    return n_inputs
+
+
+# select channels for preview images
+def get_display_channels(use_s2hr, use_s2mr, use_s2lr):
+    if use_s2hr and use_s2lr:
+        display_channels = [3, 2, 1]
+        brightness_factor = 3
+    elif use_s2hr:
+        display_channels = [2, 1, 0]
+        brightness_factor = 3
+    elif not (use_s2hr or use_s2mr or use_s2lr):
+        display_channels = 0
+        brightness_factor = 1
+    else:
+        display_channels = 0
+        brightness_factor = 3
+    return (display_channels, brightness_factor)
+
+
+class DFC2020(data.Dataset):
+    """PyTorch dataset class for the DFC2020 dataset"""
+
+    def __init__(
+        self,
+        path,
+        subset="val",
+        no_savanna=False,
+        use_s2hr=False,
+        use_s2mr=False,
+        use_s2lr=False,
+        use_s1=False,
+        s1_augmentations: Optional[nn.Module] = None,
+        s2_augmentations: Optional[nn.Module] = None,
+        batch_augmentation: Optional[nn.Module] = None,
+    ):
+        """Initialize the dataset"""
+
+        # inizialize
+        super(DFC2020, self).__init__()
+
+        # make sure parameters are okay
+        if not (use_s2hr or use_s2mr or use_s2lr or use_s1):
+            raise ValueError(
+                "No input specified, set at least one of "
+                + "use_[s2hr, s2mr, s2lr, s1] to True!"
+            )
+        self.use_s2hr = use_s2hr
+        self.use_s2mr = use_s2mr
+        self.use_s2lr = use_s2lr
+        self.use_s1 = use_s1
+        assert subset in ["val", "test"]
+        self.no_savanna = no_savanna
+
+        # store augmentations if provided
+        self.s1_augmentations = s1_augmentations
+        self.s2_augmentations = s2_augmentations
+        self.batch_augmentation = batch_augmentation
+
+        # provide number of input channels
+        self.n_inputs = get_ninputs(use_s1, use_s2hr, use_s2mr, use_s2lr)
+
+        # provide index of channel(s) suitable for previewing the input
+        self.display_channels, self.brightness_factor = get_display_channels(
+            use_s2hr, use_s2mr, use_s2lr
+        )
+
+        # provide number of classes
+        if no_savanna:
+            self.n_classes = max(DFC2020_CLASSES) - 1
+        else:
+            self.n_classes = max(DFC2020_CLASSES)
+
+        # make sure parent dir exists
+        assert os.path.exists(path)
+
+        # build list of sample paths
+        if subset == "val":
+            path = os.path.join(path, "ROIs0000_validation", "s2_0")
+        else:
+            path = os.path.join(path, "ROIs0000_test", "s2_0")
+
+        s2_locations = glob.glob(os.path.join(path, "*.tif"), recursive=True)
+        self.samples = []
+        for s2_loc in tqdm(s2_locations, desc="[Load]"):
+            s1_loc = s2_loc.replace("_s2_", "_s1_").replace("s2_", "s1_")
+            lc_loc = s2_loc.replace("_dfc_", "_lc_").replace("s2_", "dfc_")
+            self.samples.append(
+                {
+                    "lc": lc_loc,
+                    "s1": s1_loc,
+                    "s2": s2_loc,
+                    "id": os.path.basename(s2_loc),
+                }
+            )
+
+        # sort list of samples
+        self.samples = sorted(self.samples, key=lambda i: i["id"])
+
+        print("loaded", len(self.samples), "samples from the dfc2020 subset", subset)
+
+    def __getitem__(self, index):
+        """Get a single example from the dataset"""
+
+        # get and load sample from index file
+        sample = self.samples[index]
+        sample = load_sample(
+            sample,
+            self.use_s1,
+            self.use_s2hr,
+            self.use_s2mr,
+            self.use_s2lr,
+            no_savanna=self.no_savanna,
+            igbp=False,
+            s1_augmentations=self.s1_augmentations,
+            s2_augmentations=self.s2_augmentations,
+        )
+        if self.batch_augmentation is not None:
+            sample = self.batch_augmentation(sample)
+        return sample
+
+    def __len__(self):
+        """Get number of samples in the dataset"""
+        return len(self.samples)
