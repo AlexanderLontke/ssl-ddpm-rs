@@ -21,23 +21,6 @@ def get_ninputs(use_s1, s2_bands):
     return n_inputs
 
 
-# select channels for preview images
-def get_display_channels(use_s2hr, use_s2mr, use_s2lr):
-    if use_s2hr and use_s2lr:
-        display_channels = [3, 2, 1]
-        brightness_factor = 3
-    elif use_s2hr:
-        display_channels = [2, 1, 0]
-        brightness_factor = 3
-    elif not (use_s2hr or use_s2mr or use_s2lr):
-        display_channels = 0
-        brightness_factor = 1
-    else:
-        display_channels = 0
-        brightness_factor = 3
-    return (display_channels, brightness_factor)
-
-
 class DFC2020(data.Dataset):
     """PyTorch dataset class for the DFC2020 dataset"""
 
@@ -92,12 +75,20 @@ class DFC2020(data.Dataset):
             s1_loc = s2_loc.replace("_s2_", "_s1_").replace("s2_", "s1_")
             lc_loc = s2_loc.replace("_dfc_", "_lc_").replace("s2_", "dfc_")
             self.samples.append(
-                {
-                    "lc": lc_loc,
-                    "s1": s1_loc,
-                    "s2": s2_loc,
-                    "id": os.path.basename(s2_loc),
-                }
+                load_sample(
+                    {
+                        "lc": lc_loc,
+                        "s1": s1_loc,
+                        "s2": s2_loc,
+                        "id": os.path.basename(s2_loc),
+                    },
+                    self.use_s1,
+                    self.s2_bands,
+                    no_savanna=self.no_savanna,
+                    igbp=False,
+                    s1_augmentations=self.s1_augmentations,
+                    s2_augmentations=self.s2_augmentations,
+                )
             )
 
         # sort list of samples
@@ -110,15 +101,6 @@ class DFC2020(data.Dataset):
 
         # get and load sample from index file
         sample = self.samples[index]
-        sample = load_sample(
-            sample,
-            self.use_s1,
-            self.s2_bands,
-            no_savanna=self.no_savanna,
-            igbp=False,
-            s1_augmentations=self.s1_augmentations,
-            s2_augmentations=self.s2_augmentations,
-        )
         if self.batch_augmentation is not None:
             sample = self.batch_augmentation(sample)
         return sample
