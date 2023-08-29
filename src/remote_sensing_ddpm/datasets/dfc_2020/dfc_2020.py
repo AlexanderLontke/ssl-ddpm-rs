@@ -7,8 +7,8 @@ from tqdm import tqdm
 from torch import nn
 import torch.utils.data as data
 
-from remote_sensing_ddpm.datasets.dfc2020.util import load_sample
-from remote_sensing_ddpm.datasets.dfc2020.constants import (
+from remote_sensing_ddpm.datasets.dfc_2020.util import load_sample
+from remote_sensing_ddpm.datasets.dfc_2020.constants import (
     DFC2020_CLASSES,
 )
 

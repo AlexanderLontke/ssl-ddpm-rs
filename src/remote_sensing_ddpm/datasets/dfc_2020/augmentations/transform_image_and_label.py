@@ -5,9 +5,9 @@ from torch import nn
 
 
 class TransformImageAndLabel(nn.Module):
-    def __init__(self, img_key, label_key, transform_op: nn.Module, *args, **kwargs):
+    def __init__(self, image_key, label_key, transform_op: nn.Module, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.image_key = img_key
+        self.image_key = image_key
         self.label_key = label_key
         self.transform_op = transform_op
 

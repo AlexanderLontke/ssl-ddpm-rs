@@ -5,7 +5,7 @@ import numpy as np
 
 from torch import nn
 
-from remote_sensing_ddpm.datasets.dfc2020.constants import (
+from remote_sensing_ddpm.datasets.dfc_2020.constants import (
     S2_BANDS_HR,
     S2_BANDS_LR,
     S2_BANDS_MR,
