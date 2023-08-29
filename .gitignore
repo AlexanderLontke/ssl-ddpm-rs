@@ -60,3 +60,6 @@ wandb/*
 # Checkpoints
 *.ckpt
 *.pt
+
+# Pickel files
+*.pkl
