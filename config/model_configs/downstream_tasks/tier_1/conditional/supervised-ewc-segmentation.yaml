@@ -142,6 +142,7 @@ pl_module:
     downstream_model:
       module: remote_sensing_ddpm.downstream_tasks.downstream_task_model.DownstreamTaskModel
       kwargs:
+        freeze_fe: False
         downstream_layer:
           module: remote_sensing_ddpm.downstream_tasks.models.dynamic_segmentation_head.DynamicSegmentationHead
           kwargs:

@@ -198,6 +198,7 @@ feature_extractor:
                 use_checkpoint: False
                 num_heads: 4
                 resblock_updown: True
+                use_scale_shift_norm: True
                 use_spatial_transformer: True
                 transformer_depth: 1
                 # Only needed when providing prompt
