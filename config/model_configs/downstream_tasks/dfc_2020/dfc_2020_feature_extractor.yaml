@@ -1,43 +1,111 @@
 device: &DEVICE cuda
-data_key: &DATA_KEY "sentinel_2"
-sentinel_1_key: &S1_KEY "sentinel_1"
+image_key: &IMAGE_KEY "image"
+label_key: &LABEL_KEY "label"
 image_size: &IMAGE_SIZE 128
 image_channels: &IMAGE_CHANNELS 6
 
 
 # DATA SET CONFIG
-tuple_mapping: &TUPLE_MAPPING [*S1_KEY, *DATA_KEY]
 train_torch_data_loader:
-  module: remote_sensing_ddpm.utils.ffcv_loader_wrapper.FFCVLoaderWrapper
+  module: torch.utils.data.DataLoader
   kwargs:
-    fname: *TRAIN_BETON_FILE
     batch_size: 24
     num_workers: 4
-    order:
-      module: ffcv.loader.OrderOption
-      args: [ 3 ] # 3 is Quasi random
-    pipelines: *PIPELINES
-    mapping: *TUPLE_MAPPING
-
+    shuffle: True
+    dataset:
+      module: remote_sensing_ddpm.datasets.dfc_2020.dfc_2020.DFC2020
+      kwargs:
+        path: "/ds2/remote_sensing/grss-dfc-20"
+        subset: test
+        s2_bands: [ 3, 2, 1, 7]
+        no_savanna: True
+        s1_augmentations:
+          module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
+          kwargs:
+            minimum_value: -25
+            maximum_value: 0
+            interval_min: -1.0
+            interval_max: 1.0
+        s2_augmentations:
+          module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
+          kwargs:
+            minimum_value: 10000
+            maximum_value: 0
+            interval_min: -1.0
+            interval_max: 1.0
+        batch_augmentation:
+          module: torch.nn.Sequential
+          args:
+            - module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.transform_image_and_label
+              kwargs:
+                image_key: *IMAGE_KEY
+                label_key: *LABEL_KEY
+                transform_op:
+                  module: torchvision.transforms.RandomCrop
+                  kwargs:
+                    size: 120
+            - module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.transform_image_and_label
+              kwargs:
+                mage_key: *IMAGE_KEY
+                label_key: *LABEL_KEY
+                transform_op:
+                  module: torchvision.transforms.Pad
+                  kwargs:
+                    padding: 4
 
 validation_torch_data_loader:
-  module: remote_sensing_ddpm.utils.ffcv_loader_wrapper.FFCVLoaderWrapper
+  module: torch.utils.data.DataLoader
   kwargs:
-    fname: *VALIDATION_BETON_FILE
     batch_size: 24
     num_workers: 4
-    order:
-      module: ffcv.loader.OrderOption
-      args: [ 1 ]
-    pipelines: *PIPELINES
-    mapping: *TUPLE_MAPPING
+    shuffle: False
+    dataset:
+      module: remote_sensing_ddpm.datasets.dfc_2020.dfc_2020.DFC2020
+      kwargs:
+        path: "/ds2/remote_sensing/grss-dfc-20"
+        subset: val
+        s2_bands: [ 3, 2, 1, 7 ]
+        no_savanna: True
+        s1_augmentations:
+          module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
+          kwargs:
+            minimum_value: -25
+            maximum_value: 0
+            interval_min: -1.0
+            interval_max: 1.0
+        s2_augmentations:
+          module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
+          kwargs:
+            minimum_value: 10000
+            maximum_value: 0
+            interval_min: -1.0
+            interval_max: 1.0
+        batch_augmentation:
+          module: torch.nn.Sequential
+          args:
+            - module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.transform_image_and_label
+              kwargs:
+                image_key: *IMAGE_KEY
+                label_key: *LABEL_KEY
+                transform_op:
+                  module: torchvision.transforms.RandomCrop
+                  kwargs:
+                    size: 120
+            - module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.transform_image_and_label
+              kwargs:
+                mage_key: *IMAGE_KEY
+                label_key: *LABEL_KEY
+                transform_op:
+                  module: torchvision.transforms.Pad
+                  kwargs:
+                    padding: 4
 
 
 # FEATURE EXTRACTOR CONFIG
 feature_extractor:
   module: remote_sensing_ddpm.downstream_tasks.modules.feature_extractor.FeatureExtractor
   kwargs:
-    data_key: *DATA_KEY
+    data_key: *IMAGE_KEY
     checkpoint_path: "/netscratch2/alontke/master_thesis/code/ssl-ddpm-rs/rs-ddpm-ms/isam22bx/checkpoints/epoch=19-step=155280.ckpt"
     map_location: *DEVICE
     t: 1
@@ -52,11 +120,7 @@ feature_extractor:
         beta_schedule_linear_start: 0.0001
         beta_schedule_linear_end: 0.02
         learning_rate: 0.00001
-        stack_inputs_keys:
-          - *S1_KEY
-        auxiliary_p_theta_model_input:
-          sentinel_1: *S1_KEY
-        data_key: *DATA_KEY
+        data_key: *IMAGE_KEY
         learning_rate_scheduler_config:
           module: torch.optim.lr_scheduler.LinearLR
           delay: 1

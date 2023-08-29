@@ -1,24 +1,11 @@
-name: &NAME rs-ddpm-ms-segmentation-egypt
+name: &NAME rs-ddpm-ms-dfc-2020
 seed: 42
 device: &DEVICE cuda
 monitor: &MONITOR "val/mIoU"
 monitor_mode: &MONITOR_MODE "max"
-target_key: &TARGET_KEY "esa_worldcover"
+target_key: &TARGET_KEY "label"
 output_channels: &OUTPUT_CHANNELS 11
-image_size: &IMAGE_SIZE 128
-ewc_labels: &EWC_LABELS ["Tree cover", "Shrubland", "Grassland", "Cropland", "Built-up", "Bare", "Snow and Ice", "Permanenet water bodies", "Herbaceous wetland", "Mangroves", "Moss and lichen" ]
-
-label_pipeline:
-  *TARGET_KEY:
-    - module: ffcv.fields.decoders.NDArrayDecoder
-    - module: remote_sensing_core.transforms.ffcv.esa_world_cover_transform.EsaWorldCoverTransform
-      kwargs:
-        divisor: 10.0
-        subtractor: 1.0
-    - module: remote_sensing_core.transforms.ffcv.convert.Convert
-      kwargs:
-        target_dtype: "int64"
-    - module: ffcv.transforms.ToTensor
+dfc_labels: &DFC_LABELS ["Forest", "Shrubland", "Savanna", "Grassland", "Wetlands", "Croplands", "Urban/Built-up", "Snow/Ice", "Barren", "Water"]
 
 downstream_task_specific_feature_extractor_kwargs:
   feature_section: "decoder"
@@ -61,7 +48,7 @@ train_metrics: &TRAIN_METRICS
               task: "multiclass"
               num_classes: *OUTPUT_CHANNELS
               average: null
-      labels: *EWC_LABELS
+      labels: *DFC_LABELS
   classwise_mIoU:
     module: torchmetrics.ClasswiseWrapper
     kwargs:
@@ -76,7 +63,7 @@ train_metrics: &TRAIN_METRICS
               task: "multiclass"
               num_classes: *OUTPUT_CHANNELS
               average: null
-      labels: *EWC_LABELS
+      labels: *DFC_LABELS
 
 validation_metrics: &VAL_METRICS
   accuracy:
@@ -113,7 +100,7 @@ validation_metrics: &VAL_METRICS
               task: "multiclass"
               num_classes: *OUTPUT_CHANNELS
               average: null
-      labels: *EWC_LABELS
+      labels: *DFC_LABELS
   classwise_mIoU:
     module: torchmetrics.ClasswiseWrapper
     kwargs:
@@ -128,7 +115,7 @@ validation_metrics: &VAL_METRICS
               task: "multiclass"
               num_classes: *OUTPUT_CHANNELS
               average: null
-      labels: *EWC_LABELS
+      labels: *DFC_LABELS
 
 pl_module:
   module: remote_sensing_ddpm.downstream_tasks.lit_downstream_task.LitDownstreamTask
