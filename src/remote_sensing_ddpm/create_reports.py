@@ -25,7 +25,21 @@ from from_wandb_to_paper.util.data_aggregation import calculate_class_weighted_m
 CLASS_WEIGHTED_AVERAGE_NAME = "Class-Weighted Average"
 UNIFORM_AVERAGE_NAME = "Uniform Average"
 
-TEST_SET_CLASS_FRACTIONS = {
+TEST_SET_SEGMENTATION_CLASS_FRACTIONS = {
+    "Tree cover": 0.4300583543210937,
+    "Shrubland": 0.01087377054654035,
+    "Grassland": 0.2075682758077903,
+    "Cropland": 0.13916261817540043,
+    "Built-up": 0.016301759871402245,
+    "Bare": 0.0011900179349951731,
+    "Snow and Ice": 0.0,
+    "Permanenet water bodies": 0.1891719553437699,
+    "Herbaceous wetland": 0.005394617593467072,
+    "Mangroves": 0.0,
+    "Moss and lichen": 0.0002786304055407682,
+}
+
+TEST_SET_CLASSIFICATION_CLASS_FRACTIONS = {
     "Tree cover": 0.34617318327725566,
     "Shrubland": 0.021386858490930888,
     "Grassland": 0.28912866921916697,
@@ -80,7 +94,7 @@ def mae_mean(metrics_table: pd.DataFrame) -> pd.Series:
 
 EXPERIMENTS_DICT = {
     "segmentation": {
-        "wandb_project_id": "ssl-diffusion/rs-ddpm-ms-segmentation-egypt-eval",
+        "wandb_project_ids": "ssl-diffusion/rs-ddpm-ms-segmentation-egypt-eval",
         "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-segmentation.yaml",
         "class_metrics": [
             "test/jaccardindexadapter_Herbaceous wetland",
@@ -99,69 +113,100 @@ EXPERIMENTS_DICT = {
         "averages": {
             UNIFORM_AVERAGE_NAME: uniform_mean,
             CLASS_WEIGHTED_AVERAGE_NAME: partial(
-                calculate_class_weighted_mean, class_fractions=TEST_SET_CLASS_FRACTIONS
+                calculate_class_weighted_mean,
+                class_fractions=TEST_SET_SEGMENTATION_CLASS_FRACTIONS,
             ),
         },
         "feature_extractor_files": "../../config/model_configs/downstream_tasks/feature_extractors",
     },
-    "segmentation_w_supervised": {
-        "wandb_project_id": "ssl-diffusion/rs-ddpm-ms-segmentation-egypt-eval",
-        "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-segmentation.yaml",
-        "class_metrics": [
-            "test/jaccardindexadapter_Herbaceous wetland",
-            "test/jaccardindexadapter_Bare",
-            "test/jaccardindexadapter_Tree cover",
-            # 'test/jaccardindexadapter_Moss and lichen',
-            "test/jaccardindexadapter_Shrubland",
-            "test/jaccardindexadapter_Cropland",
-            "test/jaccardindexadapter_Built-up",
-            # 'test/jaccardindexadapter_Snow and Ice',
-            "test/jaccardindexadapter_Grassland",
-            "test/jaccardindexadapter_Permanenet water bodies",
-            # 'test/jaccardindexadapter_Mangroves'
+    # "segmentation_w_supervised": {
+    #     "wandb_project_ids": "ssl-diffusion/rs-ddpm-ms-segmentation-egypt-eval",
+    #     "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-segmentation.yaml",
+    #     "class_metrics": [
+    #         "test/jaccardindexadapter_Herbaceous wetland",
+    #         "test/jaccardindexadapter_Bare",
+    #         "test/jaccardindexadapter_Tree cover",
+    #         # 'test/jaccardindexadapter_Moss and lichen',
+    #         "test/jaccardindexadapter_Shrubland",
+    #         "test/jaccardindexadapter_Cropland",
+    #         "test/jaccardindexadapter_Built-up",
+    #         # 'test/jaccardindexadapter_Snow and Ice',
+    #         "test/jaccardindexadapter_Grassland",
+    #         "test/jaccardindexadapter_Permanenet water bodies",
+    #         # 'test/jaccardindexadapter_Mangroves'
+    #     ],
+    #     "highlight_mode": "max",
+    #     "averages": {
+    #         UNIFORM_AVERAGE_NAME: uniform_mean,
+    #         CLASS_WEIGHTED_AVERAGE_NAME: partial(
+    #             calculate_class_weighted_mean, class_fractions=TEST_SET_CLASS_FRACTIONS
+    #         ),
+    #     },
+    #     "additional_experiment_names": ["supervised_s1_s2-supervised_ewc_segmentation"],
+    #     "feature_extractor_files": "../../config/model_configs/downstream_tasks/feature_extractors",
+    # },
+    # "conditional_models": {
+    #     "wandb_project_ids": "ssl-diffusion/rs-ddpm-ms-segmentation-conditional-eval",
+    #     "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-segmentation.yaml",
+    #     "class_metrics": [
+    #         "test/jaccardindexadapter_Herbaceous wetland",
+    #         "test/jaccardindexadapter_Bare",
+    #         "test/jaccardindexadapter_Tree cover",
+    #         # 'test/jaccardindexadapter_Moss and lichen',
+    #         "test/jaccardindexadapter_Shrubland",
+    #         "test/jaccardindexadapter_Cropland",
+    #         "test/jaccardindexadapter_Built-up",
+    #         # 'test/jaccardindexadapter_Snow and Ice',
+    #         "test/jaccardindexadapter_Grassland",
+    #         "test/jaccardindexadapter_Permanenet water bodies",
+    #         # 'test/jaccardindexadapter_Mangroves'
+    #     ],
+    #     "highlight_mode": "max",
+    #     "averages": {
+    #         UNIFORM_AVERAGE_NAME: uniform_mean,
+    #         CLASS_WEIGHTED_AVERAGE_NAME: partial(
+    #             calculate_class_weighted_mean, class_fractions=TEST_SET_CLASS_FRACTIONS
+    #         ),
+    #     },
+    #     "additional_experiment_names": [
+    #         "supervised_s1_s2_conditional-ewc-segmentation",
+    #         "s1_s2_conditional_last-ewc-segmentation",
+    #         "s1_s2_unconditional-ewc-segmentation"
+    #     ],
+    #     "feature_extractor_files": None,
+    # },
+    # "classification": {
+    #     "wandb_project_ids": "ssl-diffusion/rs-ddpm-ms-classification-france-eval",
+    #     "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-classification.yaml",
+    #     "class_metrics": [
+    #         "test/multilabelf1score_Herbaceous wetland",
+    #         "test/multilabelf1score_Bare",
+    #         "test/multilabelf1score_Tree cover",
+    #         # 'test/multilabelf1score_Moss and lichen',
+    #         "test/multilabelf1score_Shrubland",
+    #         "test/multilabelf1score_Cropland",
+    #         "test/multilabelf1score_Built-up",
+    #         # 'test/multilabelf1score_Snow and Ice',
+    #         "test/multilabelf1score_Grassland",
+    #         "test/multilabelf1score_Permanenet water bodies",
+    #         # 'test/multilabelf1score_Mangroves'
+    #     ],
+    #     "highlight_mode": "max",
+    #     "feature_extractor_files": "../../config/model_configs/downstream_tasks/feature_extractors",
+    # },
+    # "regression": {
+    #     "wandb_project_ids": "ssl-diffusion/rs-ddpm-ms-regression-egypt-eval",
+    #     "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-regression.yaml",
+    #     "class_metrics": ["test/mean_squared_error", "test/mean_absolute_error",],
+    #     "highlight_mode": "min",
+    #     "feature_extractor_files": "../../config/model_configs/downstream_tasks/feature_extractors",
+    #     "averages": {"Mean Squared Error": mse_mean, "Mean Absolute Error": mae_mean,},
+    # },
+    "classification-gallen": {
+        "wandb_project_ids": [
+            "ssl-diffusion/rs-ddpm-ms-classification-gallen-eval",
+            "ssl-diffusion/rs-ddpm-ms-classification-france-eval",
         ],
-        "highlight_mode": "max",
-        "averages": {
-            UNIFORM_AVERAGE_NAME: uniform_mean,
-            CLASS_WEIGHTED_AVERAGE_NAME: partial(
-                calculate_class_weighted_mean, class_fractions=TEST_SET_CLASS_FRACTIONS
-            ),
-        },
-        "additional_experiment_names": ["supervised_s1_s2-supervised_ewc_segmentation"],
-        "feature_extractor_files": "../../config/model_configs/downstream_tasks/feature_extractors",
-    },
-    "conditional_models": {
-        "wandb_project_id": "ssl-diffusion/rs-ddpm-ms-segmentation-conditional-eval",
-        "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-segmentation.yaml",
-        "class_metrics": [
-            "test/jaccardindexadapter_Herbaceous wetland",
-            "test/jaccardindexadapter_Bare",
-            "test/jaccardindexadapter_Tree cover",
-            # 'test/jaccardindexadapter_Moss and lichen',
-            "test/jaccardindexadapter_Shrubland",
-            "test/jaccardindexadapter_Cropland",
-            "test/jaccardindexadapter_Built-up",
-            # 'test/jaccardindexadapter_Snow and Ice',
-            "test/jaccardindexadapter_Grassland",
-            "test/jaccardindexadapter_Permanenet water bodies",
-            # 'test/jaccardindexadapter_Mangroves'
-        ],
-        "highlight_mode": "max",
-        "averages": {
-            UNIFORM_AVERAGE_NAME: uniform_mean,
-            CLASS_WEIGHTED_AVERAGE_NAME: partial(
-                calculate_class_weighted_mean, class_fractions=TEST_SET_CLASS_FRACTIONS
-            ),
-        },
-        "additional_experiment_names": [
-            "supervised_s1_s2_conditional-ewc-segmentation",
-            "s1_s2_conditional_last-ewc-segmentation",
-            "s1_s2_unconditional-ewc-segmentation"
-        ],
-        "feature_extractor_files": None,
-    },
-    "classification": {
-        "wandb_project_id": "ssl-diffusion/rs-ddpm-ms-classification-france-eval",
         "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-classification.yaml",
         "class_metrics": [
             "test/multilabelf1score_Herbaceous wetland",
@@ -178,21 +223,20 @@ EXPERIMENTS_DICT = {
         ],
         "highlight_mode": "max",
         "feature_extractor_files": "../../config/model_configs/downstream_tasks/feature_extractors",
-    },
-    "regression": {
-        "wandb_project_id": "ssl-diffusion/rs-ddpm-ms-regression-egypt-eval",
-        "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-regression.yaml",
-        "class_metrics": ["test/mean_squared_error", "test/mean_absolute_error",],
-        "highlight_mode": "min",
-        "feature_extractor_files": "../../config/model_configs/downstream_tasks/feature_extractors",
-        "averages": {"Mean Squared Error": mse_mean, "Mean Absolute Error": mae_mean,},
+        "averages": {
+            UNIFORM_AVERAGE_NAME: uniform_mean,
+            CLASS_WEIGHTED_AVERAGE_NAME: partial(
+                calculate_class_weighted_mean,
+                class_fractions=TEST_SET_CLASSIFICATION_CLASS_FRACTIONS,
+            ),
+        },
     },
 }
 
 
 def create_report(
     base_output_dir_path,
-    wandb_project_id: str,
+    wandb_project_ids: str,
     downstream_head_config_path: str,
     feature_extractor_files: Optional[str],
     class_metrics: List[str],
@@ -245,7 +289,7 @@ def create_report(
 
     # Create table showing class-wise overview of metrics
     metrics_table = get_metrics_table(
-        wandb_project_id=wandb_project_id,
+        wandb_project_ids=wandb_project_ids,
         run_filter=EVAL_RUN_FILTER,
         run_names=EVAL_RUN_NAMES,
         metric_names=class_metrics,
@@ -267,7 +311,9 @@ def create_report(
         make_string_latex_compatible(
             clean_string_outputs(
                 metrics_table_to_latex(
-                    metrics_table, clines="all;data", mode=highlight_mode,
+                    metrics_table,
+                    clines="all;data",
+                    mode=highlight_mode,
                 )
             )
         ),
@@ -280,14 +326,16 @@ def create_report(
             base_output_dir_path / f"{average}_metric_figure.png"
         )
         visualize_single_metrics_table_metric(
-            metrics_table, metrics_name=average, xlabel_transform=clean_string_outputs,
+            metrics_table,
+            metrics_name=average,
+            xlabel_transform=clean_string_outputs,
         )
         save_plot(main_metric_figure_output_file_path)
 
     # Create label fraction overview
     # Get Data
     lf_metrics_table = get_metrics_table(
-        wandb_project_id=wandb_project_id,
+        wandb_project_ids=wandb_project_ids,
         run_filter=LF_EVAL_RUN_FILTER,
         run_names=LF_EVAL_RUN_NAMES,
         metric_names=class_metrics,
@@ -325,5 +373,6 @@ if __name__ == "__main__":
         )
         base_output_dir_path.mkdir(exist_ok=True, parents=True)
         create_report(
-            base_output_dir_path=base_output_dir_path, **config,
+            base_output_dir_path=base_output_dir_path,
+            **config,
         )
