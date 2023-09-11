@@ -18,26 +18,28 @@ train_torch_data_loader:
         path: "/ds2/remote_sensing/grss-dfc-20"
         subset: test
         s2_bands: [ 3, 2, 1, 7]
+        use_s1: True
         no_savanna: True
         label_mode: "classification"
+        label_dtype: "float"
         s1_augmentations:
           module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
           kwargs:
-            minimum_value: -25
-            maximum_value: 0
+            minimum_value: 0
+            maximum_value: 1
             interval_min: -1.0
             interval_max: 1.0
         s2_augmentations:
           module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
           kwargs:
-            minimum_value: 10000
-            maximum_value: 0
+            minimum_value: 0
+            maximum_value: 1
             interval_min: -1.0
             interval_max: 1.0
         batch_augmentation:
           module: torch.nn.Sequential
           args:
-            - module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.transform_image_and_label
+            - module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.transform_image_and_label.TransformImageAndLabel
               kwargs:
                 image_key: *IMAGE_KEY
                 label_key: *LABEL_KEY
@@ -45,10 +47,11 @@ train_torch_data_loader:
                   module: torchvision.transforms.RandomCrop
                   kwargs:
                     size: 120
-            - module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.transform_image_and_label
+            - module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.transform_image_and_label.TransformImageAndLabel
               kwargs:
-                mage_key: *IMAGE_KEY
+                image_key: *IMAGE_KEY
                 label_key: *LABEL_KEY
+                only_image: True
                 transform_op:
                   module: torchvision.transforms.Pad
                   kwargs:
@@ -67,24 +70,27 @@ validation_torch_data_loader:
         subset: val
         s2_bands: [ 3, 2, 1, 7 ]
         no_savanna: True
+        use_s1: True
+        label_mode: "classification"
+        label_dtype: "float"
         s1_augmentations:
           module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
           kwargs:
-            minimum_value: -25
-            maximum_value: 0
+            minimum_value: 0
+            maximum_value: 1
             interval_min: -1.0
             interval_max: 1.0
         s2_augmentations:
           module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
           kwargs:
-            minimum_value: 10000
-            maximum_value: 0
+            minimum_value: 0
+            maximum_value: 1
             interval_min: -1.0
             interval_max: 1.0
         batch_augmentation:
           module: torch.nn.Sequential
           args:
-            - module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.transform_image_and_label
+            - module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.transform_image_and_label.TransformImageAndLabel
               kwargs:
                 image_key: *IMAGE_KEY
                 label_key: *LABEL_KEY
@@ -92,10 +98,11 @@ validation_torch_data_loader:
                   module: torchvision.transforms.RandomCrop
                   kwargs:
                     size: 120
-            - module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.transform_image_and_label
+            - module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.transform_image_and_label.TransformImageAndLabel
               kwargs:
-                mage_key: *IMAGE_KEY
+                image_key: *IMAGE_KEY
                 label_key: *LABEL_KEY
+                only_image: True
                 transform_op:
                   module: torchvision.transforms.Pad
                   kwargs:

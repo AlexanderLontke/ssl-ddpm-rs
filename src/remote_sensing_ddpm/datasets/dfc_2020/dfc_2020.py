@@ -7,9 +7,10 @@ from tqdm import tqdm
 from torch import nn
 import torch.utils.data as data
 
-from remote_sensing_ddpm.datasets.dfc_2020.util import load_sample
+from remote_sensing_ddpm.datasets.dfc_2020.util import load_sample, get_class_fractions_from_segmentation_map
 from remote_sensing_ddpm.datasets.dfc_2020.constants import (
     DFC2020_CLASSES,
+    LABEL_KEY,
 )
 
 
@@ -32,6 +33,7 @@ class DFC2020(data.Dataset):
         no_savanna: bool =False,
         use_s1: bool =False,
         load_on_the_fly: bool = True,
+        label_dtype: str = "float",
         label_mode: Literal["classification", "segmentation", "regression"] = "segmentation",
         s1_augmentations: Optional[nn.Module] = None,
         s2_augmentations: Optional[nn.Module] = None,
@@ -46,9 +48,11 @@ class DFC2020(data.Dataset):
         self.load_on_the_fly = load_on_the_fly
         self.use_s1 = use_s1
         self.s2_bands = s2_bands
+        self.label_dtype = label_dtype
         self.label_mode = label_mode
         assert subset in ["val", "test"]
         self.no_savanna = no_savanna
+        self.num_classes = 9 if self.no_savanna else 10
 
         # store augmentations if provided
         self.s1_augmentations = s1_augmentations
@@ -94,7 +98,6 @@ class DFC2020(data.Dataset):
                     igbp=False,
                     s1_augmentations=self.s1_augmentations,
                     s2_augmentations=self.s2_augmentations,
-                    label_mode=self.label_mode,
                 )
             self.samples.append(
                 sample
@@ -122,6 +125,18 @@ class DFC2020(data.Dataset):
                 )
         if self.batch_augmentation is not None:
             sample = self.batch_augmentation(sample)
+
+        # get correct label
+        lc = sample[LABEL_KEY]
+        if self.label_mode == "classification":
+            lc = get_class_fractions_from_segmentation_map(lc, num_classes=self.num_classes) > 0.05
+        elif self.label_mode == "regression":
+            lc = get_class_fractions_from_segmentation_map(lc, num_classes=self.num_classes)
+        elif self.label_mode == "segmentation":
+            lc = lc
+        else:
+            raise NotImplementedError(f"label mode {self.label_mode} not implemented")
+        sample[LABEL_KEY] = lc.astype(self.label_dtype)
         return sample
 
     def __len__(self):

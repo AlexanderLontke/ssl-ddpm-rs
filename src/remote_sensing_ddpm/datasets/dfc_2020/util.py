@@ -3,12 +3,14 @@ from typing import Optional
 import rasterio
 import numpy as np
 
+import torch
 from torch import nn
 
 from remote_sensing_ddpm.datasets.dfc_2020.constants import (
     S2_BANDS_HR,
     S2_BANDS_LR,
     S2_BANDS_MR,
+    LABEL_KEY,
     DFC2020_CLASSES,
 )
 
@@ -66,8 +68,9 @@ def load_lc(path, no_savanna=False, igbp=True):
     return lc
 
 
-def get_class_fractions_from_segmentation_map(sm: np.array, num_classes: int,):
+def get_class_fractions_from_segmentation_map(sm: torch.Tensor, num_classes: int,):
     class_fractions = np.zeros(num_classes)
+    sm = sm.long()
     sum = 0
     for value in sm:
         class_fractions[value] += 1
@@ -86,7 +89,6 @@ def load_sample(
     unlabeled=False,
     s1_augmentations=None,
     s2_augmentations=None,
-    label_mode="segmentation",
 ):
 
     use_s2 = (len(s2_bands) > 0)
@@ -117,12 +119,4 @@ def load_sample(
         return {"image": img, "id": sample["id"]}
     else:
         lc = load_lc(sample["lc"], no_savanna=no_savanna, igbp=igbp)
-        if label_mode == "classification":
-            lc = (get_class_fractions_from_segmentation_map(lc, num_classes=10) > 0.05).astype("int")
-        elif label_mode == "regression":
-            lc = get_class_fractions_from_segmentation_map(lc, num_classes=10)
-        elif label_mode == "segmentation":
-            lc = lc
-        else:
-            raise NotImplementedError(f"label mode {label_mode} not implemented")
-        return {"image": img, "label": lc, "id": sample["id"]}
+        return {"image": img, LABEL_KEY: lc, "id": sample["id"]}

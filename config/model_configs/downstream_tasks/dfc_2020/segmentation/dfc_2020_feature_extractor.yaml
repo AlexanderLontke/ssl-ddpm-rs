@@ -21,6 +21,7 @@ train_torch_data_loader:
         s2_bands: [ 3, 2, 1, 7]
         use_s1: True
         no_savanna: True
+        label_dtype: "long"
         s1_augmentations:
           module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
           kwargs:
@@ -71,6 +72,7 @@ validation_torch_data_loader:
         s2_bands: [ 3, 2, 1, 7 ]
         use_s1: True
         no_savanna: True
+        label_dtype: "long"
         s1_augmentations:
           module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
           kwargs:
