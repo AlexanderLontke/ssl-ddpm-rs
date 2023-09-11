@@ -29,8 +29,9 @@ class DFC2020(data.Dataset):
         path,
         s2_bands: List[int],
         subset="val",
-        no_savanna=False,
-        use_s1=False,
+        no_savanna: bool =False,
+        use_s1: bool =False,
+        load_on_the_fly: bool = True,
         s1_augmentations: Optional[nn.Module] = None,
         s2_augmentations: Optional[nn.Module] = None,
         batch_augmentation: Optional[nn.Module] = None,
@@ -41,6 +42,7 @@ class DFC2020(data.Dataset):
         super(DFC2020, self).__init__()
 
         # make sure parameters are okay
+        self.load_on_the_fly = load_on_the_fly
         self.use_s1 = use_s1
         self.s2_bands = s2_bands
         assert subset in ["val", "test"]
@@ -74,14 +76,15 @@ class DFC2020(data.Dataset):
         for s2_loc in tqdm(s2_locations, desc="[Load]"):
             s1_loc = s2_loc.replace("_s2_", "_s1_").replace("s2_", "s1_")
             lc_loc = s2_loc.replace("_dfc_", "_lc_").replace("s2_", "dfc_")
-            self.samples.append(
-                load_sample(
-                    {
-                        "lc": lc_loc,
-                        "s1": s1_loc,
-                        "s2": s2_loc,
-                        "id": os.path.basename(s2_loc),
-                    },
+            sample = {
+                "lc": lc_loc,
+                "s1": s1_loc,
+                "s2": s2_loc,
+                "id": os.path.basename(s2_loc),
+            }
+            if not self.load_on_the_fly:
+                sample = load_sample(
+                    sample,
                     self.use_s1,
                     self.s2_bands,
                     no_savanna=self.no_savanna,
@@ -89,6 +92,8 @@ class DFC2020(data.Dataset):
                     s1_augmentations=self.s1_augmentations,
                     s2_augmentations=self.s2_augmentations,
                 )
+            self.samples.append(
+                sample
             )
 
         # sort list of samples
@@ -101,6 +106,16 @@ class DFC2020(data.Dataset):
 
         # get and load sample from index file
         sample = self.samples[index]
+        if self.load_on_the_fly:
+            sample = load_sample(
+                    sample,
+                    self.use_s1,
+                    self.s2_bands,
+                    no_savanna=self.no_savanna,
+                    igbp=False,
+                    s1_augmentations=self.s1_augmentations,
+                    s2_augmentations=self.s2_augmentations,
+                )
         if self.batch_augmentation is not None:
             sample = self.batch_augmentation(sample)
         return sample
