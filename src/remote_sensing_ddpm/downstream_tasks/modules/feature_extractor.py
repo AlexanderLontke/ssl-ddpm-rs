@@ -35,6 +35,7 @@ class FeatureExtractor(nn.Module):
                 checkpoint_path=checkpoint_path,
                 p_theta_model=diffusion_pl_module.p_theta_model,
                 map_location=map_location,
+                stack_inputs_keys=diffusion_pl_module.stack_inputs_keys,
                 auxiliary_p_theta_model_input=diffusion_pl_module.auxiliary_p_theta_model_input,
             )
         else:
