@@ -1,0 +1,149 @@
+name: &NAME rs-ddpm-ms-dfc-2020-classification
+seed: 42
+device: &DEVICE cuda
+monitor: &MONITOR "val/f1"
+monitor_mode: &MONITOR_MODE "max"
+target_key: &TARGET_KEY "label"
+output_channels: &OUTPUT_CHANNELS 10
+dfc_labels: &DFC_LABELS ["Forest", "Shrubland", "Savanna", "Grassland", "Wetlands", "Croplands", "Urban/Built-up", "Snow/Ice", "Barren", "Water"]
+
+downstream_task_specific_feature_extractor_kwargs:
+  feature_section: "middle"
+  feature_levels: [ 0 ]
+  vectorize_output: True
+
+# MODEL INSTANTIATION
+metrics_args: &METRICS_KWARGS
+  task: "multilabel"
+  num_labels: *OUTPUT_CHANNELS
+  threshold: 0.5
+classwise_metrics_kwargs: &CW_METRICS_KWARGS
+  task: "multilabel"
+  num_labels: *OUTPUT_CHANNELS
+  threshold: 0.5
+  average: null
+
+train_metrics: &TRAIN_METRICS
+  accuracy:
+    module: torchmetrics.Accuracy
+    kwargs: *METRICS_KWARGS
+  recall:
+    module: torchmetrics.Recall
+    kwargs: *METRICS_KWARGS
+  precision:
+    module: torchmetrics.Precision
+    kwargs: *METRICS_KWARGS
+  f1:
+    module: torchmetrics.F1Score
+    kwargs: *METRICS_KWARGS
+  classwise_accuracy:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.Accuracy
+        kwargs: *CW_METRICS_KWARGS
+      labels: *DFC_LABELS
+  classwise_recall:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.Recall
+        kwargs: *CW_METRICS_KWARGS
+      labels: *DFC_LABELS
+  classwise_precision:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.Precision
+        kwargs: *CW_METRICS_KWARGS
+      labels: *DFC_LABELS
+  classwise_f1:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.F1Score
+        kwargs: *CW_METRICS_KWARGS
+      labels: *DFC_LABELS
+
+validation_metrics: &VALIDATION_METRICS
+  accuracy:
+    module: torchmetrics.Accuracy
+    kwargs: *METRICS_KWARGS
+  recall:
+    module: torchmetrics.Recall
+    kwargs: *METRICS_KWARGS
+  precision:
+    module: torchmetrics.Precision
+    kwargs: *METRICS_KWARGS
+  f1:
+    module: torchmetrics.F1Score
+    kwargs: *METRICS_KWARGS
+  classwise_accuracy:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.Accuracy
+        kwargs: *CW_METRICS_KWARGS
+      labels: *DFC_LABELS
+  classwise_recall:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.Recall
+        kwargs: *CW_METRICS_KWARGS
+      labels: *DFC_LABELS
+  classwise_precision:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.Precision
+        kwargs: *CW_METRICS_KWARGS
+      labels: *DFC_LABELS
+  classwise_f1:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.F1Score
+        kwargs: *CW_METRICS_KWARGS
+      labels: *DFC_LABELS
+
+
+pl_module:
+  module: remote_sensing_ddpm.downstream_tasks.lit_downstream_task.LitDownstreamTask
+  kwargs:
+    learning_rate: 0.0001
+    loss:
+      module: torch.nn.CrossEntropyLoss
+    target_key: *TARGET_KEY
+    training_metrics: *TRAIN_METRICS
+    validation_metrics: *VALIDATION_METRICS
+    downstream_model:
+      module: remote_sensing_ddpm.downstream_tasks.downstream_task_model.DownstreamTaskModel
+      kwargs:
+        downstream_layer:
+          module: remote_sensing_ddpm.downstream_tasks.models.non_linear_head.NonLinearHead
+          kwargs:
+            input_size: 65536
+            output_size: *OUTPUT_CHANNELS
+
+# MODEL TRAINING
+pl_trainer:
+  accelerator: gpu
+  max_epochs: 20
+  log_every_n_steps: 10
+  precision: "16-mixed"
+  enable_checkpointing: True
+  # UNCOMMENT FOR DEBUGGING
+  # fast_dev_run: True
+  # limit_train_batches: 100
+  # num_sanity_val_steps: 0
+  # limit_val_batches: 100
+
+pl_wandb_logger:
+  project: *NAME
+
+pl_checkpoint_callback:
+  monitor: *MONITOR
+  mode: *MONITOR_MODE
+  save_top_k: 3
+  save_last: True

@@ -5,7 +5,7 @@ monitor: &MONITOR "val/mIoU"
 monitor_mode: &MONITOR_MODE "max"
 target_key: &TARGET_KEY "label"
 output_channels: &OUTPUT_CHANNELS 10
-dfc_labels: &DFC_LABELS ["Forest", "Shrubland", "Grassland", "Wetlands", "Croplands", "Urban_Built-up", "Snow_Ice", "Barren", "Water"]
+dfc_labels: &DFC_LABELS ["Forest", "Shrubland", "Savanna", "Grassland", "Wetlands", "Croplands", "Urban/Built-up", "Snow/Ice", "Barren", "Water"]
 
 downstream_task_specific_feature_extractor_kwargs:
   feature_section: "decoder"
