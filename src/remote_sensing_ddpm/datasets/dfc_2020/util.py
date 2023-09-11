@@ -16,7 +16,6 @@ from remote_sensing_ddpm.datasets.dfc_2020.constants import (
 # util function for reading s2 data
 def load_s2(path, s2_bands, s2_augmentations: Optional[nn.Module] = None):
     bands_selected = s2_bands
-    bands_selected = sorted(bands_selected)
     with rasterio.open(path) as data:
         s2 = data.read(bands_selected)
     s2 = s2.astype(np.float32)
