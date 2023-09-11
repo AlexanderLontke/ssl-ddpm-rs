@@ -83,41 +83,42 @@ def fuse_backbone_and_downstream_head_config(
     backbone_config[FE_CONFIG_KEY][PYTHON_KWARGS_CONFIG_KEY] = new_fe_kwargs
 
     # Add label-pipeline from downstream config
-    label_pipeline_config: Dict = downstream_head_config[LABEL_PIPELINE_CONFIG_KEY]
-    label_field = list(label_pipeline_config.keys())[0]
-    for k, v in backbone_config[PIPELINES_CONFIG_KEY].items():
-        # Check that the same field is not requested as both label and model input
-        if v and k == label_field:
-            return None
-    backbone_config[PIPELINES_CONFIG_KEY].update(label_pipeline_config)
+    if LABEL_PIPELINE_CONFIG_KEY in downstream_head_config.keys():
+        label_pipeline_config: Dict = downstream_head_config[LABEL_PIPELINE_CONFIG_KEY]
+        label_field = list(label_pipeline_config.keys())[0]
+        for k, v in backbone_config[PIPELINES_CONFIG_KEY].items():
+            # Check that the same field is not requested as both label and model input
+            if v and k == label_field:
+                return None
+        backbone_config[PIPELINES_CONFIG_KEY].update(label_pipeline_config)
 
-    # Get index to key mapping based on all FFCV pipelines that are not none
-    mapping = []
-    for k, v in backbone_config[PIPELINES_CONFIG_KEY].items():
-        if v:
-            mapping.append(k)
+        # Get index to key mapping based on all FFCV pipelines that are not none
+        mapping = []
+        for k, v in backbone_config[PIPELINES_CONFIG_KEY].items():
+            if v:
+                mapping.append(k)
 
-    # Sort mapping (alphabetically) so that it matches with the return order of the FFCV dataset
-    mapping = sorted(mapping)
+        # Sort mapping (alphabetically) so that it matches with the return order of the FFCV dataset
+        mapping = sorted(mapping)
 
-    # Update new key word argument for both dataloaders
-    dataloader_keys = (
-        [TRAIN_TORCH_DATA_LOADER_CONFIG_KEY]
-        if VALIDATION_TORCH_DATA_LOADER_CONFIG_KEY not in backbone_config.keys()
-        else [
-            TRAIN_TORCH_DATA_LOADER_CONFIG_KEY,
-            VALIDATION_TORCH_DATA_LOADER_CONFIG_KEY,
-        ]
-    )
-    for dataloader_key in dataloader_keys:
-        # 1. Update Pipelines
-        backbone_config[dataloader_key][PYTHON_KWARGS_CONFIG_KEY].update(
-            {PIPELINES_CONFIG_KEY: backbone_config[PIPELINES_CONFIG_KEY]}
+        # Update new key word argument for both dataloaders
+        dataloader_keys = (
+            [TRAIN_TORCH_DATA_LOADER_CONFIG_KEY]
+            if VALIDATION_TORCH_DATA_LOADER_CONFIG_KEY not in backbone_config.keys()
+            else [
+                TRAIN_TORCH_DATA_LOADER_CONFIG_KEY,
+                VALIDATION_TORCH_DATA_LOADER_CONFIG_KEY,
+            ]
         )
-        # 2. Add mapping
-        backbone_config[dataloader_key][PYTHON_KWARGS_CONFIG_KEY].update(
-            {"mapping": mapping}
-        )
+        for dataloader_key in dataloader_keys:
+            # 1. Update Pipelines
+            backbone_config[dataloader_key][PYTHON_KWARGS_CONFIG_KEY].update(
+                {PIPELINES_CONFIG_KEY: backbone_config[PIPELINES_CONFIG_KEY]}
+            )
+            # 2. Add mapping
+            backbone_config[dataloader_key][PYTHON_KWARGS_CONFIG_KEY].update(
+                {"mapping": mapping}
+            )
 
     # Fuse both dictionaries
     feature_extractor_config = backbone_config.pop(FE_CONFIG_KEY)
