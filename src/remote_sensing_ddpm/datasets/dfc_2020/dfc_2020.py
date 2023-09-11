@@ -1,6 +1,6 @@
 import os
 import glob
-from typing import Optional, List
+from typing import Optional, List, Literal
 
 from tqdm import tqdm
 
@@ -31,6 +31,7 @@ class DFC2020(data.Dataset):
         subset="val",
         no_savanna=False,
         use_s1=False,
+        label_mode: Literal["classification", "segmentation", "regression"] = "segmentation",
         s1_augmentations: Optional[nn.Module] = None,
         s2_augmentations: Optional[nn.Module] = None,
         batch_augmentation: Optional[nn.Module] = None,
@@ -43,6 +44,7 @@ class DFC2020(data.Dataset):
         # make sure parameters are okay
         self.use_s1 = use_s1
         self.s2_bands = s2_bands
+        self.label_mode = label_mode
         assert subset in ["val", "test"]
         self.no_savanna = no_savanna
 
@@ -70,6 +72,7 @@ class DFC2020(data.Dataset):
             path = os.path.join(path, "ROIs0000_test", "s2_0")
 
         s2_locations = glob.glob(os.path.join(path, "*.tif"), recursive=True)
+
         self.samples = []
         for s2_loc in tqdm(s2_locations, desc="[Load]"):
             s1_loc = s2_loc.replace("_s2_", "_s1_").replace("s2_", "s1_")
@@ -88,6 +91,7 @@ class DFC2020(data.Dataset):
                     igbp=False,
                     s1_augmentations=self.s1_augmentations,
                     s2_augmentations=self.s2_augmentations,
+                    label_mode=self.label_mode,
                 )
             )
 
