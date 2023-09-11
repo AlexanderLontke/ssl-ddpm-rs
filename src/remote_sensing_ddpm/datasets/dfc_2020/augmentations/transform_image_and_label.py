@@ -5,14 +5,15 @@ from torch import nn
 
 
 class TransformImageAndLabel(nn.Module):
-    def __init__(self, image_key, label_key, transform_op: nn.Module, *args, **kwargs):
+    def __init__(self, image_key, label_key, transform_op: nn.Module, only_image:bool= False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.image_key = image_key
         self.label_key = label_key
         self.transform_op = transform_op
+        self.only_image = only_image
 
     def forward(self, batch: Dict[str, torch.Tensor]):
-        keys = [self.image_key, self.label_key]
+        keys = [self.image_key] if self.only_image else [self.image_key, self.label_key]
         assert all(x in batch.keys() for x in keys)
         img_and_label = [batch[k] for k in keys]
         img_and_label = [torch.Tensor(x) for x in img_and_label]
@@ -26,5 +27,7 @@ class TransformImageAndLabel(nn.Module):
         img_and_label = torch.split(img_and_label, split_size_or_sections=[s[0] for s in original_shapes], dim=0)
 
         for k, v in zip(keys, img_and_label):
-            batch[k] = v
+            if k == self.label_key:
+                v = v.long()
+            batch[k] = v.squeeze()
         return batch
