@@ -45,7 +45,7 @@ def load_s1(path, s1_augmentations: Optional[nn.Module] = None):
 
 
 # util function for reading lc data
-def load_lc(path, no_savanna=False, igbp=True):
+def load_lc(path, no_savanna=False, no_snow_and_savanna=False,  igbp=True):
 
     # load labels
     with rasterio.open(path) as data:
@@ -57,10 +57,17 @@ def load_lc(path, no_savanna=False, igbp=True):
     else:
         lc = lc.astype(np.int64)
 
-    # adjust class scheme to ignore class savanna
+    # adjust class scheme to ignore class savanna and snow
+    assert no_savanna != no_snow_and_savanna
     if no_savanna:
         lc[lc == 3] = 0
         lc[lc > 3] -= 1
+
+    if no_snow_and_savanna:
+        lc[lc == 3] = 0
+        lc[lc == 8] = 0
+        lc[lc >= 3] -= 1
+        lc[lc >= 8] -= 1
 
     # convert to zero-based labels and set ignore mask
     lc -= 1
@@ -71,11 +78,12 @@ def load_lc(path, no_savanna=False, igbp=True):
 def get_class_fractions_from_segmentation_map(sm: torch.Tensor, num_classes: int,):
     class_fractions = np.zeros(num_classes)
     sm = sm.long()
-    sum = 0
-    for value in sm:
-        class_fractions[value] += 1
-        sum += 1
-    class_fractions /= sum
+    sum_count = 0
+    for row in sm:
+        for value in row:
+            class_fractions[value] += 1
+            sum_count += 1
+    class_fractions /= sum_count
     return class_fractions
 
 
@@ -85,6 +93,7 @@ def load_sample(
     use_s1,
     s2_bands,
     no_savanna=False,
+    no_snow_and_savanna=False,
     igbp=True,
     unlabeled=False,
     s1_augmentations=None,
@@ -118,5 +127,5 @@ def load_sample(
     if unlabeled:
         return {"image": img, "id": sample["id"]}
     else:
-        lc = load_lc(sample["lc"], no_savanna=no_savanna, igbp=igbp)
+        lc = load_lc(sample["lc"], no_savanna=no_savanna, no_snow_and_savanna=no_snow_and_savanna, igbp=igbp)
         return {"image": img, LABEL_KEY: lc, "id": sample["id"]}

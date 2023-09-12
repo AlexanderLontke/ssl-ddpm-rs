@@ -4,8 +4,8 @@ device: &DEVICE cuda
 monitor: &MONITOR "val/f1"
 monitor_mode: &MONITOR_MODE "max"
 target_key: &TARGET_KEY "label"
-output_channels: &OUTPUT_CHANNELS 9
-dfc_labels: &DFC_LABELS ["Forest", "Shrubland", "Grassland", "Wetlands", "Croplands", "Urban_Built-up", "Snow_Ice", "Barren", "Water"]
+output_channels: &OUTPUT_CHANNELS 8
+dfc_labels: &DFC_LABELS ["Forest", "Shrubland", "Grassland", "Wetlands", "Croplands", "Urban_Built-up", "Barren", "Water"]
 
 downstream_task_specific_feature_extractor_kwargs:
   feature_section: "middle"

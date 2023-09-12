@@ -4,6 +4,7 @@ from typing import Optional, List, Literal
 
 from tqdm import tqdm
 
+import torch
 from torch import nn
 import torch.utils.data as data
 
@@ -31,6 +32,7 @@ class DFC2020(data.Dataset):
         s2_bands: List[int],
         subset="val",
         no_savanna: bool =False,
+        no_snow_and_savanna: bool = False,
         use_s1: bool =False,
         load_on_the_fly: bool = True,
         label_dtype: str = "float",
@@ -52,7 +54,12 @@ class DFC2020(data.Dataset):
         self.label_mode = label_mode
         assert subset in ["val", "test"]
         self.no_savanna = no_savanna
-        self.num_classes = 9 if self.no_savanna else 10
+        self.no_snow_and_savanna = no_snow_and_savanna
+        self.num_classes = 10
+        if self.no_savanna:
+            self.num_classes -= 1
+        if self.no_snow_and_savanna:
+            self.num_classes -= 2
 
         # store augmentations if provided
         self.s1_augmentations = s1_augmentations
@@ -119,6 +126,7 @@ class DFC2020(data.Dataset):
                     self.use_s1,
                     self.s2_bands,
                     no_savanna=self.no_savanna,
+                    no_snow_and_savanna=self.no_snow_and_savanna,
                     igbp=False,
                     s1_augmentations=self.s1_augmentations,
                     s2_augmentations=self.s2_augmentations,
@@ -136,7 +144,8 @@ class DFC2020(data.Dataset):
             lc = lc
         else:
             raise NotImplementedError(f"label mode {self.label_mode} not implemented")
-        sample[LABEL_KEY] = lc.astype(self.label_dtype)
+        lc = torch.Tensor(lc)
+        sample[LABEL_KEY] = lc.type(getattr(torch, self.label_dtype))
         return sample
 
     def __len__(self):
