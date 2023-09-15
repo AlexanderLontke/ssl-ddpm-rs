@@ -210,7 +210,7 @@ def get_best_epoch_through_checkpoint(checkpoint_path: Path) -> Path:
 
 
 def get_best_checkpoints(
-    wandb_run_name: str, wandb_sub_project_name: str, through_callback: bool = False
+    wandb_run_name: str, complete_config: Dict, wandb_sub_project_name: str, through_callback: bool = False, checkpoints_root_path: Optional[str] = None,
 ) -> List[Path]:
     # This is only necessary because the mode of the checkpoint callback was misconfigured
     api = wandb.Api()
@@ -234,6 +234,8 @@ def get_best_checkpoints(
     # Get all data
     for run in runs:
         checkpoint_path = Path(f"{wandb_sub_project_name}/{run.id}/checkpoints/")
+        if checkpoints_root_path is not None:
+            checkpoint_path = Path(checkpoints_root_path) / checkpoint_path
         if through_callback:
             checkpoint_path = get_best_epoch_through_checkpoint(
                 checkpoint_path=checkpoint_path
