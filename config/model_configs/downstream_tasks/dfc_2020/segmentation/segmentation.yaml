@@ -138,7 +138,7 @@ pl_module:
 pl_trainer:
   accelerator: gpu
   max_epochs: 20
-  log_every_n_steps: 10
+  log_every_n_steps: 1
   precision: "16-mixed"
   enable_checkpointing: True
   # UNCOMMENT FOR DEBUGGING

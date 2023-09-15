@@ -16,7 +16,7 @@ train_torch_data_loader:
       module: remote_sensing_ddpm.datasets.dfc_2020.dfc_2020.DFC2020
       kwargs:
         path: "/ds2/remote_sensing/grss-dfc-20"
-        subset: test
+        subset: val
         s2_bands: [ 3, 2, 1, 7]
         use_s1: True
         no_snow_and_savanna: True
@@ -67,7 +67,7 @@ validation_torch_data_loader:
       module: remote_sensing_ddpm.datasets.dfc_2020.dfc_2020.DFC2020
       kwargs:
         path: "/ds2/remote_sensing/grss-dfc-20"
-        subset: val
+        subset: test
         s2_bands: [ 3, 2, 1, 7 ]
         no_snow_and_savanna: True
         use_s1: True

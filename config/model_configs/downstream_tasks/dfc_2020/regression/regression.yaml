@@ -1,0 +1,71 @@
+name: &NAME rs-ddpm-ms-regression-egypt
+seed: 42
+monitor: &MONITOR "val/mean_squared_error"
+monitor_mode: &MONITOR_MODE "min"
+device: &DEVICE cuda
+image_size: &IMAGE_SIZE 128
+num_labels: &NUM_LABELS 8
+dfc_labels: &DFC_LABELS ["Forest", "Shrubland", "Grassland", "Wetlands", "Croplands", "Urban_Built-up", "Barren", "Water"]
+
+downstream_task_specific_feature_extractor_kwargs:
+  feature_section: "middle"
+  feature_levels: [0]
+  vectorize_output: True
+
+# METRICS
+train_metrics: &TRAIN_METRICS
+  mean_squared_error:
+    module: torchmetrics.MeanSquaredError
+  mean_absolute_error:
+    module: torchmetrics.MeanAbsoluteError
+
+validation_metrics: &VALIDATION_METRICS
+  mean_squared_error:
+    module: torchmetrics.MeanSquaredError
+  mean_absolute_error:
+    module: torchmetrics.MeanAbsoluteError
+
+# MODEL INSTANTIATION
+pl_module:
+  module: remote_sensing_ddpm.downstream_tasks.lit_downstream_task.LitDownstreamTask
+  kwargs:
+    learning_rate: 0.0001
+    loss:
+      module: torch.nn.MSELoss
+    target_key: *TARGET_KEY
+    training_metrics: *TRAIN_METRICS
+    validation_metrics: *VALIDATION_METRICS
+    downstream_model:
+      module: remote_sensing_ddpm.downstream_tasks.downstream_task_model.DownstreamTaskModel
+      kwargs:
+        downstream_layer:
+          module: remote_sensing_ddpm.downstream_tasks.models.non_linear_head.NonLinearHead
+          kwargs:
+            input_size: 65536
+            output_size: *NUM_LABELS
+
+# MODEL TRAINING
+pl_trainer:
+  accelerator: gpu
+  max_epochs: 20
+  log_every_n_steps: 1
+  precision: "16-mixed"
+  # gradient_clip_algorithm: "norm"
+  enable_checkpointing: True
+  # UNCOMMENT FOR DEBUGGING
+  # fast_dev_run: True
+
+pl_wandb_logger:
+  project: *NAME
+
+pl_checkpoint_callback:
+  monitor: *MONITOR
+  mode: *MONITOR_MODE
+  save_top_k: 3
+  save_last: True
+
+# custom_callbacks:
+#   - module: pytorch_lightning.callbacks.EarlyStopping
+#     kwargs:
+#       monitor: *MONITOR
+#       mode: "min"

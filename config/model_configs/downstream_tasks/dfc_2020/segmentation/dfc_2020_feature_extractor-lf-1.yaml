@@ -5,6 +5,7 @@ image_size: &IMAGE_SIZE 128
 image_channels: &IMAGE_CHANNELS 6
 
 
+
 # DATA SET CONFIG
 train_torch_data_loader:
   module: torch.utils.data.DataLoader
@@ -22,6 +23,7 @@ train_torch_data_loader:
         use_s1: True
         no_snow_and_savanna: True
         label_dtype: "long"
+        samples_subset_path: "/netscratch2/alontke/master_thesis/code/ssl-ddpm-rs/notebooks/data_loading/dfc_2020_validation_samples_fraction_1.csv"
         s1_augmentations:
           module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
           kwargs:

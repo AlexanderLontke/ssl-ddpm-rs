@@ -15,13 +15,13 @@ train_torch_data_loader:
     dataset:
       module: remote_sensing_ddpm.datasets.dfc_2020.dfc_2020.DFC2020
       kwargs:
-        load_on_the_fly: True
         path: "/ds2/remote_sensing/grss-dfc-20"
         subset: val
         s2_bands: [ 3, 2, 1, 7]
         use_s1: True
         no_snow_and_savanna: True
-        label_dtype: "long"
+        label_mode: "classification"
+        label_dtype: "float"
         s1_augmentations:
           module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
           kwargs:
@@ -66,13 +66,13 @@ validation_torch_data_loader:
     dataset:
       module: remote_sensing_ddpm.datasets.dfc_2020.dfc_2020.DFC2020
       kwargs:
-        load_on_the_fly: True
         path: "/ds2/remote_sensing/grss-dfc-20"
-        subset: test
+        subset: val
         s2_bands: [ 3, 2, 1, 7 ]
-        use_s1: True
         no_snow_and_savanna: True
-        label_dtype: "long"
+        use_s1: True
+        label_mode: "classification"
+        label_dtype: "float"
         s1_augmentations:
           module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
           kwargs:
@@ -129,7 +129,6 @@ feature_extractor:
         beta_schedule_linear_end: 0.02
         learning_rate: 0.00001
         data_key: *IMAGE_KEY
-        stack_inputs_keys: null
         learning_rate_scheduler_config:
           module: torch.optim.lr_scheduler.LinearLR
           delay: 1
