@@ -1,5 +1,5 @@
 name: &NAME rs-ddpm-ms-classification-gallen
-seed: 43
+seed: 42
 device: &DEVICE cuda
 monitor: &MONITOR "val/f1"
 monitor_mode: &MONITOR_MODE "max"
