@@ -2,6 +2,7 @@ import os
 import glob
 from typing import Optional, List, Literal
 
+import pandas as pd
 from tqdm import tqdm
 
 import torch
@@ -40,6 +41,7 @@ class DFC2020(data.Dataset):
         s1_augmentations: Optional[nn.Module] = None,
         s2_augmentations: Optional[nn.Module] = None,
         batch_augmentation: Optional[nn.Module] = None,
+        samples_subset_path: Optional[str] = None,
     ):
         """Initialize the dataset"""
 
@@ -84,7 +86,11 @@ class DFC2020(data.Dataset):
         else:
             path = os.path.join(path, "ROIs0000_test", "s2_0")
 
-        s2_locations = glob.glob(os.path.join(path, "*.tif"), recursive=True)
+        if samples_subset_path is not None:
+            samples_subset = pd.read_csv(samples_subset_path)
+            s2_locations = samples_subset["id"].tolist()
+        else:
+            s2_locations = glob.glob(os.path.join(path, "*.tif"), recursive=True)
 
         self.samples = []
         for s2_loc in tqdm(s2_locations, desc="[Load]"):
