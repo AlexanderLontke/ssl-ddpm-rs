@@ -53,16 +53,47 @@ TEST_SET_CLASSIFICATION_CLASS_FRACTIONS = {
     "Moss and lichen": 0.0005027652086475615,
 }
 
+DFC_2020_TEST_SET_SEGMENTATION_CLASS_FRACTIONS = {
+    "Forest": 0.25629095163806553,
+    "Shrubland": 0.05897753618478072,
+    "Grassland": 0.10070588761050442,
+    "Wetlands": 0.021144099930663893,
+    "Croplands": 0.19467160144739123,
+    "Urban_Built-up": 0.10820969297105218,
+    "Barren": 0.026166282067949385,
+    "Water": 0.23383394814959266,
+}
+
+DFC_2020_TEST_SET_CLASSIFICATION_CLASS_FRACTIONS = {
+    "Forest": 0.2823712948517941,
+    "Shrubland": 0.05499219968798752,
+    "Grassland": 0.06747269890795632,
+    "Wetlands": 0.008190327613104524,
+    "Croplands": 0.22776911076443057,
+    "Urban_Built-up": 0.11017940717628705,
+    "Barren": 0.01735569422776911,
+    "Water": 0.23166926677067082,
+}
+
 
 def clean_string_outputs(string: str) -> str:
     return (
         string.replace("test/", "")
-        .replace("jaccardindexadapter_", "mIoU ")
+        .replace("jaccardindexadapter_", "")
         .replace("multilabelf1score", "F1")
         .replace("-ewc-segmentation", "")
         .replace("-ewc-classification", "")
         .replace("-ewc-regression", "")
         .replace("-eval", "")
+        .replace("s2_era5", "S-2 + Era5 Data")
+        .replace("s2_rgb_nir", "S-2")
+        .replace("s2_rgb", "S-2 (only RGB)")
+        .replace("s2_seasons", "S-2 + Seasons")
+        .replace("s2_s1", "S-2 + S-1")
+        .replace("s2_climate_zones", "S-2 + Climate Zones")
+        .replace("s1_s2_conditional_last", "S-2 + S-1 + Cond. (CM)")
+        .replace("s1_s2_unconditional", "S-2 + S-1 (CM)")
+        .replace("dfc_2020_feature_extractor-segmentation", "S-2 + S-1")
     )
 
 
@@ -93,8 +124,12 @@ def mae_mean(metrics_table: pd.DataFrame) -> pd.Series:
 
 
 EXPERIMENTS_DICT = {
-    "segmentation": {
-        "wandb_project_ids": "ssl-diffusion/rs-ddpm-ms-segmentation-egypt-eval",
+    # SEGMENTATION
+    "segmentation_w_conditional": {
+        "wandb_project_ids": [
+            "ssl-diffusion/rs-ddpm-ms-segmentation-egypt-eval",
+            "ssl-diffusion/rs-ddpm-ms-segmentation-conditional-eval",
+        ],
         "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-segmentation.yaml",
         "class_metrics": [
             "test/jaccardindexadapter_Herbaceous wetland",
@@ -110,6 +145,13 @@ EXPERIMENTS_DICT = {
             # 'test/jaccardindexadapter_Mangroves'
         ],
         "highlight_mode": "max",
+        "additional_experiment_names": [
+            "s1_s2_conditional_last-ewc-segmentation",
+            "s1_s2_unconditional-ewc-segmentation",
+        ],
+        "exclude_experiment_names": [
+            "s2_glo_30_dem-ewc-segmentation",
+        ],
         "averages": {
             UNIFORM_AVERAGE_NAME: uniform_mean,
             CLASS_WEIGHTED_AVERAGE_NAME: partial(
@@ -118,96 +160,47 @@ EXPERIMENTS_DICT = {
             ),
         },
         "feature_extractor_files": "../../config/model_configs/downstream_tasks/feature_extractors",
+        "metrics_table_index_name": "mIoU $\\uparrow$",
+        "class_fractions": TEST_SET_SEGMENTATION_CLASS_FRACTIONS,
+        "run_name_suffix": "-eval",
     },
-    # "segmentation_w_supervised": {
-    #     "wandb_project_ids": "ssl-diffusion/rs-ddpm-ms-segmentation-egypt-eval",
-    #     "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-segmentation.yaml",
-    #     "class_metrics": [
-    #         "test/jaccardindexadapter_Herbaceous wetland",
-    #         "test/jaccardindexadapter_Bare",
-    #         "test/jaccardindexadapter_Tree cover",
-    #         # 'test/jaccardindexadapter_Moss and lichen',
-    #         "test/jaccardindexadapter_Shrubland",
-    #         "test/jaccardindexadapter_Cropland",
-    #         "test/jaccardindexadapter_Built-up",
-    #         # 'test/jaccardindexadapter_Snow and Ice',
-    #         "test/jaccardindexadapter_Grassland",
-    #         "test/jaccardindexadapter_Permanenet water bodies",
-    #         # 'test/jaccardindexadapter_Mangroves'
-    #     ],
-    #     "highlight_mode": "max",
-    #     "averages": {
-    #         UNIFORM_AVERAGE_NAME: uniform_mean,
-    #         CLASS_WEIGHTED_AVERAGE_NAME: partial(
-    #             calculate_class_weighted_mean, class_fractions=TEST_SET_CLASS_FRACTIONS
-    #         ),
-    #     },
-    #     "additional_experiment_names": ["supervised_s1_s2-supervised_ewc_segmentation"],
-    #     "feature_extractor_files": "../../config/model_configs/downstream_tasks/feature_extractors",
-    # },
-    # "conditional_models": {
-    #     "wandb_project_ids": "ssl-diffusion/rs-ddpm-ms-segmentation-conditional-eval",
-    #     "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-segmentation.yaml",
-    #     "class_metrics": [
-    #         "test/jaccardindexadapter_Herbaceous wetland",
-    #         "test/jaccardindexadapter_Bare",
-    #         "test/jaccardindexadapter_Tree cover",
-    #         # 'test/jaccardindexadapter_Moss and lichen',
-    #         "test/jaccardindexadapter_Shrubland",
-    #         "test/jaccardindexadapter_Cropland",
-    #         "test/jaccardindexadapter_Built-up",
-    #         # 'test/jaccardindexadapter_Snow and Ice',
-    #         "test/jaccardindexadapter_Grassland",
-    #         "test/jaccardindexadapter_Permanenet water bodies",
-    #         # 'test/jaccardindexadapter_Mangroves'
-    #     ],
-    #     "highlight_mode": "max",
-    #     "averages": {
-    #         UNIFORM_AVERAGE_NAME: uniform_mean,
-    #         CLASS_WEIGHTED_AVERAGE_NAME: partial(
-    #             calculate_class_weighted_mean, class_fractions=TEST_SET_CLASS_FRACTIONS
-    #         ),
-    #     },
-    #     "additional_experiment_names": [
-    #         "supervised_s1_s2_conditional-ewc-segmentation",
-    #         "s1_s2_conditional_last-ewc-segmentation",
-    #         "s1_s2_unconditional-ewc-segmentation"
-    #     ],
-    #     "feature_extractor_files": None,
-    # },
-    # "classification": {
-    #     "wandb_project_ids": "ssl-diffusion/rs-ddpm-ms-classification-france-eval",
-    #     "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-classification.yaml",
-    #     "class_metrics": [
-    #         "test/multilabelf1score_Herbaceous wetland",
-    #         "test/multilabelf1score_Bare",
-    #         "test/multilabelf1score_Tree cover",
-    #         # 'test/multilabelf1score_Moss and lichen',
-    #         "test/multilabelf1score_Shrubland",
-    #         "test/multilabelf1score_Cropland",
-    #         "test/multilabelf1score_Built-up",
-    #         # 'test/multilabelf1score_Snow and Ice',
-    #         "test/multilabelf1score_Grassland",
-    #         "test/multilabelf1score_Permanenet water bodies",
-    #         # 'test/multilabelf1score_Mangroves'
-    #     ],
-    #     "highlight_mode": "max",
-    #     "feature_extractor_files": "../../config/model_configs/downstream_tasks/feature_extractors",
-    # },
-    # "regression": {
-    #     "wandb_project_ids": "ssl-diffusion/rs-ddpm-ms-regression-egypt-eval",
-    #     "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-regression.yaml",
-    #     "class_metrics": ["test/mean_squared_error", "test/mean_absolute_error",],
-    #     "highlight_mode": "min",
-    #     "feature_extractor_files": "../../config/model_configs/downstream_tasks/feature_extractors",
-    #     "averages": {"Mean Squared Error": mse_mean, "Mean Absolute Error": mae_mean,},
-    # },
-    "classification-gallen": {
+    "dfc_2020_segmentation": {
+        "wandb_project_ids": ["ssl-diffusion/rs-ddpm-ms-dfc-2020"],
+        "downstream_head_config_path": "../../config/model_configs/downstream_tasks/dfc_2020/segmentation/segmentation.yaml",
+        "class_metrics": [
+            "val/jaccardindexadapter_Urban_Built-up",
+            "val/jaccardindexadapter_Barren",
+            "val/jaccardindexadapter_Wetlands",
+            "val/jaccardindexadapter_Shrubland",
+            "val/jaccardindexadapter_Croplands",
+            "val/jaccardindexadapter_Forest",
+            "val/jaccardindexadapter_Grassland",
+            "val/jaccardindexadapter_Water",
+        ],
+        "highlight_mode": "max",
+        "additional_experiment_names": [
+            "[Wrong Splits] dfc_2020_feature_extractor-segmentation",
+        ],
+        "averages": {
+            UNIFORM_AVERAGE_NAME: uniform_mean,
+            CLASS_WEIGHTED_AVERAGE_NAME: partial(
+                calculate_class_weighted_mean,
+                class_fractions=DFC_2020_TEST_SET_SEGMENTATION_CLASS_FRACTIONS,
+            ),
+        },
+        "metrics_table_index_name": "mIoU $\\uparrow$",
+        "class_fractions": DFC_2020_TEST_SET_SEGMENTATION_CLASS_FRACTIONS,
+        "transpose_metrics_table": False,
+        "label_fraction_value_index": 19,
+        "highlight_axis": 1,
+    },
+    # CLASSIFICATION
+    "classification_w_conditional": {
         "wandb_project_ids": [
             "ssl-diffusion/rs-ddpm-ms-classification-gallen-eval",
             "ssl-diffusion/rs-ddpm-ms-classification-france-eval",
         ],
-        "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-classification.yaml",
+        "downstream_head_config_path": "../../config/model_configs/downstream_tasks/dfc_2020/classification/classification.yaml",
         "class_metrics": [
             "test/multilabelf1score_Herbaceous wetland",
             "test/multilabelf1score_Bare",
@@ -222,7 +215,13 @@ EXPERIMENTS_DICT = {
             # 'test/multilabelf1score_Mangroves'
         ],
         "highlight_mode": "max",
-        "feature_extractor_files": "../../config/model_configs/downstream_tasks/feature_extractors",
+        "additional_experiment_names": [
+            "s1_s2_conditional_last-ewc-classification",
+            "s1_s2_unconditional-ewc-classification",
+        ],
+        "exclude_experiment_names": [
+            "s2_glo_30_dem-ewc-classification",
+        ],
         "averages": {
             UNIFORM_AVERAGE_NAME: uniform_mean,
             CLASS_WEIGHTED_AVERAGE_NAME: partial(
@@ -230,6 +229,84 @@ EXPERIMENTS_DICT = {
                 class_fractions=TEST_SET_CLASSIFICATION_CLASS_FRACTIONS,
             ),
         },
+        "feature_extractor_files": "../../config/model_configs/downstream_tasks/feature_extractors",
+        "metrics_table_index_name": "F1 Score $\\uparrow$",
+        "class_fractions": TEST_SET_CLASSIFICATION_CLASS_FRACTIONS,
+        "run_name_suffix": "-eval",
+    },
+    "dfc_2020_classification": {
+        "wandb_project_ids": ["ssl-diffusion/rs-ddpm-ms-dfc-2020-classification"],
+        "downstream_head_config_path": "../../config/model_configs/downstream_tasks/dfc_2020/regression/regression.yaml",
+        "class_metrics": [
+            "val/multilabelf1score_Urban_Built-up",
+            "val/multilabelf1score_Barren",
+            "val/multilabelf1score_Wetlands",
+            "val/multilabelf1score_Shrubland",
+            "val/multilabelf1score_Croplands",
+            "val/multilabelf1score_Forest",
+            "val/multilabelf1score_Grassland",
+            "val/multilabelf1score_Water",
+        ],
+        "highlight_mode": "max",
+        "additional_experiment_names": [
+            "dfc_2020_feature_extractor-classification",
+        ],
+        "averages": {
+            UNIFORM_AVERAGE_NAME: uniform_mean,
+            CLASS_WEIGHTED_AVERAGE_NAME: partial(
+                calculate_class_weighted_mean,
+                class_fractions=DFC_2020_TEST_SET_CLASSIFICATION_CLASS_FRACTIONS,
+            ),
+        },
+        "metrics_table_index_name": "F1 Score $\\uparrow$",
+        "class_fractions": DFC_2020_TEST_SET_CLASSIFICATION_CLASS_FRACTIONS,
+        "transpose_metrics_table": False,
+        "label_fraction_value_index": 19,
+        "highlight_axis": 1,
+    },
+    # REGRESSION
+    "regression_w_conditional": {
+        "wandb_project_ids": [
+            "ssl-diffusion/rs-ddpm-ms-regression-egypt-eval",
+        ],
+        "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-regression.yaml",
+        "class_metrics": [
+            "test/mean_squared_error",
+            "test/mean_absolute_error",
+        ],
+        "highlight_mode": "min",
+        "additional_experiment_names": [
+            "s1_s2_conditional_last-ewc-regression",
+            "s1_s2_unconditional-ewc-regression",
+        ],
+        "exclude_experiment_names": [
+            "s2_glo_30_dem-ewc-regression",
+        ],
+        "averages": {
+            "Mean Squared Error $\\downarrow$": mse_mean,
+            "Mean Absolute Error $\\downarrow$": mae_mean,
+        },
+        "feature_extractor_files": "../../config/model_configs/downstream_tasks/feature_extractors",
+        "run_name_suffix": "-eval",
+    },
+    "dfc_2020_regression": {
+        "wandb_project_ids": ["ssl-diffusion/rs-ddpm-ms-regression-egypt"],
+        "downstream_head_config_path": "../../config/model_configs/downstream_tasks/tier_1/ewc-regression.yaml",
+        "class_metrics": [
+            "val/mean_squared_error",
+            "val/mean_absolute_error",
+        ],
+        "highlight_mode": "min",
+        "additional_experiment_names": [
+            "dfc_2020_feature_extractor-regression",
+        ],
+        "averages": {
+            "Mean Squared Error $\\downarrow$": mse_mean,
+            "Mean Absolute Error $\\downarrow$": mae_mean,
+        },
+        "transpose_metrics_table": False,
+        "label_fraction_value_index": 19,
+        "highlight_axis": 1,
     },
 }
 
@@ -238,11 +315,18 @@ def create_report(
     base_output_dir_path,
     wandb_project_ids: str,
     downstream_head_config_path: str,
-    feature_extractor_files: Optional[str],
     class_metrics: List[str],
     highlight_mode: Literal["min", "max"],
+    feature_extractor_files: Optional[str] = None,
     averages: Optional[Dict[str, Callable[[pd.DataFrame], pd.Series]]] = None,
     additional_experiment_names: Optional[List[str]] = None,
+    exclude_experiment_names: Optional[List[str]] = None,
+    metrics_table_index_name: Optional[str] = None,
+    class_fractions: Optional[Dict[str, float]] = None,
+    run_name_suffix: Optional[str] = "",
+    transpose_metrics_table: bool = False,
+    label_fraction_value_index: int = 0,
+    highlight_axis: int = 1,
 ):
     if averages is None:
         averages = {}
@@ -267,13 +351,21 @@ def create_report(
     ]
     if additional_experiment_names is not None:
         EXPERIMENT_NAMES += additional_experiment_names
+    if exclude_experiment_names is not None:
+        for e_name in exclude_experiment_names:
+            EXPERIMENT_NAMES.remove(e_name)
     LABEL_FRACTION_EXPERIMENT_NAMES = [
         name + f"-lf-{fraction}"
         for name in EXPERIMENT_NAMES
         for fraction in LABEL_FRACTION_PATHS.keys()
     ]
-    EVAL_RUN_NAMES = [name + "-eval" for name in EXPERIMENT_NAMES]
-    LF_EVAL_RUN_NAMES = [name + "-eval" for name in LABEL_FRACTION_EXPERIMENT_NAMES]
+    EVAL_RUN_NAMES = EXPERIMENT_NAMES
+    LF_EVAL_RUN_NAMES = LABEL_FRACTION_EXPERIMENT_NAMES
+    if run_name_suffix is not None:
+        EVAL_RUN_NAMES = [name + run_name_suffix for name in EXPERIMENT_NAMES]
+        LF_EVAL_RUN_NAMES = [
+            name + run_name_suffix for name in LABEL_FRACTION_EXPERIMENT_NAMES
+        ]
     EVAL_RUN_FILTER = {
         "$and": [
             {"display_name": {"$in": EVAL_RUN_NAMES}},
@@ -293,7 +385,7 @@ def create_report(
         run_filter=EVAL_RUN_FILTER,
         run_names=EVAL_RUN_NAMES,
         metric_names=class_metrics,
-        value_index=0,
+        value_index=label_fraction_value_index,
         value_multiplier=100,
         verbose=True,
     )
@@ -314,6 +406,11 @@ def create_report(
                     metrics_table,
                     clines="all;data",
                     mode=highlight_mode,
+                    index_name=metrics_table_index_name,
+                    class_fractions=class_fractions,
+                    position=None,
+                    transpose=transpose_metrics_table,
+                    highlight_axis=highlight_axis,
                 )
             )
         ),
@@ -357,7 +454,7 @@ def create_report(
             metric_key=average,
             experiment_names=EXPERIMENT_NAMES,
             label_fractions=[0.01, 0.1, 0.5],
-            name_suffix="-eval",
+            name_suffix=run_name_suffix,
             label_transform=clean_string_outputs,
             all_label_values=metrics_table,
         )
