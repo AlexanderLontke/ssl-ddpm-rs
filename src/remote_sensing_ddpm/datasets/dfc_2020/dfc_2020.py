@@ -88,7 +88,7 @@ class DFC2020(data.Dataset):
 
         if samples_subset_path is not None:
             samples_subset = pd.read_csv(samples_subset_path)
-            s2_locations = samples_subset["id"].tolist()
+            s2_locations = [os.path.join(path, x) for x in samples_subset["id"].tolist()]
         else:
             s2_locations = glob.glob(os.path.join(path, "*.tif"), recursive=True)
 
@@ -109,6 +109,7 @@ class DFC2020(data.Dataset):
                     self.s2_bands,
                     no_savanna=self.no_savanna,
                     igbp=False,
+                    no_snow_and_savanna=self.no_snow_and_savanna,
                     s1_augmentations=self.s1_augmentations,
                     s2_augmentations=self.s2_augmentations,
                 )

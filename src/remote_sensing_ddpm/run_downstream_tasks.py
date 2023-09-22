@@ -255,7 +255,7 @@ def get_best_checkpoints(
 def run_test(complete_config: Dict, test_beton_file: Path, wandb_run_name: str, through_callback: bool):
     # Fetch best checkpoints
     wandb_sub_project_name = complete_config[PROJECT_KEY]
-    best_checkpoints = get_best_checkpoints(wandb_run_name, wandb_sub_project_name, through_callback=through_callback)
+    best_checkpoints = get_best_checkpoints(wandb_run_name=wandb_run_name, complete_config=complete_config, wandb_sub_project_name=wandb_sub_project_name, through_callback=through_callback)
     eval_suffix = "-eval"
     wandb_project_name = complete_config[PL_WANDB_LOGGER_CONFIG_KEY]["project"]
     complete_config[PL_WANDB_LOGGER_CONFIG_KEY]["project"] = (
