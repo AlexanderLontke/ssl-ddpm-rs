@@ -56,8 +56,8 @@ class LitBaselineDownstreamTask(pl.LightningModule):
         batch_size, *_ = y.shape
 
         x = batch[self.data_key]
-        if self.stack_inputs_keys is not None:
-            for k in self.stack_inputs_keys:
+        if self.stack_input_keys is not None:
+            for k in self.stack_input_keys:
                 x = torch.cat([x, batch[k]], dim=1)
 
         y_hat = self.downstream_model(x)

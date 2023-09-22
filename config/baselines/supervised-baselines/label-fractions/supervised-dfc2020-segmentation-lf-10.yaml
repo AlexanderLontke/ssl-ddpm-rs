@@ -27,7 +27,7 @@ train_torch_data_loader:
         use_s1: True
         no_snow_and_savanna: True
         label_dtype: "long"
-        samples_subset_path: "/netscratch2/alontke/master_thesis/code/ssl-ddpm-rs/notebooks/data_loading/dfc_2020_validation_samples_fraction_1.csv"
+        samples_subset_path: "/netscratch2/alontke/master_thesis/code/ssl-ddpm-rs/notebooks/data_loading/dfc_2020_validation_samples_fraction_10.csv"
         s1_augmentations:
           module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
           kwargs:
@@ -252,7 +252,7 @@ pl_trainer:
 
 pl_wandb_logger:
   project: *NAME
-  name: "supervised-dfc-2020-lf-0.01"
+  name: "supervised-dfc-2020-lf-0.1"
 
 pl_checkpoint_callback:
   monitor: *MONITOR
