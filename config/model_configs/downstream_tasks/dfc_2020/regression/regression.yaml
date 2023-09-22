@@ -4,6 +4,7 @@ monitor: &MONITOR "val/mean_squared_error"
 monitor_mode: &MONITOR_MODE "min"
 device: &DEVICE cuda
 image_size: &IMAGE_SIZE 128
+target_key: &TARGET_KEY "label"
 num_labels: &NUM_LABELS 8
 dfc_labels: &DFC_LABELS ["Forest", "Shrubland", "Grassland", "Wetlands", "Croplands", "Urban_Built-up", "Barren", "Water"]
 
@@ -47,7 +48,7 @@ pl_module:
 # MODEL TRAINING
 pl_trainer:
   accelerator: gpu
-  max_epochs: 20
+  max_epochs: 100
   log_every_n_steps: 1
   precision: "16-mixed"
   # gradient_clip_algorithm: "norm"
