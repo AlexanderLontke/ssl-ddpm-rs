@@ -4,8 +4,8 @@ device: &DEVICE cuda
 monitor: &MONITOR "val/mIoU"
 monitor_mode: &MONITOR_MODE "max"
 target_key: &TARGET_KEY "label"
-output_channels: &OUTPUT_CHANNELS 8
-dfc_labels: &DFC_LABELS ["Forest", "Shrubland", "Grassland", "Wetlands", "Croplands", "Urban_Built-up", "Barren", "Water"]
+output_channels: &OUTPUT_CHANNELS 11
+ewc_labels: &EWC_LABELS ["Tree cover", "Shrubland", "Grassland", "Cropland", "Built-up", "Bare", "Snow and Ice", "Permanenet water bodies", "Herbaceous wetland", "Mangroves", "Moss and lichen" ]
 
 data_key: &DATA_KEY "sentinel_2"
 image_channels: &IMAGE_CHANNELS 6
@@ -51,11 +51,23 @@ sentinel_1_pipeline: &S1_PIPELINE
       target_dtype: "float32"
   - module: ffcv.transforms.ToTensor
 
+# LABEL PIPELINE
+label_pipeline: &LABEL_PIPELINE
+    - module: ffcv.fields.decoders.NDArrayDecoder
+    - module: remote_sensing_core.transforms.ffcv.esa_world_cover_transform.EsaWorldCoverTransform
+      kwargs:
+        divisor: 10.0
+        subtractor: 1.0
+    - module: remote_sensing_core.transforms.ffcv.convert.Convert
+      kwargs:
+        target_dtype: "int64"
+    - module: ffcv.transforms.ToTensor
+
 pipelines: &PIPELINES
   climate_zone: null
   elevation_differ: null
   era_5: null
-  esa_worldcover: null
+  esa_worldcover: *LABEL_PIPELINE
   glo_30_dem: null
   multiclass_numer: null
   multiclass_one_h: null
@@ -66,7 +78,7 @@ pipelines: &PIPELINES
   field_names: null
 
 # DATA SET CONFIG
-tuple_mapping: &TUPLE_MAPPING ["sentinel_1", "sentinel_2"]
+tuple_mapping: &TUPLE_MAPPING ["esa_worldcover", "sentinel_1", "sentinel_2"]
 train_torch_data_loader:
   module: remote_sensing_ddpm.utils.ffcv_loader_wrapper.FFCVLoaderWrapper
   kwargs:
@@ -128,7 +140,7 @@ train_metrics: &TRAIN_METRICS
               task: "multiclass"
               num_classes: *OUTPUT_CHANNELS
               average: null
-      labels: *DFC_LABELS
+      labels: *EWC_LABELS
   classwise_mIoU:
     module: torchmetrics.ClasswiseWrapper
     kwargs:
@@ -143,7 +155,7 @@ train_metrics: &TRAIN_METRICS
               task: "multiclass"
               num_classes: *OUTPUT_CHANNELS
               average: null
-      labels: *DFC_LABELS
+      labels: *EWC_LABELS
 
 validation_metrics: &VAL_METRICS
   accuracy:
@@ -180,7 +192,7 @@ validation_metrics: &VAL_METRICS
               task: "multiclass"
               num_classes: *OUTPUT_CHANNELS
               average: null
-      labels: *DFC_LABELS
+      labels: *EWC_LABELS
   classwise_mIoU:
     module: torchmetrics.ClasswiseWrapper
     kwargs:
@@ -195,7 +207,7 @@ validation_metrics: &VAL_METRICS
               task: "multiclass"
               num_classes: *OUTPUT_CHANNELS
               average: null
-      labels: *DFC_LABELS
+      labels: *EWC_LABELS
 
 pl_module:
   module: remote_sensing_ddpm.downstream_tasks.baselines.lit_baseline_downstream_task.LitBaselineDownstreamTask
@@ -207,6 +219,8 @@ pl_module:
     target_key: *TARGET_KEY
     training_metrics: *TRAIN_METRICS
     validation_metrics: *VAL_METRICS
+    stack_put_keys:
+      - "sentinel_1"
     downstream_model:
       module: remote_sensing_ddpm.downstream_tasks.baselines.unet.UNet
       kwargs:

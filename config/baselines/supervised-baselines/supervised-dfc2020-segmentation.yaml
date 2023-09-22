@@ -1,0 +1,258 @@
+name: &NAME rs-ddpm-ms-dfc-2020
+seed: 42
+device: &DEVICE cuda
+monitor: &MONITOR "val/mIoU"
+monitor_mode: &MONITOR_MODE "max"
+target_key: &TARGET_KEY "label"
+output_channels: &OUTPUT_CHANNELS 8
+dfc_labels: &DFC_LABELS ["Forest", "Shrubland", "Grassland", "Wetlands", "Croplands", "Urban_Built-up", "Barren", "Water"]
+
+data_key: &DATA_KEY "image"
+image_channels: &IMAGE_CHANNELS 6
+
+# DATA SET CONFIG
+train_torch_data_loader:
+  module: torch.utils.data.DataLoader
+  kwargs:
+    batch_size: 24
+    num_workers: 4
+    shuffle: True
+    dataset:
+      module: remote_sensing_ddpm.datasets.dfc_2020.dfc_2020.DFC2020
+      kwargs:
+        load_on_the_fly: True
+        path: "/ds2/remote_sensing/grss-dfc-20"
+        subset: val
+        s2_bands: [ 3, 2, 1, 7]
+        use_s1: True
+        no_snow_and_savanna: True
+        label_dtype: "long"
+        s1_augmentations:
+          module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
+          kwargs:
+            minimum_value: 0
+            maximum_value: 1
+            interval_min: -1.0
+            interval_max: 1.0
+        s2_augmentations:
+          module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
+          kwargs:
+            minimum_value: 0
+            maximum_value: 1
+            interval_min: -1.0
+            interval_max: 1.0
+        batch_augmentation:
+          module: torch.nn.Sequential
+          args:
+            - module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.transform_image_and_label.TransformImageAndLabel
+              kwargs:
+                image_key: *DATA_KEY
+                label_key: *TARGET_KEY
+                transform_op:
+                  module: torchvision.transforms.RandomCrop
+                  kwargs:
+                    size: 120
+            - module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.transform_image_and_label.TransformImageAndLabel
+              kwargs:
+                image_key: *DATA_KEY
+                label_key: *TARGET_KEY
+                only_image: True
+                transform_op:
+                  module: torchvision.transforms.Pad
+                  kwargs:
+                    padding: 4
+
+validation_torch_data_loader:
+  module: torch.utils.data.DataLoader
+  kwargs:
+    batch_size: 24
+    num_workers: 4
+    shuffle: False
+    dataset:
+      module: remote_sensing_ddpm.datasets.dfc_2020.dfc_2020.DFC2020
+      kwargs:
+        load_on_the_fly: True
+        path: "/ds2/remote_sensing/grss-dfc-20"
+        subset: test
+        s2_bands: [ 3, 2, 1, 7 ]
+        use_s1: True
+        no_snow_and_savanna: True
+        label_dtype: "long"
+        s1_augmentations:
+          module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
+          kwargs:
+            minimum_value: 0
+            maximum_value: 1
+            interval_min: -1.0
+            interval_max: 1.0
+        s2_augmentations:
+          module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
+          kwargs:
+            minimum_value: 0
+            maximum_value: 1
+            interval_min: -1.0
+            interval_max: 1.0
+        batch_augmentation:
+          module: torch.nn.Sequential
+          args:
+            - module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.transform_image_and_label.TransformImageAndLabel
+              kwargs:
+                image_key: *DATA_KEY
+                label_key: *TARGET_KEY
+                transform_op:
+                  module: torchvision.transforms.RandomCrop
+                  kwargs:
+                    size: 120
+            - module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.transform_image_and_label.TransformImageAndLabel
+              kwargs:
+                image_key: *IMAGE_KEY
+                label_key: *LABEL_KEY
+                only_image: True
+                transform_op:
+                  module: torchvision.transforms.Pad
+                  kwargs:
+                    padding: 4
+
+
+# MODEL INSTANTIATION
+train_metrics: &TRAIN_METRICS
+  accuracy:
+    module: remote_sensing_ddpm.utils.torchmetrics_accuracy_adapter.AccuracyAdapter
+    kwargs:
+      apply_argmax: True
+      device: *DEVICE
+      torchmetrics_module:
+        module: torchmetrics.Accuracy
+        kwargs:
+          task: "multiclass"
+          num_classes: *OUTPUT_CHANNELS
+  mIoU:
+    module: remote_sensing_ddpm.utils.torchmetrics_jaccard_index_adapter.JaccardIndexAdapter
+    kwargs:
+      apply_argmax: True
+      device: *DEVICE
+      torchmetrics_module:
+        module: torchmetrics.JaccardIndex
+        kwargs:
+          task: "multiclass"
+          num_classes: *OUTPUT_CHANNELS
+  classwise_accuracy:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: remote_sensing_ddpm.utils.torchmetrics_accuracy_adapter.AccuracyAdapter
+        kwargs:
+          apply_argmax: True
+          device: *DEVICE
+          torchmetrics_module:
+            module: torchmetrics.Accuracy
+            kwargs:
+              task: "multiclass"
+              num_classes: *OUTPUT_CHANNELS
+              average: null
+      labels: *DFC_LABELS
+  classwise_mIoU:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: remote_sensing_ddpm.utils.torchmetrics_jaccard_index_adapter.JaccardIndexAdapter
+        kwargs:
+          apply_argmax: True
+          device: *DEVICE
+          torchmetrics_module:
+            module: torchmetrics.JaccardIndex
+            kwargs:
+              task: "multiclass"
+              num_classes: *OUTPUT_CHANNELS
+              average: null
+      labels: *DFC_LABELS
+
+validation_metrics: &VAL_METRICS
+  accuracy:
+    module: remote_sensing_ddpm.utils.torchmetrics_accuracy_adapter.AccuracyAdapter
+    kwargs:
+      apply_argmax: True
+      device: *DEVICE
+      torchmetrics_module:
+        module: torchmetrics.Accuracy
+        kwargs:
+          task: "multiclass"
+          num_classes: *OUTPUT_CHANNELS
+  mIoU:
+    module: remote_sensing_ddpm.utils.torchmetrics_jaccard_index_adapter.JaccardIndexAdapter
+    kwargs:
+      apply_argmax: True
+      device: *DEVICE
+      torchmetrics_module:
+        module: torchmetrics.JaccardIndex
+        kwargs:
+          task: "multiclass"
+          num_classes: *OUTPUT_CHANNELS
+  classwise_accuracy:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: remote_sensing_ddpm.utils.torchmetrics_accuracy_adapter.AccuracyAdapter
+        kwargs:
+          apply_argmax: True
+          device: *DEVICE
+          torchmetrics_module:
+            module: torchmetrics.Accuracy
+            kwargs:
+              task: "multiclass"
+              num_classes: *OUTPUT_CHANNELS
+              average: null
+      labels: *DFC_LABELS
+  classwise_mIoU:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: remote_sensing_ddpm.utils.torchmetrics_jaccard_index_adapter.JaccardIndexAdapter
+        kwargs:
+          apply_argmax: True
+          device: *DEVICE
+          torchmetrics_module:
+            module: torchmetrics.JaccardIndex
+            kwargs:
+              task: "multiclass"
+              num_classes: *OUTPUT_CHANNELS
+              average: null
+      labels: *DFC_LABELS
+
+pl_module:
+  module: remote_sensing_ddpm.downstream_tasks.baselines.lit_baseline_downstream_task.LitBaselineDownstreamTask
+  kwargs:
+    learning_rate: 0.0001
+    loss:
+      module: torch.nn.CrossEntropyLoss
+    data_key: *DATA_KEY
+    target_key: *TARGET_KEY
+    training_metrics: *TRAIN_METRICS
+    validation_metrics: *VAL_METRICS
+    downstream_model:
+      module: remote_sensing_ddpm.downstream_tasks.baselines.unet.UNet
+      kwargs:
+        n_channels: *IMAGE_CHANNELS
+        n_classes: *OUTPUT_CHANNELS
+
+# MODEL TRAINING
+pl_trainer:
+  accelerator: gpu
+  max_epochs: 20
+  log_every_n_steps: 1
+  precision: "16-mixed"
+  enable_checkpointing: True
+  # UNCOMMENT FOR DEBUGGING
+  # fast_dev_run: True
+  # limit_train_batches: 100
+  # num_sanity_val_steps: 0
+  # limit_val_batches: 100
+
+pl_wandb_logger:
+  project: *NAME
+
+pl_checkpoint_callback:
+  monitor: *MONITOR
+  mode: *MONITOR_MODE
+  save_top_k: 3
+  save_last: True
