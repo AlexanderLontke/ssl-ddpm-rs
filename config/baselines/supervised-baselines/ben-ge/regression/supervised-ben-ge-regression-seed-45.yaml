@@ -1,0 +1,156 @@
+name: &NAME rs-ddpm-ms-regression-egypt
+seed: 45
+device: &DEVICE cuda
+monitor: &MONITOR "val/mean_squared_error"
+monitor_mode: &MONITOR_MODE "min"
+target_key: &TARGET_KEY "multiclass_numer"
+num_labels: &NUM_LABELS 8
+dfc_labels: &DFC_LABELS ["Forest", "Shrubland", "Grassland", "Wetlands", "Croplands", "Urban_Built-up", "Barren", "Water"]
+
+data_key: &DATA_KEY "sentinel_2"
+image_channels: &IMAGE_CHANNELS 6
+train_beton_file: &TRAIN_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-train.beton
+validation_beton_file: &VALIDATION_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-validation.beton
+
+sentinel_2_pipeline: &S2_PIPELINE
+  - module: ffcv.fields.decoders.NDArrayDecoder
+  - module: remote_sensing_core.transforms.ffcv.channel_selector.ChannelSelector
+    kwargs:
+      channels: [ 3, 2, 1, 7]
+  - module: remote_sensing_core.transforms.ffcv.clipping.Clipping
+    kwargs:
+      clip_values: [0, 10000]
+  - module: remote_sensing_core.transforms.ffcv.min_max_scaler.MinMaxScaler
+    kwargs:
+      minimum_value: 0
+      maximum_value: 10000
+  - module: remote_sensing_core.transforms.ffcv.padding.Padding
+    kwargs:
+      padding: 4
+      padding_value: 0
+  - module: remote_sensing_core.transforms.ffcv.convert.Convert
+    kwargs:
+      target_dtype: "float32"
+  - module: ffcv.transforms.ToTensor
+
+sentinel_1_pipeline: &S1_PIPELINE
+  - module: ffcv.fields.decoders.NDArrayDecoder
+  - module: remote_sensing_core.transforms.ffcv.clipping.Clipping
+    kwargs:
+      clip_values: [-25, 0]
+  - module: remote_sensing_core.transforms.ffcv.min_max_scaler.MinMaxScaler
+    kwargs:
+      minimum_value: -25
+      maximum_value: 0
+  - module: remote_sensing_core.transforms.ffcv.padding.Padding
+    kwargs:
+      padding: 4
+      padding_value: 0
+  - module: remote_sensing_core.transforms.ffcv.convert.Convert
+    kwargs:
+      target_dtype: "float32"
+  - module: ffcv.transforms.ToTensor
+
+# LABEL PIPELINE
+label_pipeline: &LABEL_PIPELINE
+    - module: remote_sensing_core.transforms.ffcv.convert.Convert
+      kwargs:
+        target_dtype: "float32"
+    - module: ffcv.transforms.ToTensor
+
+pipelines: &PIPELINES
+  climate_zone: null
+  elevation_differ: null
+  era_5: null
+  esa_worldcover: null
+  glo_30_dem: null
+  multiclass_numer: *LABEL_PIPELINE
+  multiclass_one_h: null
+  season_s1: null
+  season_s2: null
+  sentinel_1: *S1_PIPELINE
+  sentinel_2: *S2_PIPELINE
+  field_names: null
+
+# DATA SET CONFIG
+tuple_mapping: &TUPLE_MAPPING ["multiclass_one_h", "sentinel_1", "sentinel_2"]
+train_torch_data_loader:
+  module: remote_sensing_ddpm.utils.ffcv_loader_wrapper.FFCVLoaderWrapper
+  kwargs:
+    fname: *TRAIN_BETON_FILE
+    batch_size: 24
+    num_workers: 4
+    order:
+      module: ffcv.loader.OrderOption
+      args: [ 3 ] # 3 is Quasi random
+    pipelines: *PIPELINES
+    mapping: *TUPLE_MAPPING
+
+
+validation_torch_data_loader:
+  module: remote_sensing_ddpm.utils.ffcv_loader_wrapper.FFCVLoaderWrapper
+  kwargs:
+    fname: *VALIDATION_BETON_FILE
+    batch_size: 24
+    num_workers: 4
+    order:
+      module: ffcv.loader.OrderOption
+      args: [ 1 ]
+    pipelines: *PIPELINES
+    mapping: *TUPLE_MAPPING
+
+# METRICS
+train_metrics: &TRAIN_METRICS
+  mean_squared_error:
+    module: torchmetrics.MeanSquaredError
+  mean_absolute_error:
+    module: torchmetrics.MeanAbsoluteError
+
+validation_metrics: &VALIDATION_METRICS
+  mean_squared_error:
+    module: torchmetrics.MeanSquaredError
+  mean_absolute_error:
+    module: torchmetrics.MeanAbsoluteError
+
+
+pl_module:
+  module: remote_sensing_ddpm.downstream_tasks.baselines.lit_baseline_downstream_task.LitBaselineDownstreamTask
+  kwargs:
+    learning_rate: 0.0001
+    loss:
+      module: torch.nn.MSELoss
+    data_key: *DATA_KEY
+    target_key: *TARGET_KEY
+    training_metrics: *TRAIN_METRICS
+    validation_metrics: *VALIDATION_METRICS
+    stack_input_keys:
+      - "sentinel_1"
+    downstream_model:
+      module: remote_sensing_ddpm.downstream_tasks.baselines.resnet_50.resnet50_variable_in_channels
+      kwargs:
+        in_channels: *IMAGE_CHANNELS
+        num_classes: *NUM_LABELS
+        add_sigmoid: True
+
+# MODEL TRAINING
+pl_trainer:
+  accelerator: gpu
+  max_epochs: 20
+  log_every_n_steps: 1
+  precision: "16-mixed"
+  enable_checkpointing: True
+  # UNCOMMENT FOR DEBUGGING
+  # fast_dev_run: True
+  # limit_train_batches: 100
+  # num_sanity_val_steps: 0
+  # limit_val_batches: 100
+
+pl_wandb_logger:
+  project: *NAME
+  name: supervised-ben-ge-regression
+
+pl_checkpoint_callback:
+  monitor: *MONITOR
+  mode: *MONITOR_MODE
+  save_top_k: 3
+  save_last: True

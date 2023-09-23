@@ -1,0 +1,235 @@
+name: &NAME rs-ddpm-ms-classification-gallen
+seed: 44
+device: &DEVICE cuda
+monitor: &MONITOR "val/f1"
+monitor_mode: &MONITOR_MODE "max"
+target_key: &TARGET_KEY "multiclass_one_h"
+num_labels: &NUM_LABELS 11
+image_size: &IMAGE_SIZE 128
+ewc_labels: &EWC_LABELS ["Tree cover", "Shrubland", "Grassland", "Cropland", "Built-up", "Bare", "Snow and Ice", "Permanenet water bodies", "Herbaceous wetland", "Mangroves", "Moss and lichen" ]
+
+data_key: &DATA_KEY "sentinel_2"
+image_channels: &IMAGE_CHANNELS 6
+train_beton_file: &TRAIN_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-train.beton
+validation_beton_file: &VALIDATION_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-validation.beton
+
+sentinel_2_pipeline: &S2_PIPELINE
+  - module: ffcv.fields.decoders.NDArrayDecoder
+  - module: remote_sensing_core.transforms.ffcv.channel_selector.ChannelSelector
+    kwargs:
+      channels: [ 3, 2, 1, 7]
+  - module: remote_sensing_core.transforms.ffcv.clipping.Clipping
+    kwargs:
+      clip_values: [0, 10000]
+  - module: remote_sensing_core.transforms.ffcv.min_max_scaler.MinMaxScaler
+    kwargs:
+      minimum_value: 0
+      maximum_value: 10000
+  - module: remote_sensing_core.transforms.ffcv.padding.Padding
+    kwargs:
+      padding: 4
+      padding_value: 0
+  - module: remote_sensing_core.transforms.ffcv.convert.Convert
+    kwargs:
+      target_dtype: "float32"
+  - module: ffcv.transforms.ToTensor
+
+sentinel_1_pipeline: &S1_PIPELINE
+  - module: ffcv.fields.decoders.NDArrayDecoder
+  - module: remote_sensing_core.transforms.ffcv.clipping.Clipping
+    kwargs:
+      clip_values: [-25, 0]
+  - module: remote_sensing_core.transforms.ffcv.min_max_scaler.MinMaxScaler
+    kwargs:
+      minimum_value: -25
+      maximum_value: 0
+  - module: remote_sensing_core.transforms.ffcv.padding.Padding
+    kwargs:
+      padding: 4
+      padding_value: 0
+  - module: remote_sensing_core.transforms.ffcv.convert.Convert
+    kwargs:
+      target_dtype: "float32"
+  - module: ffcv.transforms.ToTensor
+
+# LABEL PIPELINE
+label_pipeline: &LABEL_PIPELINE
+    - module: ffcv.transforms.ToTensor
+
+pipelines: &PIPELINES
+  climate_zone: null
+  elevation_differ: null
+  era_5: null
+  esa_worldcover: null
+  glo_30_dem: null
+  multiclass_numer: null
+  multiclass_one_h: *LABEL_PIPELINE
+  season_s1: null
+  season_s2: null
+  sentinel_1: *S1_PIPELINE
+  sentinel_2: *S2_PIPELINE
+  field_names: null
+
+# DATA SET CONFIG
+tuple_mapping: &TUPLE_MAPPING ["multiclass_one_h", "sentinel_1", "sentinel_2"]
+train_torch_data_loader:
+  module: remote_sensing_ddpm.utils.ffcv_loader_wrapper.FFCVLoaderWrapper
+  kwargs:
+    fname: *TRAIN_BETON_FILE
+    batch_size: 24
+    num_workers: 4
+    order:
+      module: ffcv.loader.OrderOption
+      args: [ 3 ] # 3 is Quasi random
+    pipelines: *PIPELINES
+    mapping: *TUPLE_MAPPING
+
+
+validation_torch_data_loader:
+  module: remote_sensing_ddpm.utils.ffcv_loader_wrapper.FFCVLoaderWrapper
+  kwargs:
+    fname: *VALIDATION_BETON_FILE
+    batch_size: 24
+    num_workers: 4
+    order:
+      module: ffcv.loader.OrderOption
+      args: [ 1 ]
+    pipelines: *PIPELINES
+    mapping: *TUPLE_MAPPING
+
+# METRICS
+metrics_args: &METRICS_KWARGS
+  task: "multilabel"
+  num_labels: *NUM_LABELS
+  threshold: 0.5
+classwise_metrics_kwargs: &CW_METRICS_KWARGS
+  task: "multilabel"
+  num_labels: *NUM_LABELS
+  threshold: 0.5
+  average: null
+
+train_metrics: &TRAIN_METRICS
+  accuracy:
+    module: torchmetrics.Accuracy
+    kwargs: *METRICS_KWARGS
+  recall:
+    module: torchmetrics.Recall
+    kwargs: *METRICS_KWARGS
+  precision:
+    module: torchmetrics.Precision
+    kwargs: *METRICS_KWARGS
+  f1:
+    module: torchmetrics.F1Score
+    kwargs: *METRICS_KWARGS
+  classwise_accuracy:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.Accuracy
+        kwargs: *CW_METRICS_KWARGS
+      labels: *EWC_LABELS
+  classwise_recall:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.Recall
+        kwargs: *CW_METRICS_KWARGS
+      labels: *EWC_LABELS
+  classwise_precision:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.Precision
+        kwargs: *CW_METRICS_KWARGS
+      labels: *EWC_LABELS
+  classwise_f1:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.F1Score
+        kwargs: *CW_METRICS_KWARGS
+      labels: *EWC_LABELS
+
+validation_metrics: &VALIDATION_METRICS
+  accuracy:
+    module: torchmetrics.Accuracy
+    kwargs: *METRICS_KWARGS
+  recall:
+    module: torchmetrics.Recall
+    kwargs: *METRICS_KWARGS
+  precision:
+    module: torchmetrics.Precision
+    kwargs: *METRICS_KWARGS
+  f1:
+    module: torchmetrics.F1Score
+    kwargs: *METRICS_KWARGS
+  classwise_accuracy:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.Accuracy
+        kwargs: *CW_METRICS_KWARGS
+      labels: *EWC_LABELS
+  classwise_recall:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.Recall
+        kwargs: *CW_METRICS_KWARGS
+      labels: *EWC_LABELS
+  classwise_precision:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.Precision
+        kwargs: *CW_METRICS_KWARGS
+      labels: *EWC_LABELS
+  classwise_f1:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.F1Score
+        kwargs: *CW_METRICS_KWARGS
+      labels: *EWC_LABELS
+
+
+pl_module:
+  module: remote_sensing_ddpm.downstream_tasks.baselines.lit_baseline_downstream_task.LitBaselineDownstreamTask
+  kwargs:
+    learning_rate: 0.0001
+    loss:
+      module: torch.nn.CrossEntropyLoss
+    data_key: *DATA_KEY
+    target_key: *TARGET_KEY
+    training_metrics: *TRAIN_METRICS
+    validation_metrics: *VAL_METRICS
+    stack_input_keys:
+      - "sentinel_1"
+    downstream_model:
+      module: torchvision.models
+      kwargs:
+        n_channels: *IMAGE_CHANNELS
+        num_classes: *OUTPUT_CHANNELS
+
+# MODEL TRAINING
+pl_trainer:
+  accelerator: gpu
+  max_epochs: 20
+  log_every_n_steps: 1
+  precision: "16-mixed"
+  enable_checkpointing: True
+  # UNCOMMENT FOR DEBUGGING
+  # fast_dev_run: True
+  # limit_train_batches: 100
+  # num_sanity_val_steps: 0
+  # limit_val_batches: 100
+
+pl_wandb_logger:
+  project: *NAME
+  name: supervised-ben-ge-classification
+
+pl_checkpoint_callback:
+  monitor: *MONITOR
+  mode: *MONITOR_MODE
+  save_top_k: 3
+  save_last: True

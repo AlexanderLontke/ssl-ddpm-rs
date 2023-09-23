@@ -1,8 +1,8 @@
-name: &NAME rs-ddpm-ms-regression-egypt
+name: &NAME rs-ddpm-ms-classification-gallen
 seed: 42
 device: &DEVICE cuda
-monitor: &MONITOR "val/mean_squared_error"
-monitor_mode: &MONITOR_MODE "min"
+monitor: &MONITOR "val/f1"
+monitor_mode: &MONITOR_MODE "max"
 target_key: &TARGET_KEY "label"
 num_labels: &NUM_LABELS 8
 dfc_labels: &DFC_LABELS ["Forest", "Shrubland", "Grassland", "Wetlands", "Croplands", "Urban_Built-up", "Barren", "Water"]
@@ -26,8 +26,7 @@ train_torch_data_loader:
         use_s1: True
         no_snow_and_savanna: True
         label_dtype: "float"
-        label_mode: "regression"
-        samples_subset_path: "/netscratch2/alontke/master_thesis/code/ssl-ddpm-rs/notebooks/data_loading/dfc_2020_validation_samples_fraction_10.csv"
+        label_mode: "classification"
         s1_augmentations:
           module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
           kwargs:
@@ -74,7 +73,7 @@ validation_torch_data_loader:
       kwargs:
         load_on_the_fly: True
         path: "/ds2/remote_sensing/grss-dfc-20"
-        label_mode: "regression"
+        label_mode: "classification"
         subset: test
         s2_bands: [ 3, 2, 1, 7 ]
         use_s1: True
@@ -115,18 +114,101 @@ validation_torch_data_loader:
                   kwargs:
                     padding: 4
 
+
 # METRICS
+metrics_args: &METRICS_KWARGS
+  task: "multilabel"
+  num_labels: *NUM_LABELS
+  threshold: 0.5
+classwise_metrics_kwargs: &CW_METRICS_KWARGS
+  task: "multilabel"
+  num_labels: *NUM_LABELS
+  threshold: 0.5
+  average: null
+
 train_metrics: &TRAIN_METRICS
-  mean_squared_error:
-    module: torchmetrics.MeanSquaredError
-  mean_absolute_error:
-    module: torchmetrics.MeanAbsoluteError
+  accuracy:
+    module: torchmetrics.Accuracy
+    kwargs: *METRICS_KWARGS
+  recall:
+    module: torchmetrics.Recall
+    kwargs: *METRICS_KWARGS
+  precision:
+    module: torchmetrics.Precision
+    kwargs: *METRICS_KWARGS
+  f1:
+    module: torchmetrics.F1Score
+    kwargs: *METRICS_KWARGS
+  classwise_accuracy:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.Accuracy
+        kwargs: *CW_METRICS_KWARGS
+      labels: *DFC_LABELS
+  classwise_recall:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.Recall
+        kwargs: *CW_METRICS_KWARGS
+      labels: *DFC_LABELS
+  classwise_precision:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.Precision
+        kwargs: *CW_METRICS_KWARGS
+      labels: *DFC_LABELS
+  classwise_f1:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.F1Score
+        kwargs: *CW_METRICS_KWARGS
+      labels: *DFC_LABELS
 
 validation_metrics: &VALIDATION_METRICS
-  mean_squared_error:
-    module: torchmetrics.MeanSquaredError
-  mean_absolute_error:
-    module: torchmetrics.MeanAbsoluteError
+  accuracy:
+    module: torchmetrics.Accuracy
+    kwargs: *METRICS_KWARGS
+  recall:
+    module: torchmetrics.Recall
+    kwargs: *METRICS_KWARGS
+  precision:
+    module: torchmetrics.Precision
+    kwargs: *METRICS_KWARGS
+  f1:
+    module: torchmetrics.F1Score
+    kwargs: *METRICS_KWARGS
+  classwise_accuracy:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.Accuracy
+        kwargs: *CW_METRICS_KWARGS
+      labels: *DFC_LABELS
+  classwise_recall:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.Recall
+        kwargs: *CW_METRICS_KWARGS
+      labels: *DFC_LABELS
+  classwise_precision:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.Precision
+        kwargs: *CW_METRICS_KWARGS
+      labels: *DFC_LABELS
+  classwise_f1:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: torchmetrics.F1Score
+        kwargs: *CW_METRICS_KWARGS
+      labels: *DFC_LABELS
 
 
 pl_module:
@@ -134,7 +216,7 @@ pl_module:
   kwargs:
     learning_rate: 0.0001
     loss:
-      module: torch.nn.MSELoss
+      module: torch.nn.CrossEntropyLoss
     data_key: *DATA_KEY
     target_key: *TARGET_KEY
     training_metrics: *TRAIN_METRICS
@@ -149,7 +231,7 @@ pl_module:
 # MODEL TRAINING
 pl_trainer:
   accelerator: gpu
-  max_epochs: 100
+  max_epochs: 20
   log_every_n_steps: 1
   precision: "16-mixed"
   enable_checkpointing: True
@@ -161,7 +243,7 @@ pl_trainer:
 
 pl_wandb_logger:
   project: *NAME
-  name: "supervised-dfc-2020-lf-0.1"
+  name: supervised-dfc-2020-classification
 
 pl_checkpoint_callback:
   monitor: *MONITOR

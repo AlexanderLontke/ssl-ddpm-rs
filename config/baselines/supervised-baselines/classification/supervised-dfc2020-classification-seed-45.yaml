@@ -1,5 +1,5 @@
 name: &NAME rs-ddpm-ms-classification-gallen
-seed: 42
+seed: 45
 device: &DEVICE cuda
 monitor: &MONITOR "val/f1"
 monitor_mode: &MONITOR_MODE "max"
@@ -25,9 +25,8 @@ train_torch_data_loader:
         s2_bands: [ 3, 2, 1, 7]
         use_s1: True
         no_snow_and_savanna: True
-        label_dtype: "long"
+        label_dtype: "float"
         label_mode: "classification"
-        samples_subset_path: "/netscratch2/alontke/master_thesis/code/ssl-ddpm-rs/notebooks/data_loading/dfc_2020_validation_samples_fraction_50.csv"
         s1_augmentations:
           module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
           kwargs:
@@ -79,7 +78,7 @@ validation_torch_data_loader:
         s2_bands: [ 3, 2, 1, 7 ]
         use_s1: True
         no_snow_and_savanna: True
-        label_dtype: "long"
+        label_dtype: "float"
         s1_augmentations:
           module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
           kwargs:
@@ -232,7 +231,7 @@ pl_module:
 # MODEL TRAINING
 pl_trainer:
   accelerator: gpu
-  max_epochs: 100
+  max_epochs: 20
   log_every_n_steps: 1
   precision: "16-mixed"
   enable_checkpointing: True
@@ -244,8 +243,7 @@ pl_trainer:
 
 pl_wandb_logger:
   project: *NAME
-  name: "supervised-dfc-2020-lf-0.5"
-
+  name: supervised-dfc-2020-classification
 
 pl_checkpoint_callback:
   monitor: *MONITOR

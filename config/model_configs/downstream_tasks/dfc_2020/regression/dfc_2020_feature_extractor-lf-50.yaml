@@ -1,14 +1,10 @@
-name: &NAME rs-ddpm-ms-regression-egypt
-seed: 42
 device: &DEVICE cuda
-monitor: &MONITOR "val/mean_squared_error"
-monitor_mode: &MONITOR_MODE "min"
-target_key: &TARGET_KEY "label"
-num_labels: &NUM_LABELS 8
-dfc_labels: &DFC_LABELS ["Forest", "Shrubland", "Grassland", "Wetlands", "Croplands", "Urban_Built-up", "Barren", "Water"]
-
-data_key: &DATA_KEY "image"
+image_key: &IMAGE_KEY "image"
+label_key: &LABEL_KEY "label"
+image_size: &IMAGE_SIZE 128
 image_channels: &IMAGE_CHANNELS 6
+
+
 # DATA SET CONFIG
 train_torch_data_loader:
   module: torch.utils.data.DataLoader
@@ -19,15 +15,14 @@ train_torch_data_loader:
     dataset:
       module: remote_sensing_ddpm.datasets.dfc_2020.dfc_2020.DFC2020
       kwargs:
-        load_on_the_fly: True
         path: "/ds2/remote_sensing/grss-dfc-20"
         subset: val
         s2_bands: [ 3, 2, 1, 7]
         use_s1: True
         no_snow_and_savanna: True
-        label_dtype: "float"
         label_mode: "regression"
-        samples_subset_path: "/netscratch2/alontke/master_thesis/code/ssl-ddpm-rs/notebooks/data_loading/dfc_2020_validation_samples_fraction_10.csv"
+        label_dtype: "float"
+        samples_subset_path: "/netscratch2/alontke/master_thesis/code/ssl-ddpm-rs/notebooks/data_loading/dfc_2020_validation_samples_fraction_50.csv"
         s1_augmentations:
           module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
           kwargs:
@@ -47,16 +42,16 @@ train_torch_data_loader:
           args:
             - module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.transform_image_and_label.TransformImageAndLabel
               kwargs:
-                image_key: *DATA_KEY
-                label_key: *TARGET_KEY
+                image_key: *IMAGE_KEY
+                label_key: *LABEL_KEY
                 transform_op:
                   module: torchvision.transforms.RandomCrop
                   kwargs:
                     size: 120
             - module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.transform_image_and_label.TransformImageAndLabel
               kwargs:
-                image_key: *DATA_KEY
-                label_key: *TARGET_KEY
+                image_key: *IMAGE_KEY
+                label_key: *LABEL_KEY
                 only_image: True
                 transform_op:
                   module: torchvision.transforms.Pad
@@ -72,13 +67,12 @@ validation_torch_data_loader:
     dataset:
       module: remote_sensing_ddpm.datasets.dfc_2020.dfc_2020.DFC2020
       kwargs:
-        load_on_the_fly: True
         path: "/ds2/remote_sensing/grss-dfc-20"
-        label_mode: "regression"
         subset: test
         s2_bands: [ 3, 2, 1, 7 ]
-        use_s1: True
         no_snow_and_savanna: True
+        use_s1: True
+        label_mode: "regression"
         label_dtype: "float"
         s1_augmentations:
           module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
@@ -99,72 +93,55 @@ validation_torch_data_loader:
           args:
             - module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.transform_image_and_label.TransformImageAndLabel
               kwargs:
-                image_key: *DATA_KEY
-                label_key: *TARGET_KEY
+                image_key: *IMAGE_KEY
+                label_key: *LABEL_KEY
                 transform_op:
                   module: torchvision.transforms.RandomCrop
                   kwargs:
                     size: 120
             - module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.transform_image_and_label.TransformImageAndLabel
               kwargs:
-                image_key: *DATA_KEY
-                label_key: *TARGET_KEY
+                image_key: *IMAGE_KEY
+                label_key: *LABEL_KEY
                 only_image: True
                 transform_op:
                   module: torchvision.transforms.Pad
                   kwargs:
                     padding: 4
 
-# METRICS
-train_metrics: &TRAIN_METRICS
-  mean_squared_error:
-    module: torchmetrics.MeanSquaredError
-  mean_absolute_error:
-    module: torchmetrics.MeanAbsoluteError
 
-validation_metrics: &VALIDATION_METRICS
-  mean_squared_error:
-    module: torchmetrics.MeanSquaredError
-  mean_absolute_error:
-    module: torchmetrics.MeanAbsoluteError
-
-
-pl_module:
-  module: remote_sensing_ddpm.downstream_tasks.baselines.lit_baseline_downstream_task.LitBaselineDownstreamTask
+# FEATURE EXTRACTOR CONFIG
+feature_extractor:
+  module: remote_sensing_ddpm.downstream_tasks.modules.feature_extractor.FeatureExtractor
   kwargs:
-    learning_rate: 0.0001
-    loss:
-      module: torch.nn.MSELoss
-    data_key: *DATA_KEY
-    target_key: *TARGET_KEY
-    training_metrics: *TRAIN_METRICS
-    validation_metrics: *VALIDATION_METRICS
-    downstream_model:
-      module: remote_sensing_ddpm.downstream_tasks.baselines.resnet_50.resnet50_variable_in_channels
+    data_key: *IMAGE_KEY
+    checkpoint_path: "/netscratch2/alontke/master_thesis/code/ssl-ddpm-rs/rs-ddpm-ms/isam22bx/checkpoints/epoch=19-step=155280.ckpt"
+    map_location: *DEVICE
+    t: 1
+    p_theta_model_kwargs:
+      feat_need: True
+    diffusion_pl_module:
+      module: lit_diffusion.ddpm.lit_ddpm.LitDDPM
       kwargs:
-        in_channels: *IMAGE_CHANNELS
-        num_classes: *NUM_LABELS
-        add_sigmoid: True
-
-# MODEL TRAINING
-pl_trainer:
-  accelerator: gpu
-  max_epochs: 100
-  log_every_n_steps: 1
-  precision: "16-mixed"
-  enable_checkpointing: True
-  # UNCOMMENT FOR DEBUGGING
-  # fast_dev_run: True
-  # limit_train_batches: 100
-  # num_sanity_val_steps: 0
-  # limit_val_batches: 100
-
-pl_wandb_logger:
-  project: *NAME
-  name: "supervised-dfc-2020-lf-0.1"
-
-pl_checkpoint_callback:
-  monitor: *MONITOR
-  mode: *MONITOR_MODE
-  save_top_k: 3
-  save_last: True
+        diffusion_target: eps
+        schedule_type: linear
+        beta_schedule_steps: 1000
+        beta_schedule_linear_start: 0.0001
+        beta_schedule_linear_end: 0.02
+        learning_rate: 0.00001
+        data_key: *IMAGE_KEY
+        learning_rate_scheduler_config:
+          module: torch.optim.lr_scheduler.LinearLR
+          delay: 1
+        p_theta_model:
+          module: remote_sensing_ddpm.p_theta_models.ddpm_cd_model.sr3_modules.unet.UNet
+          kwargs:
+            in_channel: *IMAGE_CHANNELS
+            out_channel: *IMAGE_CHANNELS
+            norm_groups: 32
+            inner_channel: 128
+            channel_mults: [ 1, 2, 4, 8, 8 ]
+            attn_res: [ 16 ]
+            res_blocks: 2
+            dropout: 0.2
+            image_size: *IMAGE_SIZE

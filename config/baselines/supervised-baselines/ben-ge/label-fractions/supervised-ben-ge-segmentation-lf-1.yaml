@@ -1,4 +1,4 @@
-name: &NAME rs-ddpm-ms-dfc-2020
+name: &NAME rs-ddpm-ms-segmentation-egypt
 seed: 42
 device: &DEVICE cuda
 monitor: &MONITOR "val/mIoU"
@@ -9,7 +9,7 @@ ewc_labels: &EWC_LABELS ["Tree cover", "Shrubland", "Grassland", "Cropland", "Bu
 
 data_key: &DATA_KEY "sentinel_2"
 image_channels: &IMAGE_CHANNELS 6
-train_beton_file: &TRAIN_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-train.beton
+train_beton_file: &TRAIN_BETON_FILE "/ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-multilabel-train-1-percent.beton"
 validation_beton_file: &VALIDATION_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-validation.beton
 
 sentinel_2_pipeline: &S2_PIPELINE
@@ -219,7 +219,7 @@ pl_module:
     target_key: *TARGET_KEY
     training_metrics: *TRAIN_METRICS
     validation_metrics: *VAL_METRICS
-    stack_put_keys:
+    stack_input_keys:
       - "sentinel_1"
     downstream_model:
       module: remote_sensing_ddpm.downstream_tasks.baselines.unet.UNet
@@ -242,6 +242,7 @@ pl_trainer:
 
 pl_wandb_logger:
   project: *NAME
+  name: supervised-ben-ge-segmentation-lf-0.01
 
 pl_checkpoint_callback:
   monitor: *MONITOR

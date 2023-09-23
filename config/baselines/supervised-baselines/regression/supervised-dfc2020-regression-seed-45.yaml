@@ -1,8 +1,9 @@
 name: &NAME rs-ddpm-ms-regression-egypt
-seed: 42
-device: &DEVICE cuda
+seed: 45
 monitor: &MONITOR "val/mean_squared_error"
 monitor_mode: &MONITOR_MODE "min"
+device: &DEVICE cuda
+image_size: &IMAGE_SIZE 128
 target_key: &TARGET_KEY "label"
 num_labels: &NUM_LABELS 8
 dfc_labels: &DFC_LABELS ["Forest", "Shrubland", "Grassland", "Wetlands", "Croplands", "Urban_Built-up", "Barren", "Water"]
@@ -27,7 +28,6 @@ train_torch_data_loader:
         no_snow_and_savanna: True
         label_dtype: "float"
         label_mode: "regression"
-        samples_subset_path: "/netscratch2/alontke/master_thesis/code/ssl-ddpm-rs/notebooks/data_loading/dfc_2020_validation_samples_fraction_10.csv"
         s1_augmentations:
           module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
           kwargs:
@@ -115,6 +115,7 @@ validation_torch_data_loader:
                   kwargs:
                     padding: 4
 
+
 # METRICS
 train_metrics: &TRAIN_METRICS
   mean_squared_error:
@@ -128,13 +129,12 @@ validation_metrics: &VALIDATION_METRICS
   mean_absolute_error:
     module: torchmetrics.MeanAbsoluteError
 
-
 pl_module:
   module: remote_sensing_ddpm.downstream_tasks.baselines.lit_baseline_downstream_task.LitBaselineDownstreamTask
   kwargs:
     learning_rate: 0.0001
     loss:
-      module: torch.nn.MSELoss
+      module: torch.nn.CrossEntropyLoss
     data_key: *DATA_KEY
     target_key: *TARGET_KEY
     training_metrics: *TRAIN_METRICS
@@ -149,7 +149,7 @@ pl_module:
 # MODEL TRAINING
 pl_trainer:
   accelerator: gpu
-  max_epochs: 100
+  max_epochs: 20
   log_every_n_steps: 1
   precision: "16-mixed"
   enable_checkpointing: True
@@ -161,7 +161,8 @@ pl_trainer:
 
 pl_wandb_logger:
   project: *NAME
-  name: "supervised-dfc-2020-lf-0.1"
+  name: "supervised-dfc-2020-regression"
+
 
 pl_checkpoint_callback:
   monitor: *MONITOR

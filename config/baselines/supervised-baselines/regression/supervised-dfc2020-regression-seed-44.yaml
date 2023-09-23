@@ -1,8 +1,9 @@
-name: &NAME rs-ddpm-ms-classification-gallen
-seed: 42
+name: &NAME rs-ddpm-ms-regression-egypt
+seed: 44
+monitor: &MONITOR "val/mean_squared_error"
+monitor_mode: &MONITOR_MODE "min"
 device: &DEVICE cuda
-monitor: &MONITOR "val/f1"
-monitor_mode: &MONITOR_MODE "max"
+image_size: &IMAGE_SIZE 128
 target_key: &TARGET_KEY "label"
 num_labels: &NUM_LABELS 8
 dfc_labels: &DFC_LABELS ["Forest", "Shrubland", "Grassland", "Wetlands", "Croplands", "Urban_Built-up", "Barren", "Water"]
@@ -25,9 +26,8 @@ train_torch_data_loader:
         s2_bands: [ 3, 2, 1, 7]
         use_s1: True
         no_snow_and_savanna: True
-        label_dtype: "long"
-        label_mode: "classification"
-        samples_subset_path: "/netscratch2/alontke/master_thesis/code/ssl-ddpm-rs/notebooks/data_loading/dfc_2020_validation_samples_fraction_10.csv"
+        label_dtype: "float"
+        label_mode: "regression"
         s1_augmentations:
           module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
           kwargs:
@@ -74,12 +74,12 @@ validation_torch_data_loader:
       kwargs:
         load_on_the_fly: True
         path: "/ds2/remote_sensing/grss-dfc-20"
-        label_mode: "classification"
+        label_mode: "regression"
         subset: test
         s2_bands: [ 3, 2, 1, 7 ]
         use_s1: True
         no_snow_and_savanna: True
-        label_dtype: "long"
+        label_dtype: "float"
         s1_augmentations:
           module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.min_max_scaler.TorchMinMaxScaler
           kwargs:
@@ -117,100 +117,17 @@ validation_torch_data_loader:
 
 
 # METRICS
-metrics_args: &METRICS_KWARGS
-  task: "multilabel"
-  num_labels: *NUM_LABELS
-  threshold: 0.5
-classwise_metrics_kwargs: &CW_METRICS_KWARGS
-  task: "multilabel"
-  num_labels: *NUM_LABELS
-  threshold: 0.5
-  average: null
-
 train_metrics: &TRAIN_METRICS
-  accuracy:
-    module: torchmetrics.Accuracy
-    kwargs: *METRICS_KWARGS
-  recall:
-    module: torchmetrics.Recall
-    kwargs: *METRICS_KWARGS
-  precision:
-    module: torchmetrics.Precision
-    kwargs: *METRICS_KWARGS
-  f1:
-    module: torchmetrics.F1Score
-    kwargs: *METRICS_KWARGS
-  classwise_accuracy:
-    module: torchmetrics.ClasswiseWrapper
-    kwargs:
-      metric:
-        module: torchmetrics.Accuracy
-        kwargs: *CW_METRICS_KWARGS
-      labels: *DFC_LABELS
-  classwise_recall:
-    module: torchmetrics.ClasswiseWrapper
-    kwargs:
-      metric:
-        module: torchmetrics.Recall
-        kwargs: *CW_METRICS_KWARGS
-      labels: *DFC_LABELS
-  classwise_precision:
-    module: torchmetrics.ClasswiseWrapper
-    kwargs:
-      metric:
-        module: torchmetrics.Precision
-        kwargs: *CW_METRICS_KWARGS
-      labels: *DFC_LABELS
-  classwise_f1:
-    module: torchmetrics.ClasswiseWrapper
-    kwargs:
-      metric:
-        module: torchmetrics.F1Score
-        kwargs: *CW_METRICS_KWARGS
-      labels: *DFC_LABELS
+  mean_squared_error:
+    module: torchmetrics.MeanSquaredError
+  mean_absolute_error:
+    module: torchmetrics.MeanAbsoluteError
 
 validation_metrics: &VALIDATION_METRICS
-  accuracy:
-    module: torchmetrics.Accuracy
-    kwargs: *METRICS_KWARGS
-  recall:
-    module: torchmetrics.Recall
-    kwargs: *METRICS_KWARGS
-  precision:
-    module: torchmetrics.Precision
-    kwargs: *METRICS_KWARGS
-  f1:
-    module: torchmetrics.F1Score
-    kwargs: *METRICS_KWARGS
-  classwise_accuracy:
-    module: torchmetrics.ClasswiseWrapper
-    kwargs:
-      metric:
-        module: torchmetrics.Accuracy
-        kwargs: *CW_METRICS_KWARGS
-      labels: *DFC_LABELS
-  classwise_recall:
-    module: torchmetrics.ClasswiseWrapper
-    kwargs:
-      metric:
-        module: torchmetrics.Recall
-        kwargs: *CW_METRICS_KWARGS
-      labels: *DFC_LABELS
-  classwise_precision:
-    module: torchmetrics.ClasswiseWrapper
-    kwargs:
-      metric:
-        module: torchmetrics.Precision
-        kwargs: *CW_METRICS_KWARGS
-      labels: *DFC_LABELS
-  classwise_f1:
-    module: torchmetrics.ClasswiseWrapper
-    kwargs:
-      metric:
-        module: torchmetrics.F1Score
-        kwargs: *CW_METRICS_KWARGS
-      labels: *DFC_LABELS
-
+  mean_squared_error:
+    module: torchmetrics.MeanSquaredError
+  mean_absolute_error:
+    module: torchmetrics.MeanAbsoluteError
 
 pl_module:
   module: remote_sensing_ddpm.downstream_tasks.baselines.lit_baseline_downstream_task.LitBaselineDownstreamTask
@@ -232,7 +149,7 @@ pl_module:
 # MODEL TRAINING
 pl_trainer:
   accelerator: gpu
-  max_epochs: 100
+  max_epochs: 20
   log_every_n_steps: 1
   precision: "16-mixed"
   enable_checkpointing: True
@@ -244,7 +161,7 @@ pl_trainer:
 
 pl_wandb_logger:
   project: *NAME
-  name: "supervised-dfc-2020-lf-0.1"
+  name: "supervised-dfc-2020-regression"
 
 
 pl_checkpoint_callback:
