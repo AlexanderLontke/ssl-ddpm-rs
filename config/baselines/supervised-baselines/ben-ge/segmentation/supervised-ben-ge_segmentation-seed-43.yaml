@@ -3,7 +3,7 @@ seed: 43
 device: &DEVICE cuda
 monitor: &MONITOR "val/mIoU"
 monitor_mode: &MONITOR_MODE "max"
-target_key: &TARGET_KEY "label"
+target_key: &TARGET_KEY "esa_worldcover"
 output_channels: &OUTPUT_CHANNELS 11
 ewc_labels: &EWC_LABELS ["Tree cover", "Shrubland", "Grassland", "Cropland", "Built-up", "Bare", "Snow and Ice", "Permanenet water bodies", "Herbaceous wetland", "Mangroves", "Moss and lichen" ]
 

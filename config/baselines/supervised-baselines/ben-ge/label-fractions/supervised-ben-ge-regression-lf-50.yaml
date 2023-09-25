@@ -4,8 +4,8 @@ device: &DEVICE cuda
 monitor: &MONITOR "val/mean_squared_error"
 monitor_mode: &MONITOR_MODE "min"
 target_key: &TARGET_KEY "multiclass_numer"
-num_labels: &NUM_LABELS 8
-dfc_labels: &DFC_LABELS ["Forest", "Shrubland", "Grassland", "Wetlands", "Croplands", "Urban_Built-up", "Barren", "Water"]
+num_labels: &NUM_LABELS 11
+ewc_labels: &EWC_LABELS ["Tree cover", "Shrubland", "Grassland", "Cropland", "Built-up", "Bare", "Snow and Ice", "Permanenet water bodies", "Herbaceous wetland", "Mangroves", "Moss and lichen" ]
 
 data_key: &DATA_KEY "sentinel_2"
 image_channels: &IMAGE_CHANNELS 6
@@ -73,7 +73,7 @@ pipelines: &PIPELINES
   field_names: null
 
 # DATA SET CONFIG
-tuple_mapping: &TUPLE_MAPPING ["multiclass_one_h", "sentinel_1", "sentinel_2"]
+tuple_mapping: &TUPLE_MAPPING ["multiclass_numer", "sentinel_1", "sentinel_2"]
 train_torch_data_loader:
   module: remote_sensing_ddpm.utils.ffcv_loader_wrapper.FFCVLoaderWrapper
   kwargs:

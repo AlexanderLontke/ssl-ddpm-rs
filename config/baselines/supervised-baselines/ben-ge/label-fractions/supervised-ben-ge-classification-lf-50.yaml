@@ -202,14 +202,15 @@ pl_module:
     data_key: *DATA_KEY
     target_key: *TARGET_KEY
     training_metrics: *TRAIN_METRICS
-    validation_metrics: *VAL_METRICS
+    validation_metrics: *VALIDATION_METRICS
     stack_input_keys:
       - "sentinel_1"
     downstream_model:
-      module: torchvision.models
+      module: remote_sensing_ddpm.downstream_tasks.baselines.resnet_50.resnet50_variable_in_channels
       kwargs:
-        n_channels: *IMAGE_CHANNELS
-        num_classes: *OUTPUT_CHANNELS
+        in_channels: *IMAGE_CHANNELS
+        num_classes: *NUM_LABELS
+        add_sigmoid: True
 
 # MODEL TRAINING
 pl_trainer:
