@@ -1,0 +1,252 @@
+name: &NAME rs-ddpm-ms-segmentation-egypt
+seed: 42
+device: &DEVICE cuda
+monitor: &MONITOR "val/mIoU"
+monitor_mode: &MONITOR_MODE "max"
+target_key: &TARGET_KEY "esa_worldcover"
+output_channels: &OUTPUT_CHANNELS 11
+ewc_labels: &EWC_LABELS ["Tree cover", "Shrubland", "Grassland", "Cropland", "Built-up", "Bare", "Snow and Ice", "Permanenet water bodies", "Herbaceous wetland", "Mangroves", "Moss and lichen" ]
+
+data_key: &DATA_KEY "sentinel_2"
+image_channels: &IMAGE_CHANNELS 6
+train_beton_file: &TRAIN_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-train.beton
+validation_beton_file: &VALIDATION_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-validation.beton
+
+sentinel_2_pipeline: &S2_PIPELINE
+  - module: ffcv.fields.decoders.NDArrayDecoder
+  - module: remote_sensing_core.transforms.ffcv.channel_selector.ChannelSelector
+    kwargs:
+      channels: [ 3, 2, 1, 7]
+  - module: remote_sensing_core.transforms.ffcv.clipping.Clipping
+    kwargs:
+      clip_values: [0, 10000]
+  - module: remote_sensing_core.transforms.ffcv.min_max_scaler.MinMaxScaler
+    kwargs:
+      minimum_value: 0
+      maximum_value: 10000
+  - module: remote_sensing_core.transforms.ffcv.padding.Padding
+    kwargs:
+      padding: 4
+      padding_value: 0
+  - module: remote_sensing_core.transforms.ffcv.convert.Convert
+    kwargs:
+      target_dtype: "float32"
+  - module: ffcv.transforms.ToTensor
+
+sentinel_1_pipeline: &S1_PIPELINE
+  - module: ffcv.fields.decoders.NDArrayDecoder
+  - module: remote_sensing_core.transforms.ffcv.clipping.Clipping
+    kwargs:
+      clip_values: [-25, 0]
+  - module: remote_sensing_core.transforms.ffcv.min_max_scaler.MinMaxScaler
+    kwargs:
+      minimum_value: -25
+      maximum_value: 0
+  - module: remote_sensing_core.transforms.ffcv.padding.Padding
+    kwargs:
+      padding: 4
+      padding_value: 0
+  - module: remote_sensing_core.transforms.ffcv.convert.Convert
+    kwargs:
+      target_dtype: "float32"
+  - module: ffcv.transforms.ToTensor
+
+# LABEL PIPELINE
+label_pipeline: &LABEL_PIPELINE
+    - module: ffcv.fields.decoders.NDArrayDecoder
+    - module: remote_sensing_core.transforms.ffcv.esa_world_cover_transform.EsaWorldCoverTransform
+      kwargs:
+        divisor: 10.0
+        subtractor: 1.0
+    - module: remote_sensing_core.transforms.ffcv.convert.Convert
+      kwargs:
+        target_dtype: "int64"
+    - module: ffcv.transforms.ToTensor
+
+pipelines: &PIPELINES
+  climate_zone: null
+  elevation_differ: null
+  era_5: null
+  esa_worldcover: *LABEL_PIPELINE
+  glo_30_dem: null
+  multiclass_numer: null
+  multiclass_one_h: null
+  season_s1: null
+  season_s2: null
+  sentinel_1: *S1_PIPELINE
+  sentinel_2: *S2_PIPELINE
+  field_names: null
+
+# DATA SET CONFIG
+tuple_mapping: &TUPLE_MAPPING ["esa_worldcover", "sentinel_1", "sentinel_2"]
+train_torch_data_loader:
+  module: remote_sensing_ddpm.utils.ffcv_loader_wrapper.FFCVLoaderWrapper
+  kwargs:
+    fname: *TRAIN_BETON_FILE
+    batch_size: 24
+    num_workers: 4
+    order:
+      module: ffcv.loader.OrderOption
+      args: [ 3 ] # 3 is Quasi random
+    pipelines: *PIPELINES
+    mapping: *TUPLE_MAPPING
+
+
+validation_torch_data_loader:
+  module: remote_sensing_ddpm.utils.ffcv_loader_wrapper.FFCVLoaderWrapper
+  kwargs:
+    fname: *VALIDATION_BETON_FILE
+    batch_size: 24
+    num_workers: 4
+    order:
+      module: ffcv.loader.OrderOption
+      args: [ 1 ]
+    pipelines: *PIPELINES
+    mapping: *TUPLE_MAPPING
+
+# MODEL INSTANTIATION
+train_metrics: &TRAIN_METRICS
+  accuracy:
+    module: remote_sensing_ddpm.utils.torchmetrics_accuracy_adapter.AccuracyAdapter
+    kwargs:
+      apply_argmax: True
+      device: *DEVICE
+      torchmetrics_module:
+        module: torchmetrics.Accuracy
+        kwargs:
+          task: "multiclass"
+          num_classes: *OUTPUT_CHANNELS
+  mIoU:
+    module: remote_sensing_ddpm.utils.torchmetrics_jaccard_index_adapter.JaccardIndexAdapter
+    kwargs:
+      apply_argmax: True
+      device: *DEVICE
+      torchmetrics_module:
+        module: torchmetrics.JaccardIndex
+        kwargs:
+          task: "multiclass"
+          num_classes: *OUTPUT_CHANNELS
+  classwise_accuracy:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: remote_sensing_ddpm.utils.torchmetrics_accuracy_adapter.AccuracyAdapter
+        kwargs:
+          apply_argmax: True
+          device: *DEVICE
+          torchmetrics_module:
+            module: torchmetrics.Accuracy
+            kwargs:
+              task: "multiclass"
+              num_classes: *OUTPUT_CHANNELS
+              average: null
+      labels: *EWC_LABELS
+  classwise_mIoU:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: remote_sensing_ddpm.utils.torchmetrics_jaccard_index_adapter.JaccardIndexAdapter
+        kwargs:
+          apply_argmax: True
+          device: *DEVICE
+          torchmetrics_module:
+            module: torchmetrics.JaccardIndex
+            kwargs:
+              task: "multiclass"
+              num_classes: *OUTPUT_CHANNELS
+              average: null
+      labels: *EWC_LABELS
+
+validation_metrics: &VAL_METRICS
+  accuracy:
+    module: remote_sensing_ddpm.utils.torchmetrics_accuracy_adapter.AccuracyAdapter
+    kwargs:
+      apply_argmax: True
+      device: *DEVICE
+      torchmetrics_module:
+        module: torchmetrics.Accuracy
+        kwargs:
+          task: "multiclass"
+          num_classes: *OUTPUT_CHANNELS
+  mIoU:
+    module: remote_sensing_ddpm.utils.torchmetrics_jaccard_index_adapter.JaccardIndexAdapter
+    kwargs:
+      apply_argmax: True
+      device: *DEVICE
+      torchmetrics_module:
+        module: torchmetrics.JaccardIndex
+        kwargs:
+          task: "multiclass"
+          num_classes: *OUTPUT_CHANNELS
+  classwise_accuracy:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: remote_sensing_ddpm.utils.torchmetrics_accuracy_adapter.AccuracyAdapter
+        kwargs:
+          apply_argmax: True
+          device: *DEVICE
+          torchmetrics_module:
+            module: torchmetrics.Accuracy
+            kwargs:
+              task: "multiclass"
+              num_classes: *OUTPUT_CHANNELS
+              average: null
+      labels: *EWC_LABELS
+  classwise_mIoU:
+    module: torchmetrics.ClasswiseWrapper
+    kwargs:
+      metric:
+        module: remote_sensing_ddpm.utils.torchmetrics_jaccard_index_adapter.JaccardIndexAdapter
+        kwargs:
+          apply_argmax: True
+          device: *DEVICE
+          torchmetrics_module:
+            module: torchmetrics.JaccardIndex
+            kwargs:
+              task: "multiclass"
+              num_classes: *OUTPUT_CHANNELS
+              average: null
+      labels: *EWC_LABELS
+
+pl_module:
+  module: remote_sensing_ddpm.downstream_tasks.baselines.lit_baseline_downstream_task.LitBaselineDownstreamTask
+  kwargs:
+    learning_rate: 0.0001
+    loss:
+      module: torch.nn.CrossEntropyLoss
+    data_key: *DATA_KEY
+    target_key: *TARGET_KEY
+    training_metrics: *TRAIN_METRICS
+    validation_metrics: *VAL_METRICS
+    stack_input_keys:
+      - "sentinel_1"
+    downstream_model:
+      module: remote_sensing_ddpm.downstream_tasks.baselines.unet.UNet
+      kwargs:
+        n_channels: *IMAGE_CHANNELS
+        n_classes: *OUTPUT_CHANNELS
+        out_kernel_size: 9
+
+# MODEL TRAINING
+pl_trainer:
+  accelerator: gpu
+  max_epochs: 20
+  log_every_n_steps: 1
+  precision: "16-mixed"
+  enable_checkpointing: True
+  # UNCOMMENT FOR DEBUGGING
+  # fast_dev_run: True
+  # limit_train_batches: 100
+  # num_sanity_val_steps: 0
+  # limit_val_batches: 100
+
+pl_wandb_logger:
+  project: *NAME
+  name: supervised-ben-ge-segmentation
+
+pl_checkpoint_callback:
+  monitor: *MONITOR
+  mode: *MONITOR_MODE
+  save_top_k: 3
+  save_last: True
