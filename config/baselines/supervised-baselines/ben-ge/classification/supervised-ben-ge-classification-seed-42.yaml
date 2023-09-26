@@ -10,8 +10,8 @@ ewc_labels: &EWC_LABELS ["Tree cover", "Shrubland", "Grassland", "Cropland", "Bu
 
 data_key: &DATA_KEY "sentinel_2"
 image_channels: &IMAGE_CHANNELS 6
-train_beton_file: &TRAIN_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-train.beton
-validation_beton_file: &VALIDATION_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-validation.beton
+train_beton_file: &TRAIN_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-multilabel-train.beton
+validation_beton_file: &VALIDATION_BETON_FILE /ds2/remote_sensing/ben-ge/ffcv/ben-ge-60-delta-multilabel-validation.beton
 
 sentinel_2_pipeline: &S2_PIPELINE
   - module: ffcv.fields.decoders.NDArrayDecoder
