@@ -226,6 +226,7 @@ pl_module:
       kwargs:
         n_channels: *IMAGE_CHANNELS
         n_classes: *OUTPUT_CHANNELS
+        out_kernel_size: 9
 
 # MODEL TRAINING
 pl_trainer:

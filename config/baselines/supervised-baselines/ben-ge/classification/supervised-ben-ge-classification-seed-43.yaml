@@ -206,10 +206,11 @@ pl_module:
     stack_input_keys:
       - "sentinel_1"
     downstream_model:
-      module: torchvision.models
+      module: remote_sensing_ddpm.downstream_tasks.baselines.resnet_50.resnet50_variable_in_channels
       kwargs:
-        n_channels: *IMAGE_CHANNELS
+        in_channels: *IMAGE_CHANNELS
         num_classes: *NUM_LABELS
+        add_sigmoid: True
 
 # MODEL TRAINING
 pl_trainer:

@@ -66,7 +66,7 @@ validation_torch_data_loader:
   module: torch.utils.data.DataLoader
   kwargs:
     batch_size: 24
-    num_workers: 4
+    num_workers: 8
     shuffle: False
     dataset:
       module: remote_sensing_ddpm.datasets.dfc_2020.dfc_2020.DFC2020
@@ -105,8 +105,8 @@ validation_torch_data_loader:
                     size: 120
             - module: remote_sensing_ddpm.datasets.dfc_2020.augmentations.transform_image_and_label.TransformImageAndLabel
               kwargs:
-                image_key: *IMAGE_KEY
-                label_key: *LABEL_KEY
+                image_key: *DATA_KEY
+                label_key: *TARGET_KEY
                 only_image: True
                 transform_op:
                   module: torchvision.transforms.Pad
@@ -234,6 +234,7 @@ pl_module:
       kwargs:
         n_channels: *IMAGE_CHANNELS
         n_classes: *OUTPUT_CHANNELS
+        out_kernel_size: 9
 
 # MODEL TRAINING
 pl_trainer:
