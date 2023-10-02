@@ -11,3 +11,8 @@ def set_matplotlib_style():
     mpl.rcParams["errorbar.capsize"] = 5.0
 
     mpl.rcParams["legend.fontsize"] = "xx-small"  # using a named size
+    mpl.rcParams["image.cmap"] = "viridis"
+
+    # Set the font family to Computer Modern
+    mpl.rcParams['font.family'] = 'serif'
+    mpl.rcParams['font.serif'] = ['Computer Modern Roman']
