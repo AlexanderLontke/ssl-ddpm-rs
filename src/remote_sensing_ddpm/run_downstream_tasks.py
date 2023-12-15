@@ -252,7 +252,7 @@ def get_best_checkpoints(
     return best_checkpoint_paths
 
 
-def run_test(complete_config: Dict, test_beton_file: Path, wandb_run_name: str, through_callback: bool):
+def run_test(complete_config: Dict, wandb_run_name: str, through_callback: bool, test_beton_file: Optional[Path] = None):
     # Fetch best checkpoints
     wandb_sub_project_name = complete_config[PROJECT_KEY]
     best_checkpoints = get_best_checkpoints(wandb_run_name=wandb_run_name, complete_config=complete_config, wandb_sub_project_name=wandb_sub_project_name, through_callback=through_callback)
@@ -291,7 +291,8 @@ def run_test(complete_config: Dict, test_beton_file: Path, wandb_run_name: str, 
         test_dataloader_config = copy.deepcopy(
             complete_config[VALIDATION_TORCH_DATA_LOADER_CONFIG_KEY]
         )
-        test_dataloader_config[PYTHON_KWARGS_CONFIG_KEY]["fname"] = test_beton_file
+        if test_beton_file is not None:
+            test_dataloader_config[PYTHON_KWARGS_CONFIG_KEY]["fname"] = test_beton_file
         test_dataloader = instantiate_python_class_from_string_config(
             class_config=test_dataloader_config
         )
