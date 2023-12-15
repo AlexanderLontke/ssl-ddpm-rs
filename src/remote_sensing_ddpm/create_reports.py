@@ -1,3 +1,4 @@
+import math
 from typing import Dict, List, Optional, Callable, Literal, Union
 from functools import partial
 from pathlib import Path
@@ -89,7 +90,7 @@ def clean_string_outputs(string: str) -> str:
         .replace("-ewc-classification", "")
         .replace("-ewc-regression", "")
         .replace("-eval", "")
-        .replace("s2_era5", "S-2 + Era5 Data")
+        .replace("s2_era5", "S-2 + ERA-5")
         .replace("s2_rgb_nir", "S-2")
         .replace("s2_rgb", "S-2 (RGB)")
         .replace("s2_seasons", "S-2 + Seasons")
@@ -177,7 +178,13 @@ EXPERIMENTS_DICT = {
         "metrics_table_index_name": "mIoU $\\uparrow$",
         "class_fractions": TEST_SET_SEGMENTATION_CLASS_FRACTIONS,
         "run_name_suffix": "-eval",
-        "label_fractions_y_label": r"mIoU Score ($\uparrow)",
+        "label_fractions_y_label": r"mIoU Score ($\uparrow$)",
+        "line_styles_dict": {
+            "supervised-ben-ge-segmentation": "dashed",
+            "s1_s2_conditional_last-ewc-segmentation": "dashdot",
+            "s1_s2_unconditional-ewc-segmentation": "dashdot",
+        },
+        "round_up": True,
     },
     "dfc_2020_segmentation": {
         "wandb_project_ids": ["ssl-diffusion/rs-ddpm-ms-dfc-2020"],
@@ -212,7 +219,11 @@ EXPERIMENTS_DICT = {
         "baselines_to_add": [
             SCHEIBENREIF_ET_AL_SEGMENTATION,
         ],
-        "label_fractions_y_label": r"mIoU Score ($\uparrow)",
+        "label_fractions_y_label": r"mIoU ($\uparrow$)",
+        "line_styles_dict": {
+            "supervised-dfc-2020-segmentation": "dashed"
+        },
+        "round_up": True,
     },
     # CLASSIFICATION
     "classification_w_conditional": {
@@ -245,9 +256,8 @@ EXPERIMENTS_DICT = {
             "s2_ewc-ewc-classification",
         ],
         "averages": {
-            UNIFORM_AVERAGE_NAME + "F1 Score": uniform_mean,
-            CLASS_WEIGHTED_AVERAGE_NAME
-            + "F1 Score": partial(
+            UNIFORM_AVERAGE_NAME: uniform_mean,
+            CLASS_WEIGHTED_AVERAGE_NAME: partial(
                 calculate_class_weighted_mean,
                 class_fractions=TEST_SET_CLASSIFICATION_CLASS_FRACTIONS,
             ),
@@ -260,7 +270,13 @@ EXPERIMENTS_DICT = {
             "test/multilabelf1score_Herbaceous wetland",
             "test/multilabelf1score_Bare",
         ],
-        "label_fractions_y_label": r"F1 Score ($\uparrow)",
+        "label_fractions_y_label": r"F1 Score ($\uparrow$)",
+        "line_styles_dict": {
+            "supervised-ben-ge-classification": "dashed",
+            "s1_s2_conditional_last-ewc-classification": "dashdot",
+            "s1_s2_unconditional-ewc-classification": "dashdot",
+        },
+        "round_up": True,
     },
     "dfc_2020_classification": {
         "wandb_project_ids": [
@@ -293,12 +309,16 @@ EXPERIMENTS_DICT = {
         "metrics_table_index_name": "F1 Score $\\uparrow$",
         "class_fractions": DFC_2020_TEST_SET_CLASSIFICATION_CLASS_FRACTIONS,
         "transpose_metrics_table": False,
+        "round_up": True,
         "label_fraction_value_index": 99,
         "highlight_axis": 1,
         "baselines_to_add": [
             SCHEIBENREIF_ET_AL_MULTILABEL,
         ],
-        "label_fractions_y_label": r"F1 Score ($\uparrow)",
+        "label_fractions_y_label": r"F1 Score ($\uparrow$)",
+        "line_styles_dict": {
+            "supervised-dfc-2020-classification": "dashed"
+        }
     },
     # REGRESSION
     "regression_w_conditional": {
@@ -321,12 +341,26 @@ EXPERIMENTS_DICT = {
             "s2_ewc-ewc-regression",
         ],
         "averages": {
-            "Mean Squared Error": mse_mean,
+            "Root Mean Squared Error": mse_mean,
             "Mean Absolute Error": mae_mean,
         },
         "feature_extractor_files": "../../config/model_configs/downstream_tasks/feature_extractors",
         "run_name_suffix": "-eval",
         "value_multiplier": 1,
+        "drop_rows": [
+            "test/mean_absolute_error",
+            "test/mean_squared_error",
+        ],
+        "latex_table_precision": 4,
+        "round_up": True,
+        "raw_data_transform": {
+            "test/mean_squared_error": lambda y: math.sqrt(y),
+        },
+        "line_styles_dict": {
+            "supervised-ben-ge-regression": "dashed",
+            "s1_s2_conditional_last-ewc-regression": "dashdot",
+            "s1_s2_unconditional-ewc-regression": "dashdot",
+        }
     },
     "dfc_2020_regression": {
         "wandb_project_ids": ["ssl-diffusion/rs-ddpm-ms-regression-egypt"],
@@ -341,7 +375,7 @@ EXPERIMENTS_DICT = {
             "supervised-dfc-2020-regression",
         ],
         "averages": {
-            "Mean Squared Error": partial(mse_mean, logging_prefix="val/"),
+            "Root Mean Squared Error": partial(mse_mean, logging_prefix="val/"),
             "Mean Absolute Error": partial(mae_mean, logging_prefix="val/"),
         },
         "transpose_metrics_table": False,
@@ -352,6 +386,14 @@ EXPERIMENTS_DICT = {
             "val/mean_absolute_error",
             "val/mean_squared_error",
         ],
+        "latex_table_precision": 4,
+        "round_up": True,
+        "raw_data_transform": {
+            "val/mean_squared_error": lambda y: math.sqrt(y),
+        },
+        "line_styles_dict": {
+            "supervised-dfc-2020-regression": "dashed"
+        }
     },
 }
 
@@ -376,6 +418,10 @@ def create_report(
     baselines_to_add: Optional[List[Union[Dict, pd.DataFrame]]] = None,
     drop_rows: Optional[List[Union[int, str]]] = None,
     label_fractions_y_label: Optional[str] = None,
+    latex_table_precision: Optional[int] = 2,
+    round_up: bool = False,
+    raw_data_transform: Optional[Dict[str, Callable]] = None,
+    line_styles_dict: Optional[Dict[str, str]] = None,
 ):
     if averages is None:
         averages = {}
@@ -441,6 +487,7 @@ def create_report(
         value_multiplier=value_multiplier,
         verbose=True,
         baselines_to_add=baselines_to_add,
+        raw_data_transform=raw_data_transform,
     )
     average_results = {}
     for average_name, average_function in averages.items():
@@ -465,6 +512,8 @@ def create_report(
                     transpose=transpose_metrics_table,
                     highlight_axis=highlight_axis,
                     drop_rows=drop_rows,
+                    precision=latex_table_precision,
+                    round_up=round_up,
                 )
             )
         ),
@@ -480,6 +529,7 @@ def create_report(
             metrics_table,
             metrics_name=average,
             xlabel_transform=clean_string_outputs,
+            y_label=label_fractions_y_label
         )
         save_plot(main_metric_figure_output_file_path)
 
@@ -493,6 +543,7 @@ def create_report(
         metric_names=class_metrics,
         value_index=label_fraction_value_index,
         value_multiplier=value_multiplier,
+        raw_data_transform=raw_data_transform,
     )
     for average_name, average_function in averages.items():
         average_results[average_name] = average_function(lf_metrics_table)
@@ -514,6 +565,7 @@ def create_report(
             all_label_values=metrics_table,
             y_label=label_fractions_y_label,
             title=average,
+            line_styles_dict=line_styles_dict,
         )
         save_plot(label_fraction_figure_output_file_path)
 
