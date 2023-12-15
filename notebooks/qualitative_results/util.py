@@ -88,7 +88,7 @@ def visualize_batched_segmentation_sample(image, y_hat, y, num_classes, value_to
     fig, axs = plt.subplots(b, 3)
 
     # Set column labels
-    cols = ["Input image (RGB)", "Prediction", "Label"]
+    cols = ["Input image (RGB)", "Prediction", "Ground-Truth"]
     for ax, col in zip(axs[0], cols):
         ax.set_title(col)
 
